@@ -79,10 +79,7 @@
 
   <div style="padding:16px 16px 8px;">
     <div style="font-size:14px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;">Недавние агрегаты</div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);">
-      <i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i>
-      <div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый, чтобы начать.</div>
-    </div>
+    <div id="recent"></div>
   </div>
 
   <div style="flex:1;"></div>
@@ -108,5 +105,14 @@
   </div>
 
 </div>
+<script>
+  (function(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+    var el=document.getElementById('recent'); if(!el) return;
+    if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый, чтобы начать.</div></div>'; return; }
+    var h=''; list.forEach(function(it,i){ var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
+      h+='<div onclick="location.href=\'equipment.html?id='+i+'\'" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;cursor:pointer;"><i class="ti ti-box" style="font-size:22px;color:var(--info);"></i><div style="flex:1;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);">'+(it.name||'Агрегат')+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор</div></div><i class="ti ti-chevron-right" style="color:var(--text-tertiary);"></i></div>';
+    }); el.innerHTML=h;
+  })();
+</script>
 </body>
 </html>

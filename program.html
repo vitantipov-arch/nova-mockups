@@ -69,7 +69,7 @@
     <button class="toolbtn" onclick="openMethods()"><i class="ti ti-database"></i> Библиотека методов (создать / посмотреть)</button>
     <div id="list"></div>
   </div>
-  <div class="foot"><button class="next" onclick="alert('Программа сохранена при оборудовании. Готово к измерениям.')">Сохранить программу</button></div>
+  <div class="foot"><button class="next" onclick="saveProgram()">Сохранить агрегат</button></div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
@@ -164,6 +164,11 @@
 
   function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+  function saveProgram(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+    var entry={name:(AGG.name||'Агрегат'), agg:localStorage.getItem('nova_agg')||JSON.stringify(AGG), defects:localStorage.getItem('nova_defects')||'[]', program:JSON.stringify({points:points})};
+    list.push(entry); try{ localStorage.setItem('nova_list', JSON.stringify(list)); }catch(e){}
+    location.href='equipment.html?id='+(list.length-1);
+  }
   render();
 </script>
 </body>

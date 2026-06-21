@@ -335,7 +335,7 @@
   function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
   function saveAndGo(){ try{ localStorage.setItem('nova_agg', JSON.stringify({name:(document.getElementById('aggname').value||'Агрегат'), orient:orient, units:units, trans:trans})); }catch(e){} location.href='defects.html'; }
-  render();
+  (function(){ if(location.search.indexOf('load=1')>=0){ try{ var a=JSON.parse(localStorage.getItem('nova_agg')); if(a&&a.units&&a.units.length){ units=a.units; trans=a.trans||[]; orient=a.orient||'h'; document.getElementById('bh').classList.toggle('on',orient==='h'); document.getElementById('bv').classList.toggle('on',orient==='v'); document.getElementById('aggname').value=a.name||''; sel=0; } }catch(e){} } render(); })();
 </script>
 </body>
 </html>

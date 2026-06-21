@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — оборудование</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55); }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:16px;flex:1;}
+  .sec{display:flex;align-items:center;gap:14px;background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:15px;margin-bottom:11px;cursor:pointer;}
+  .sic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .sic .ti{font-size:22px;}
+  .smain{flex:1;}
+  .sname{font-size:15px;font-weight:500;}
+  .ssub{font-size:12.5px;color:var(--hint);margin-top:2px;}
+  .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
+  .meas{width:100%;height:54px;border-radius:12px;border:none;background:#2f7d4f;color:#fff;font-size:17px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="index.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl" id="nm">Оборудование</div><div class="sttl">Паспорт оборудования</div></div>
+    <i class="ti ti-dots-vertical" style="color:var(--muted);"></i>
+  </div>
+  <div class="body" id="body"></div>
+  <div class="foot"><button class="meas" onclick="alert('Переход к синхронному измерению по точкам программы')"><i class="ti ti-player-play"></i> Измерить</button></div>
+</div>
+<script>
+  function qid(){ var m=location.search.match(/id=(\d+)/); return m?parseInt(m[1]):-1; }
+  var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+  var id=qid(), it=list[id];
+  function cnt(json,fn){ try{ return fn(JSON.parse(json)); }catch(e){ return 0; } }
+  if(!it){ document.getElementById('body').innerHTML='<div style="color:var(--hint);text-align:center;padding:40px">Оборудование не найдено.</div>'; }
+  else{
+    document.getElementById('nm').textContent=it.name||'Оборудование';
+    var nv=cnt(it.agg,function(a){return a.units.length;});
+    var nm=cnt(it.agg,function(a){var c=0;a.units.forEach(function(u){c+=u.machines.length;});return c;});
+    var ns=cnt(it.agg,function(a){var c=0;a.units.forEach(function(u){c+=(u.supports||[]).length;});return c;});
+    var nd=cnt(it.defects,function(d){var c=0;d.forEach(function(b){c+=(b.sel||[]).length+(b.custom||[]).length;});return c;});
+    var pp=cnt(it.program,function(p){return p.points.length;});
+    var pm=cnt(it.program,function(p){var c=0;p.points.forEach(function(x){c+=x.meas.length;});return c;});
+    function go(layer){ try{ localStorage.setItem('nova_agg',it.agg); localStorage.setItem('nova_defects',it.defects||'[]'); }catch(e){}
+      if(layer==='s') location.href='create.html?load=1'; else if(layer==='d') location.href='defects.html'; else location.href='program.html'; }
+    document.getElementById('body').innerHTML=
+      '<div class="sec" onclick="go(\'s\')"><div class="sic" style="background:rgba(154,152,143,0.18)"><i class="ti ti-box" style="color:#cfcdc4"></i></div><div class="smain"><div class="sname">Структура</div><div class="ssub">'+nv+' валов · '+nm+' машин · '+ns+' опор</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'
+      +'<div class="sec" onclick="go(\'d\')"><div class="sic" style="background:rgba(255,178,77,0.16)"><i class="ti ti-bolt" style="color:#ffb24d"></i></div><div class="smain"><div class="sname">Дефекты</div><div class="ssub">'+nd+' выбрано для контроля</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'
+      +'<div class="sec" onclick="go(\'p\')"><div class="sic" style="background:rgba(133,183,235,0.16)"><i class="ti ti-checklist" style="color:#85b7eb"></i></div><div class="smain"><div class="sname">Программа измерений</div><div class="ssub">'+pp+' опор · '+pm+' измерений</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>';
+  }
+</script>
+</body>
+</html>
