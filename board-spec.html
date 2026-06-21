@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Задание на проектирование плат — Nova</title>
+<style>
+  :root{ --ink:#1c1c1a; --muted:#5f5e5a; --line:#dcdad2; --bg:#fff; --soft:#f6f5f0; --accent:#185fa5; --warn:#9a5b00; --warnbg:#fff4e0; --ok:#0f6e56; --okbg:#e6f5ef; --code:#f0eee8; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#e9e7df;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55;}
+  .page{max-width:900px;margin:24px auto;background:var(--bg);padding:40px 48px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.12);}
+  h1{font-size:25px;margin:0 0 4px;}
+  h2{font-size:19px;margin:34px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line);}
+  h3{font-size:15.5px;margin:20px 0 8px;color:#2c2c2a;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 6px;}
+  p{margin:8px 0;}
+  code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"SF Mono",Consolas,monospace;font-size:13px;}
+  table{border-collapse:collapse;width:100%;margin:10px 0 14px;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--soft);font-weight:600;}
+  td.pin{font-family:"SF Mono",Consolas,monospace;white-space:nowrap;}
+  ul,ol{margin:8px 0;padding-left:22px;}
+  li{margin:3px 0;}
+  .callout{border-left:4px solid var(--accent);background:#eef4fb;padding:10px 14px;border-radius:0 6px 6px 0;margin:12px 0;font-size:13.5px;}
+  .warn{border-left-color:#cc8a1f;background:var(--warnbg);}
+  .warn b{color:var(--warn);}
+  .ok{border-left-color:var(--ok);background:var(--okbg);}
+  .lead{color:var(--muted);font-size:14px;}
+  .tag{display:inline-block;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 8px;font-size:12px;color:var(--muted);margin-left:6px;}
+  pre.flow{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-family:"SF Mono",Consolas,monospace;font-size:12.5px;line-height:1.5;overflow-x:auto;}
+  a{color:var(--accent);}
+  @media print{ body{background:#fff;} .page{box-shadow:none;margin:0;max-width:none;border-radius:0;padding:0;} h2{break-after:avoid;} tr{break-inside:avoid;} }
+  @media(max-width:640px){ .page{padding:22px 16px;margin:0;border-radius:0;} table{font-size:12.5px;} th,td{padding:5px 6px;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Задание на проектирование плат</h1>
+  <p class="sub">Датчик вибрации (ICM-42688) и тахометр лазерный · система Nova · <b>рев. 2 (финальная силовая часть)</b></p>
+  <p class="lead">Две двухсторонние платы. Сторона A — модуль <b>XIAO ESP32-S3</b> (планарно). Сторона B — <b>кнопка включения и светодиоды</b>. На платах: зарядка <b>TP4056 500 мА</b>, питание, <b>кнопка без фиксации</b> (дискретный soft-latch). Все компоненты <b>SMD</b>.</p>
+
+  <h2>1. Силовая часть (общая для обеих плат)</h2>
+
+  <pre class="flow">Pogo Ø8мм (5В, поляризованный) ─► TP4056 (500мА) ─► [Защищённый LiPo] ─┬─► BAT_ADC (делитель 1:2)
+                                       │ CHRG/STDBY ─► CHG LED          │
+                                       └─ опц. NTC (TEMP, защита)       └─► soft-latch (P-FET, кнопка) ─► XIAO B+
+                                                                                        ▲ PWR_HOLD / BTN_SENSE (GPIO)
+USB-C XIAO ─ только прошивка (не заряд)                       XIAO LDO ─► 3V3 ─► ICM 3.3В, LED PWR, делитель</pre>
+
+  <h3>1.1 Вход питания и зарядка</h3>
+  <ul>
+    <li><b>Вход:</b> круглый магнитный <b>pogo Ø8 мм, 2 контакта, поляризованный</b> (+ и − не перепутать) — <b>в корпусе, не на плате</b>. На плату идут 2 провода → на плате нужны только <b>пады/2-pin разъём</b> под эти провода. Переполюсовки нет → защита от полярности не требуется; рекомендуется TVS/ESD на вход.</li>
+    <li><b>Зарядка:</b> <b>TP4056</b> на плате, ток <b>500 мА</b> (<code>Rprog ≈ 2.4 кОм</code>; I = 1200/Rprog). Конденсаторы 10 мкФ вход/выход. Заряжает батарею независимо от состояния кнопки (зарядка возможна в выключенном виде).</li>
+    <li><b>Индикация:</b> выводы <code>CHRG</code>/<code>STDBY</code> (open-drain) → CHG LED.</li>
+    <li><b>Опц. NTC</b> к выводу <code>TEMP</code> TP4056 — запрет заряда при перегреве (актуально для вибродатчика у горячей машины).</li>
+  </ul>
+
+  <h3>1.2 Батарея</h3>
+  <div class="callout ok">Защита батареи — <b>в самих ячейках</b> (защищённые LiPo с встроенной PCB). На плате контроллер защиты <b>не нужен</b>.</div>
+
+  <h3>1.3 Кнопка без фиксации — дискретный soft-latch</h3>
+  <p>Аналог XL-10AL на дискрете (модуль не используем):</p>
+  <ul>
+    <li><b>P-MOSFET</b> high-side (AO3401A / DMG3415U) между BAT+ и XIAO B+. Gate подтянут к BAT+ (по умолчанию выключено).</li>
+    <li><b>Кнопка (NO, мембранная)</b> сажает gate → включение.</li>
+    <li><b>N-MOSFET</b> (2N7002), управляемый <code>PWR_HOLD</code> GPIO, держит gate низким после отпускания (ESP поднимает hold при boot).</li>
+    <li>Кнопка заведена и на <code>BTN_SENSE</code> GPIO → ESP видит долгое нажатие → снимает <code>PWR_HOLD</code> → выключение (а также по таймауту/BLE).</li>
+    <li>Резисторы: pull-up gate ~1 МОм, кнопка ~100 кОм, цепь hold ~100 кОм; debounce 100 нФ.</li>
+  </ul>
+  <p>Нужно 2 GPIO: <code>PWR_HOLD</code> (выход), <code>BTN_SENSE</code> (вход).</p>
+
+  <h3>1.4 Контроль батареи, светодиоды, антенна</h3>
+  <ul>
+    <li><b>BAT_ADC:</b> делитель 1:2 (100 кОм + 100 кОм, <b>1%</b>) → ADC-пин. Утечка ~21 мкА.</li>
+    <li><b>LED PWR (зелёный):</b> 3V3 → 1 кОм → LED → GND.</li>
+    <li><b>LED CHG (оранжевый):</b> от <code>CHRG</code> TP4056.</li>
+    <li><b>Антенна:</b> внешняя FPC 2.4 ГГц через U.FL XIAO (перекинуть 0Ω PCB-ANT → IPEX). Критично для вибро (металлическое основание).</li>
+  </ul>
+
+  <h2>2. Плата ДАТЧИКА ВИБРАЦИИ <span class="tag">ICM-42688, 3.3В</span></h2>
+  <p class="lead">ICM-42688-P, <b>SPI 4-wire</b>, питание <b>3.3В от XIAO</b> (поддерживается, boost/level-shift не нужны), внешний клок <b>CLKIN 32.768 кГц</b>, прерывание <b>DRDY</b>.</p>
+
+  <h3>2.1 Распиновка XIAO (вибро)</h3>
+  <table>
+    <tr><th>XIAO</th><th>GPIO</th><th>Функция</th><th>Напр.</th></tr>
+    <tr><td class="pin">D0</td><td class="pin">1</td><td>CLKIN → ICM pin9 (LEDC 32.768 кГц)</td><td>выход</td></tr>
+    <tr><td class="pin">D1</td><td class="pin">2</td><td><b>PWR_HOLD</b> (soft-latch keep-alive)</td><td>выход</td></tr>
+    <tr><td class="pin">D2</td><td class="pin">3</td><td><b>BTN_SENSE</b> (нажатие кнопки)</td><td>вход</td></tr>
+    <tr><td class="pin">D3</td><td class="pin">4</td><td>BAT_ADC (делитель 1:2)</td><td>вход(ADC)</td></tr>
+    <tr><td class="pin">D4</td><td class="pin">5</td><td>резерв (опц. CHG_SENSE)</td><td>—</td></tr>
+    <tr><td class="pin">D5</td><td class="pin">6</td><td>резерв</td><td>—</td></tr>
+    <tr><td class="pin">D6</td><td class="pin">43</td><td>ICM INT1 = DRDY</td><td>вход</td></tr>
+    <tr><td class="pin">D7</td><td class="pin">44</td><td>ICM nCS</td><td>выход</td></tr>
+    <tr><td class="pin">D8</td><td class="pin">7</td><td>ICM SCLK</td><td>выход</td></tr>
+    <tr><td class="pin">D9</td><td class="pin">8</td><td>ICM SDO (MISO)</td><td>вход</td></tr>
+    <tr><td class="pin">D10</td><td class="pin">9</td><td>ICM SDI (MOSI)</td><td>выход</td></tr>
+  </table>
+  <div class="callout">Обвязка ICM: VDD 100 нФ + 2.2 мкФ, VDDIO 100 нФ. <code>PIN9_FUNCTION=CLKIN</code>, <code>RTC_MODE=on</code> (прошивка). WHO_AM_I = 0x47. SPI ≤ 10 МГц.</div>
+  <div class="callout warn"><b>Механика:</b> ICM-42688 — <b>жёсткая связь с металлическим основанием</b>. ICM на нижней стороне платы (к основанию), XIAO сверху. XIAO паять <b>планарно (кастелляции), без гребёнок</b> — иначе демпфирование вибрации.</div>
+
+  <h3>2.2 BOM (вибро)</h3>
+  <table>
+    <tr><th>Поз</th><th>Наименование</th><th>Кол-во</th></tr>
+    <tr><td>U1</td><td>XIAO ESP32-S3 (с U.FL)</td><td>1</td></tr>
+    <tr><td>U2</td><td>ICM-42688-P (LGA-14, bare) — <i>или breakout 3.3В</i></td><td>1</td></tr>
+    <tr><td>U3</td><td>TP4056 (заряд 500 мА), Rprog 2.4 кОм, 2×10 мкФ</td><td>1</td></tr>
+    <tr><td>Q1</td><td>P-MOSFET soft-latch (AO3401A/DMG3415U)</td><td>1</td></tr>
+    <tr><td>Q2</td><td>N-MOSFET 2N7002 (hold)</td><td>1</td></tr>
+    <tr><td>J1</td><td>Пады/2-pin разъём под провода к pogo (pogo Ø8 мм — в корпусе)</td><td>1</td></tr>
+    <tr><td>BT1</td><td>Защищённый LiPo (параллельно, ёмкость по компоновке)</td><td>1–3</td></tr>
+    <tr><td>SW1</td><td>Кнопка мембранная тактовая NO (сторона B)</td><td>1</td></tr>
+    <tr><td>LED1/2</td><td>зелёный (PWR) / оранжевый (CHG)</td><td>2</td></tr>
+    <tr><td>R,C</td><td>делитель 100к×2 (1%), LED 1к×2, soft-latch (1М,100к×2), debounce 100н, обвязка ICM, опц. NTC, TVS на вход</td><td>—</td></tr>
+  </table>
+
+  <h2>3. Плата ТАХОМЕТРА <span class="tag">лазерный</span></h2>
+  <p class="lead">Лазер 650 нм + фототранзистор SD5491 + индикатор оборотов. Силовая часть — как §1 (TP4056, pogo, soft-latch).</p>
+
+  <h3>3.1 Распиновка XIAO (тахометр)</h3>
+  <table>
+    <tr><th>XIAO</th><th>GPIO</th><th>Функция</th><th>Напр.</th></tr>
+    <tr><td class="pin">D0</td><td class="pin">1</td><td>SD5491 коллектор (+ pull-up 10 кОм к 3V3)</td><td>вход</td></tr>
+    <tr><td class="pin">D1</td><td class="pin">2</td><td>Лазер через N-MOSFET (gate)</td><td>выход</td></tr>
+    <tr><td class="pin">D2</td><td class="pin">3</td><td><b>BTN_SENSE</b></td><td>вход</td></tr>
+    <tr><td class="pin">D3</td><td class="pin">4</td><td>BAT_ADC (делитель 1:2)</td><td>вход(ADC)</td></tr>
+    <tr><td class="pin">D4</td><td class="pin">5</td><td><b>PWR_HOLD</b></td><td>выход</td></tr>
+    <tr><td class="pin">D5–D8</td><td class="pin">6,43,44,7</td><td>резерв</td><td>—</td></tr>
+    <tr><td class="pin">D9</td><td class="pin">8</td><td>LED3 «обороты»</td><td>выход</td></tr>
+    <tr><td class="pin">D10</td><td class="pin">9</td><td>резерв</td><td>—</td></tr>
+  </table>
+  <div class="callout warn"><b>Лазер — через N-MOSFET</b> (Rg 100 Ω, Rgs 100 кΩ pull-down, R лазера 33–47 Ω от 3V3). Безопасное состояние: при boot лазер OFF + watchdog. Лазер и SD5491 — в общей трубке-экране (вынос на проводах — предусмотреть пады).</div>
+
+  <h3>3.2 BOM (тахометр)</h3>
+  <table>
+    <tr><th>Поз</th><th>Наименование</th><th>Кол-во</th></tr>
+    <tr><td>U1</td><td>XIAO ESP32-S3 (с U.FL)</td><td>1</td></tr>
+    <tr><td>U2</td><td>Лазерный модуль 650 нм, класс 2</td><td>1</td></tr>
+    <tr><td>Q1</td><td>N-MOSFET ключ лазера (2N7002/AO3400)</td><td>1</td></tr>
+    <tr><td>PT1</td><td>SD5491-004 фототранзистор NPN TO-18</td><td>1</td></tr>
+    <tr><td>U3,Q2,Q3</td><td>TP4056 (500 мА) + soft-latch (P-FET + N-FET)</td><td>1+2</td></tr>
+    <tr><td>J1</td><td>Пады/2-pin разъём под провода к pogo (pogo Ø8 мм — в корпусе)</td><td>1</td></tr>
+    <tr><td>BT1</td><td>Защищённый LiPo</td><td>1–3</td></tr>
+    <tr><td>SW1</td><td>Кнопка мембранная NO (сторона B)</td><td>1</td></tr>
+    <tr><td>LED1/2/3</td><td>зелёный (PWR)/оранжевый (CHG)/жёлтый (обороты)</td><td>3</td></tr>
+    <tr><td>R,C</td><td>10к (pull-up), 33–47Ω (лазер), Rg 100Ω, Rgs 100к, 220Ω (LED3), LED 1к×2, делитель 100к×2 1%, soft-latch, обвязка зарядника</td><td>—</td></tr>
+  </table>
+
+  <h2>4. Габариты, монтаж, плотность</h2>
+  <ul>
+    <li><b>Целевой размер ≤ 25 мм</b> по бóльшей стороне (XIAO ~21×17.5 мм → плата чуть больше XIAO). 4 угловых крепёжных отверстия (M2 → Ø2.2 мм, зенковка, keepout).</li>
+    <li>XIAO — планарно (кастелляции). Компоненты — мелкие SMD (0402, SOT-23, малый QFN), <b>обе стороны</b>, в т.ч. под XIAO.</li>
+    <li>Полигон GND + via-stitching; развязка по всем рельсам.</li>
+    <li>Доступ к USB-C XIAO (прошивка) — у края/вырез.</li>
+  </ul>
+  <div class="callout"><b>По плотности:</b> pogo Ø8 мм — <b>в корпусе</b> (на плате только пады под 2 провода), это освобождает площадь. На плате остаются TP4056 + soft-latch (3 SOT-23) + делитель + 2–3 LED + кнопка + обвязка ICM — реально размещаются мелким SMD на двух сторонах при ≤25 мм. Если по разводке всё же тесно — минимальное увеличение габарита или вынос батареи на проводах.</div>
+
+  <h2>5. На обсуждение с разработчиком</h2>
+  <ul>
+    <li><b>Газ-метр (топливомер)</b> — опционально вместо делителя (например MAX17048, I²C): точный % заряда. <b>Ждём предложение разработчика</b> — ставить или делителя достаточно.</li>
+    <li>Тип <b>2-pin разъёма/падов</b> на плате под провода от pogo (pogo Ø8 мм — в корпусе).</li>
+    <li>Тип/ёмкость/число <b>LiPo-ячеек</b> под итоговый корпус; пады/разъём.</li>
+    <li>ICM-42688: <b>bare chip vs breakout</b> (рекомендуется bare для компактности).</li>
+    <li><b>NTC для заряда</b> (TP4056 TEMP) — ставим для безопасности у горячей машины?</li>
+    <li><b>Вынос лазера/фото</b> тахометра — на проводах или на плате.</li>
+  </ul>
+
+  <p style="color:var(--muted);font-size:13px;margin-top:28px;border-top:1px solid var(--line);padding-top:12px;">Рев. 2 · финальная силовая часть. Детализация любого узла (схема soft-latch, обвязка TP4056/ICM, разводка под жёсткую связь с основанием) — по запросу.</p>
+
+</div>
+</body>
+</html>
