@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — макеты</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --bg-page:#141413; --bg-primary:#1f1f1d; --bg-secondary:#2a2a27;
+    --text-primary:#ececea; --text-secondary:#b4b2a9; --text-tertiary:#86857e;
+    --border:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.22);
+    --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-border:rgba(55,138,221,0.55);
+    --success:#97c459; --warning:#ef9f27; --danger:#e24b4a;
+    --r-md:8px; --r-lg:12px; --r-xl:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg-page);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text-primary);
+       display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;background:var(--bg-page);display:flex;flex-direction:column;min-height:100vh;}
+  button{font-family:inherit;color:var(--text-primary);background:transparent;border:0.5px solid var(--border-strong);
+         border-radius:var(--r-md);cursor:pointer;}
+  button:active{transform:scale(0.98);}
+  .row{display:flex;align-items:center;}
+  .ti{line-height:1;}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <div class="row" style="justify-content:space-between;padding:22px 18px 18px;">
+    <div class="row" style="gap:13px;">
+      <svg width="40" height="40" viewBox="0 0 56 56" aria-label="Логотип Nova">
+        <g stroke-width="1.7" stroke-linecap="round">
+          <line x1="28" y1="28" x2="28" y2="10" stroke="#ffb24d"/>
+          <line x1="28" y1="28" x2="46" y2="22" stroke="#ff5db1"/>
+          <line x1="28" y1="28" x2="40" y2="44" stroke="#8a5cff"/>
+          <line x1="28" y1="28" x2="16" y2="44" stroke="#4d8dff"/>
+          <line x1="28" y1="28" x2="10" y2="22" stroke="#38e1d6"/>
+        </g>
+        <circle cx="28" cy="10" r="3" fill="#ffb24d"/>
+        <circle cx="46" cy="22" r="3" fill="#ff5db1"/>
+        <circle cx="40" cy="44" r="3" fill="#8a5cff"/>
+        <circle cx="16" cy="44" r="3" fill="#4d8dff"/>
+        <circle cx="10" cy="22" r="3" fill="#38e1d6"/>
+        <circle cx="28" cy="28" r="5" fill="#ff3b3b"/>
+      </svg>
+      <div>
+        <div style="font-size:24px;font-weight:500;line-height:1.1;letter-spacing:0.3px;">Nova</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Революция в вибродиагностике</div>
+      </div>
+    </div>
+    <i class="ti ti-settings" style="font-size:24px;color:var(--text-secondary);"></i>
+  </div>
+
+  <div class="row" style="justify-content:space-between;margin:0 16px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);">
+    <div class="row" style="gap:10px;">
+      <i class="ti ti-bluetooth" style="font-size:21px;color:var(--text-tertiary);"></i>
+      <span style="font-size:14px;color:var(--text-secondary);">Датчики не подключены</span>
+    </div>
+    <span style="font-size:14px;color:var(--info);">Подключить</span>
+  </div>
+
+  <div style="padding:18px 16px 8px;">
+    <button onclick="location.href='create.html'" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px;text-align:left;border:2px solid var(--info-border);background:var(--info-bg);border-radius:var(--r-lg);cursor:pointer;">
+      <i class="ti ti-plus" style="font-size:27px;color:var(--info);"></i>
+      <span style="display:flex;flex-direction:column;">
+        <span style="font-weight:500;color:var(--info);font-size:16px;">Создать агрегат</span>
+        <span style="font-size:13px;color:var(--info);opacity:0.85;">Собрать агрегат из блоков</span>
+      </span>
+    </button>
+
+    <button style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;font-size:15px;">
+      <i class="ti ti-folder-open" style="font-size:23px;color:var(--text-secondary);"></i>
+      Открыть агрегат
+    </button>
+  </div>
+
+  <div style="padding:16px 16px 8px;">
+    <div style="font-size:14px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;">Недавние агрегаты</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);">
+      <i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i>
+      <div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый, чтобы начать.</div>
+    </div>
+  </div>
+
+  <div style="flex:1;"></div>
+
+  <div style="text-align:center;padding:6px 0 4px;font-size:11px;color:var(--text-tertiary);">v0.1</div>
+
+  <div class="row" style="justify-content:space-around;padding:12px 6px 18px;border-top:0.5px solid var(--border);">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--info);">
+      <i class="ti ti-box" style="font-size:24px;"></i><span style="font-size:11px;">Агрегаты</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
+      <i class="ti ti-activity" style="font-size:24px;"></i><span style="font-size:11px;">Измерение</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
+      <i class="ti ti-scale" style="font-size:24px;"></i><span style="font-size:11px;">Баланс.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
+      <i class="ti ti-chart-bar" style="font-size:24px;"></i><span style="font-size:11px;">Диагност.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
+      <i class="ti ti-settings" style="font-size:24px;"></i><span style="font-size:11px;">Настройки</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

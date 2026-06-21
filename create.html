@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — создание агрегата</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55); --r:12px; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:16px;flex:1;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--hint);margin-bottom:6px;}
+  .field input{width:100%;height:42px;background:var(--secondary);border:0.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:0 12px;font-family:inherit;}
+  .field input:read-only{color:var(--hint);background:rgba(255,255,255,0.03);}
+  .seg{display:flex;gap:6px;background:var(--secondary);border-radius:10px;padding:4px;margin-bottom:14px;}
+  .seg button{flex:1;height:34px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .seg button.on{background:var(--info-bg);color:var(--info);}
+  .canvas{background:var(--primary);border:0.5px solid var(--border);border-radius:var(--r);overflow:auto;padding:10px;}
+  .canvas svg{display:block;}
+  .toolbar{display:flex;gap:8px;margin-top:10px;}
+  .toolbar button{flex:1;height:42px;border:0.5px dashed var(--border2);background:transparent;color:var(--text);border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+  .note{font-size:12px;color:var(--hint);margin-top:10px;display:flex;gap:7px;align-items:flex-start;line-height:1.4;}
+  .note .ti{font-size:15px;margin-top:1px;}
+  .panel{margin-top:16px;background:var(--primary);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;}
+  .panel.hidden{display:none;}
+  .prow{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .pname{font-size:15px;font-weight:500;}
+  .sublbl{font-size:12px;color:var(--hint);margin:14px 0 8px;}
+  .mrow{display:flex;align-items:center;gap:8px;background:var(--secondary);border-radius:10px;padding:8px 10px;margin-bottom:8px;flex-wrap:wrap;}
+  .mdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+  .mname{flex:1;font-size:14px;min-width:80px;}
+  .seg2{display:flex;gap:4px;background:var(--bg);border-radius:7px;padding:3px;}
+  .seg2 button{border:none;background:transparent;color:var(--hint);font-size:11px;font-family:inherit;border-radius:5px;padding:5px 8px;cursor:pointer;}
+  .seg2 button.on{background:var(--info-bg);color:var(--info);}
+  .mtrash{font-size:16px;color:#e24b4a;cursor:pointer;}
+  .addbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;height:40px;background:transparent;border:0.5px dashed var(--border2);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px;}
+  .pf input{width:100%;height:38px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;}
+  .pf input:read-only{color:var(--hint);background:rgba(255,255,255,0.03);}
+  .freq{margin-top:12px;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--info);display:flex;align-items:center;gap:8px;}
+  .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
+  .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .next:disabled{opacity:0.4;border-color:var(--border2);background:transparent;color:var(--hint);}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
+  .backdrop.on{opacity:1;pointer-events:auto;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:88vh;overflow-y:auto;}
+  .sheet.on{transform:translateY(0);}
+  .sheet h3{font-size:15px;font-weight:500;margin:4px 0 12px;}
+  .opt{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:11px;cursor:pointer;border:1.5px solid transparent;}
+  .opt:active{background:var(--secondary);}
+  .opt.on{border-color:var(--info-bd);background:var(--info-bg);}
+  .pic{width:40px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .pic .ti{font-size:20px;}
+  .opt .pn{font-size:14.5px;font-weight:500;}
+  .opt .pd{font-size:12px;color:var(--hint);}
+  .lparams{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);}
+  .dirrow{display:flex;gap:10px;margin-bottom:10px;}
+  .dirrow .dg{flex:1;}
+  .dirrow .dg>div{font-size:11px;color:var(--hint);margin-bottom:5px;}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <div class="hd">
+    <a href="index.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Новый агрегат</div><div class="sttl">Валы · машины · передачи</div></div>
+    <i class="ti ti-check" style="color:var(--info);"></i>
+  </div>
+
+  <div class="body">
+    <div class="field">
+      <label>Название агрегата</label>
+      <input type="text" id="aggname" placeholder="Например, Насосный агрегат Н-3"/>
+    </div>
+
+    <div class="seg">
+      <button id="bh" class="on" onclick="setOrient('h')"><i class="ti ti-arrows-horizontal"></i> Горизонтальный</button>
+      <button id="bv" onclick="setOrient('v')"><i class="ti ti-arrows-vertical"></i> Вертикальный</button>
+    </div>
+
+    <div class="canvas" id="canvas"></div>
+    <div class="toolbar" id="toolbar"></div>
+    <div class="note" id="hint"><i class="ti ti-info-circle"></i><span>Добавьте первый вал — на него сядет двигатель. Привод — вал с двигателем; от него частота расходится по цепочке.</span></div>
+
+    <div class="panel hidden" id="panel"></div>
+  </div>
+
+  <div class="foot"><button class="next" id="next" disabled onclick="saveAndGo()">Далее → дефекты</button></div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div>
+
+<script>
+  const MT = {
+    motor:{name:'Двигатель', color:'#4d8dff', icon:'ti-bolt'},
+    pump:{name:'Насос', color:'#38e1d6', icon:'ti-droplet'},
+    fan:{name:'Вентилятор', color:'#ff5db1', icon:'ti-propeller'},
+    comp:{name:'Компрессор', color:'#ffb24d', icon:'ti-engine'},
+    gen:{name:'Генератор', color:'#9b6cff', icon:'ti-battery-charging'}
+  };
+  const LINKS = {
+    rigid:{name:'Муфта жёсткая', desc:'соосно, 1:1', off:false, params:[]},
+    elastic:{name:'Муфта упругая', desc:'соосно, пальцы + центровка', off:false, params:[{k:'pins',l:'Число пальцев'},{k:'radial',l:'Радиальное, мм'}]},
+    belt:{name:'Ремённая', desc:'перпендикулярно, шкивы + ремень', off:true, params:[{k:'d1',l:'Ø ведущего, мм'},{k:'d2',l:'Ø ведомого, мм'},{k:'len',l:'Длина ремня, мм'}]},
+    gear:{name:'Зубчатая', desc:'перпендикулярно, шестерни', off:true, params:[{k:'z1',l:'Зубья ведущей'},{k:'z2',l:'Зубья ведомой'}]}
+  };
+  const BRG = [
+    {id:'6206', n:'6206', t:'Шариковый радиальный', kind:'rolling'},
+    {id:'6208', n:'6208', t:'Шариковый радиальный', kind:'rolling'},
+    {id:'6308', n:'6308', t:'Шариковый радиальный', kind:'rolling'},
+    {id:'6309', n:'6309', t:'Шариковый радиальный', kind:'rolling'},
+    {id:'NU309', n:'NU309', t:'Роликовый цилиндрический', kind:'rolling'},
+    {id:'NJ308', n:'NJ308', t:'Роликовый цилиндрический', kind:'rolling'},
+    {id:'22310', n:'22310', t:'Роликовый сферич. 2-ряд.', kind:'rolling'},
+    {id:'7308', n:'7308', t:'Радиально-упорный шариковый', kind:'rolling'},
+    {id:'30308', n:'30308', t:'Роликовый конический', kind:'rolling'},
+    {id:'1308', n:'1308', t:'Шариковый сферич. 2-ряд.', kind:'rolling'},
+    {id:'sl-rad', n:'Скольжения радиальный', t:'Подшипник скольжения', kind:'journal'},
+    {id:'sl-seg', n:'Сегментный (баббит)', t:'Скольжения, сегментный', kind:'journal'},
+    {id:'sl-thr', n:'Упорный скольжения', t:'Скольжения упорный', kind:'journal'}
+  ];
+  function brgName(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].n; return ''; }
+  function brgType(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].t; return ''; }
+  const RH=92, GAPC=30, SW=50, CW=44;
+  let units=[], trans=[], sel=null, curLink=null, addSide='r', orient='h';
+
+  function ratio(T){ if(T.type==='belt'){var a=parseFloat(T.d1),b=parseFloat(T.d2); return (a&&b)?a/b:null;} if(T.type==='gear'){var a=parseFloat(T.z1),b=parseFloat(T.z2); return (a&&b)?a/b:null;} return 1; }
+  function srcIdx(){ for(var i=0;i<units.length;i++) if(units[i].machines.some(function(m){return m.type==='motor';})) return i; return 0; }
+  function rigidGroup(i){ var g=[i],a=i,b=i; while(a>0 && !LINKS[trans[a-1].type].off){ a--; g.unshift(a); } while(b<units.length-1 && !LINKS[trans[b].type].off){ b++; g.push(b); } return g; }
+  function compute(){ if(!units.length) return;
+    var groups=[],cur=[0];
+    for(var i=1;i<units.length;i++){ if(LINKS[trans[i-1].type].off){ groups.push(cur); cur=[i]; } else cur.push(i); }
+    groups.push(cur);
+    var s=srcIdx(), gd=0; groups.forEach(function(g,gi){ if(g.indexOf(s)>=0) gd=gi; });
+    var base=groups.map(function(g){ return parseFloat(units[g[0]].rpm)||0; });
+    var man=groups.map(function(){ return false; });
+    for(var gi=gd+1; gi<groups.length; gi++){ var r=ratio(trans[groups[gi][0]-1]); if(r!==null) base[gi]=Math.round(base[gi-1]*r); else man[gi]=true; }
+    for(var gi=gd-1; gi>=0; gi--){ var r=ratio(trans[groups[gi+1][0]-1]); if(r!==null) base[gi]=Math.round(base[gi+1]/r); else man[gi]=true; }
+    groups.forEach(function(g,gi){ g.forEach(function(idx){ units[idx].rpm=String(base[gi]); units[idx].man=man[gi]; }); });
+  }
+
+  function locLayout(u){
+    var L=u.machines.filter(function(m){return m.pos==='left';});
+    var C=u.machines.filter(function(m){return m.pos==='center';});
+    var R=u.machines.filter(function(m){return m.pos==='right';});
+    var x=6, mids=[], b1, b2;
+    L.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
+    b1=x+4; x+=(C.length?12:34);
+    C.forEach(function(m){ mids.push({m:m,a:x+SW/2,w:SW,oh:0}); x+=SW+4; });
+    b2=x+4; x+=12;
+    R.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
+    return {W:x+2, mids:mids, supStart:b1, supEnd:b2};
+  }
+  function shaftW(u){ return locLayout(u).W; }
+
+  function layout(){
+    var P=[];
+    units.forEach(function(u,i){ var W=shaftW(u), p={W:W};
+      if(i===0){ p.aMin=0; p.aMax=W; p.c=0; p.dir=1; p.outA=W; }
+      else { var T=trans[i-1], pr=P[i-1];
+        if(!LINKS[T.type].off){ p.dir=pr.dir; p.c=pr.c; if(p.dir>0){p.aMin=pr.outA+GAPC; p.aMax=p.aMin+W;} else {p.aMax=pr.outA-GAPC; p.aMin=p.aMax-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.coup=true; p.ca=(pr.outA+(p.dir>0?p.aMin:p.aMax))/2; }
+        else { var bs=(T.beltDir==='up')?-1:1; p.c=pr.c+bs*RH; p.beltA=pr.outA; p.c1=pr.c; p.c2=p.c; p.dir=(T.nextDir==='left')?-1:1; if(p.dir>0){p.aMin=pr.outA; p.aMax=pr.outA+W;} else {p.aMax=pr.outA; p.aMin=pr.outA-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.belt=true; }
+      }
+      P.push(p);
+    });
+    return P;
+  }
+
+  function render(){
+    compute();
+    document.getElementById('next').disabled=units.length===0;
+    document.getElementById('hint').style.display=units.length?'none':'flex';
+    var tb=document.getElementById('toolbar');
+    var lA = orient==='h' ? '<i class="ti ti-arrow-left"></i> вал слева' : '<i class="ti ti-arrow-up"></i> вал сверху';
+    var rA = orient==='h' ? 'вал справа <i class="ti ti-arrow-right"></i>' : 'вал снизу <i class="ti ti-arrow-down"></i>';
+    tb.innerHTML = units.length
+      ? '<button onclick="addUnit(\'l\')">'+lA+'</button><button onclick="addUnit(\'r\')">'+rA+'</button>'
+      : '<button onclick="addUnit(\'r\')"><i class="ti ti-plus"></i> Добавить вал</button>';
+    var c=document.getElementById('canvas');
+    if(!units.length){ c.innerHTML='<svg width="100%" height="110"></svg>'; renderPanel(); return; }
+    var P=layout();
+    var aLo=1e9,aHi=-1e9,cLo=1e9,cHi=-1e9;
+    P.forEach(function(p){ aLo=Math.min(aLo,p.aMin); aHi=Math.max(aHi,p.aMax); cLo=Math.min(cLo,p.c); cHi=Math.max(cHi,p.c); });
+    var minX,minY,W,H;
+    if(orient==='h'){ minX=aLo-10; minY=cLo-46; W=(aHi+10)-minX; H=(cHi+46)-minY; }
+    else { minX=cLo-50; minY=aLo-10; W=(cHi+95)-minX; H=(aHi+10)-minY; }
+    var conns='',sh='';
+    P.forEach(function(p,i){ if(i>0) conns+=drawConn(p,i); sh+=drawUnit(units[i],p,i); });
+    c.innerHTML='<svg width="'+Math.max(W,300)+'" height="'+H+'" viewBox="'+minX+' '+minY+' '+W+' '+H+'">'+conns+sh+'</svg>';
+  }
+
+  function PT(a,c){ return orient==='h'?[a,c]:[c,a]; }
+  function ln(a0,c0,a1,c1,st,w,ex){ var p=PT(a0,c0),q=PT(a1,c1); return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="'+st+'" stroke-width="'+w+'" stroke-linecap="round" '+(ex||'')+'/>'; }
+  function rc(a0,a1,c0,c1,at){ var p=PT(a0,c0),q=PT(a1,c1); var x=Math.min(p[0],q[0]),y=Math.min(p[1],q[1]); return '<rect x="'+x+'" y="'+y+'" width="'+Math.abs(q[0]-p[0])+'" height="'+Math.abs(q[1]-p[1])+'" '+at+'/>'; }
+  function tx(a,c,s,fill,sz){ var p=PT(a,c); return '<text x="'+p[0]+'" y="'+p[1]+'" font-size="'+(sz||10.5)+'" fill="'+fill+'" text-anchor="middle" dominant-baseline="middle">'+s+'</text>'; }
+  function cir(a,c,r,at){ var p=PT(a,c); return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+r+'" '+at+'/>'; }
+
+  function drawUnit(u,p,i){
+    var LL=locLayout(u), a0=p.aMin, c=p.c, a1=p.aMax, s='';
+    s+=ln(a0,c,a1,c,'#9a988f',2.4);
+    LL.mids.forEach(function(it){ var am=a0+it.a,col=MT[it.m.type].color,h=it.oh?22:30;
+      s+=rc(am-it.w/2,am+it.w/2,c-h/2,c+h/2,'rx="4" fill="'+col+'" fill-opacity="0.2" stroke="'+col+'" stroke-width="1.5"');
+      if(orient==='h') s+=tx(am, c+h/2+12, MT[it.m.type].name, '#b4b2a9', 10.5);
+      else s+='<text x="'+(c+h/2+8)+'" y="'+am+'" font-size="10.5" fill="#b4b2a9" text-anchor="start" dominant-baseline="middle">'+MT[it.m.type].name+'</text>';
+    });
+    s+=rc(a0-5,a1+5,c-42,c+42,'rx="9" fill="transparent" stroke="'+(i===sel?'#85b7eb':'transparent')+'" stroke-width="1.3" style="cursor:pointer" onclick="selUnit('+i+')"');
+    var ns=u.supports.length, s0=LL.supStart, s1=LL.supEnd;
+    for(var k=0;k<ns;k++){
+      var ab=a0+(ns===1?(s0+s1)/2:s0+(s1-s0)*k/(ns-1));
+      var sup=u.supports[k], picked=sup.brgs.some(function(b){return b;}), bc=picked?'#cfcdc4':'#ef9f27';
+      s+=ln(ab,c-12,ab,c-3,bc,2.4)+ln(ab,c+3,ab,c+12,bc,2.4);
+      var num=supNum(i,k), lbl='№'+num;
+      if(orient==='h') s+=tx(ab,c-16,lbl,'#86857e',7.5);
+      else s+='<text x="'+(c-14)+'" y="'+ab+'" font-size="7.5" fill="#86857e" text-anchor="end" dominant-baseline="middle">'+lbl+'</text>';
+      s+=rc(ab-8,ab+8,c-13,c+13,'fill="transparent" style="cursor:pointer" onclick="openSupport('+i+','+k+')"');
+    }
+    return s;
+  }
+  function drawConn(p,i){ var T=trans[i-1], c=p.c, g='#86857e';
+    if(p.coup){ var ca=p.ca,s=ln(ca-13,c,ca+13,c,g,2.4);
+      if(T.type==='elastic'){ s+=rc(ca-3,ca-0.8,c-7,c+7,'fill="'+g+'"')+rc(ca+1,ca+3.2,c-7,c+7,'fill="'+g+'"'); }
+      else { s+=rc(ca-4,ca-1.6,c-7,c+7,'fill="'+g+'"')+rc(ca+1.6,ca+4,c-7,c+7,'fill="'+g+'"'); }
+      s+=rc(ca-14,ca+14,c-9,c+9,'fill="transparent" style="cursor:pointer" onclick="openLink('+(i-1)+')"'); return s;
+    }
+    if(p.belt){ var ba=p.beltA,c1=p.c1,c2=p.c2,s=cir(ba,c1,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"')+cir(ba,c2,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"');
+      if(T.type==='belt'){ s+=ln(ba-5,c1,ba-5,c2,g,1.8)+ln(ba+5,c1,ba+5,c2,g,1.8); } else { s+=ln(ba,c1,ba,c2,g,2.6); }
+      s+=rc(ba-9,ba+9,Math.min(c1,c2),Math.max(c1,c2),'fill="transparent" style="cursor:pointer" onclick="openLink('+(i-1)+')"'); return s;
+    }
+    return '';
+  }
+
+  function setOrient(o){ orient=o; document.getElementById('bh').classList.toggle('on',o==='h'); document.getElementById('bv').classList.toggle('on',o==='v'); render(); }
+  function selUnit(i){ sel=i; render(); renderPanel(); }
+  function renderPanel(){
+    var p=document.getElementById('panel');
+    if(sel===null||!units[sel]){ p.classList.add('hidden'); return; }
+    compute(); var u=units[sel], inDrv=rigidGroup(sel).indexOf(srcIdx())>=0, canEdit=inDrv||u.man, ms='';
+    u.machines.forEach(function(m,j){
+      ms+='<div class="mrow"><span class="mdot" style="background:'+MT[m.type].color+'"></span>'
+        +'<span class="mname" onclick="machPalette('+j+')">'+MT[m.type].name+'</span>'
+        +'<div class="seg2"><button class="'+(m.pos==='left'?'on':'')+'" onclick="setPos('+j+',\'left\')">консоль◄</button><button class="'+(m.pos==='center'?'on':'')+'" onclick="setPos('+j+',\'center\')">центр</button><button class="'+(m.pos==='right'?'on':'')+'" onclick="setPos('+j+',\'right\')">►консоль</button></div>'
+        +'<i class="ti ti-trash mtrash" onclick="delMach('+j+')"></i></div>';
+    });
+    var supTbl='';
+    u.supports.forEach(function(sp,k){ var names=sp.brgs.filter(function(b){return b;}).map(function(b){return brgName(b);}); var t=names.length?names.join(', '):'не выбран'; supTbl+='<div class="mrow" style="cursor:pointer" onclick="openSupport('+sel+','+k+')"><span class="mname">Опора №'+supNum(sel,k)+'</span><span style="font-size:13px;color:'+(names.length?'#ececea':'#ef9f27')+'">'+t+'</span><i class="ti ti-chevron-right" style="color:#86857e"></i></div>'; });
+    var rpmF=canEdit
+      ? '<div class="pf"><label>Частота, об/мин'+(inDrv?' (привод)':' (вручную)')+'</label><input type="text" value="'+u.rpm+'" oninput="updRpm(this.value)"/></div>'
+      : '<div class="pf"><label>Частота, об/мин</label><input type="text" value="'+u.rpm+'" readonly/></div>';
+    p.innerHTML='<div class="prow"><div class="pname">'+u.name+'</div><i class="ti ti-trash" style="color:#e24b4a;cursor:pointer" onclick="delUnit()"></i></div>'
+      +'<div class="pgrid"><div class="pf"><label>Обозначение вала</label><input type="text" value="'+u.name+'" oninput="updUName(this.value)"/></div>'+rpmF+'</div>'
+      +'<div class="sublbl">Опоры вала</div>'
+      +'<div class="mrow"><span class="mname">Число опор: '+u.supports.length+'</span><div class="seg2"><button onclick="setSupCnt(-1)">−</button><button onclick="setSupCnt(1)">+</button></div></div>'
+      +supTbl
+      +'<div class="sublbl">Машины на валу</div>'+ms
+      +'<button class="addbtn" onclick="machPalette(-1)"><i class="ti ti-plus"></i> Добавить машину на этот вал</button>';
+    p.classList.remove('hidden');
+  }
+  function updRpm(v){ rigidGroup(sel).forEach(function(idx){ units[idx].rpm=v; }); compute(); render(); }
+  function updUName(v){ units[sel].name=v; render(); }
+  function setPos(j,pos){ units[sel].machines[j].pos=pos; render(); renderPanel(); }
+  function delMach(j){ units[sel].machines.splice(j,1); if(!units[sel].machines.length){ delUnit(); return; } render(); renderPanel(); }
+  function delUnit(){ if(sel===null) return; units.splice(sel,1); if(trans.length) trans.splice(Math.max(0,sel-1),1); sel=null; render(); renderPanel(); }
+  function addUnit(side){ addSide=side; if(!units.length){ units.push({name:'Вал 1',rpm:'2940',machines:[{type:'motor',pos:'center'}],supports:[{brgs:['']},{brgs:['']}]}); sel=0; render(); renderPanel(); return; } openTransSheet(); }
+
+  var curMach=-1, curSup={}, curSlot=0;
+  function supNum(ui,si){ var n=0; for(var x=0;x<ui;x++) n+=units[x].supports.length; return n+si+1; }
+  function setSupCnt(d){ var u=units[sel]; var n=Math.max(1,Math.min(4,u.supports.length+d)); while(u.supports.length>n)u.supports.pop(); while(u.supports.length<n)u.supports.push({brgs:['']}); render(); renderPanel(); }
+  function openSupport(ui,si){ sel=ui; curSup={u:ui,s:si}; render(); renderPanel(); buildSupport(); openSheet(); }
+  function buildSupport(){ var u=curSup.u,si=curSup.s,sup=units[u].supports[si]; document.getElementById('sheetTitle').textContent='Опора №'+supNum(u,si)+' · '+units[u].name; var h='<div class="mrow"><span class="mname">Подшипников: '+sup.brgs.length+' (макс. 3)</span><div class="seg2"><button onclick="setBrgCnt(-1)">−</button><button onclick="setBrgCnt(1)">+</button></div></div>';
+    sup.brgs.forEach(function(b,j){ var nm=b?(brgName(b)+' · '+brgType(b)):'не выбран — тапните'; h+='<div class="opt" onclick="openCatalog('+j+')"><div class="pic" style="background:rgba(255,255,255,0.06)"><i class="ti ti-circle-dot" style="color:'+(b?'#85b7eb':'#86857e')+'"></i></div><div><div class="pn">Подшипник '+(j+1)+'</div><div class="pd">'+nm+'</div></div></div>'; });
+    document.getElementById('sheetBody').innerHTML=h;
+  }
+  function setBrgCnt(d){ var sup=units[curSup.u].supports[curSup.s]; var n=Math.max(1,Math.min(3,sup.brgs.length+d)); while(sup.brgs.length>n)sup.brgs.pop(); while(sup.brgs.length<n)sup.brgs.push(''); render(); renderPanel(); buildSupport(); }
+  function openCatalog(j){ curSlot=j; document.getElementById('sheetTitle').textContent='Подшипник из каталога'; var h=''; BRG.forEach(function(b){ h+='<div class="opt" onclick="pickBrg(\''+b.id+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)"><i class="ti ti-circle-dot" style="color:#85b7eb"></i></div><div><div class="pn">'+b.n+'</div><div class="pd">'+b.t+'</div></div></div>'; }); document.getElementById('sheetBody').innerHTML=h; }
+  function pickBrg(id){ units[curSup.u].supports[curSup.s].brgs[curSlot]=id; render(); renderPanel(); buildSupport(); }
+  function machPalette(j){ curMach=j; document.getElementById('sheetTitle').textContent=(j>=0?'Тип машины':'Добавить машину'); var h='';
+    for(var k in MT){ var t=MT[k]; h+='<div class="opt" onclick="pickMach(\''+k+'\')"><div class="pic" style="background:'+t.color+'22"><i class="ti '+t.icon+'" style="color:'+t.color+'"></i></div><div><div class="pn">'+t.name+'</div></div></div>'; }
+    document.getElementById('sheetBody').innerHTML=h; openSheet();
+  }
+  function pickMach(type){ if(curMach>=0) units[sel].machines[curMach].type=type; else units[sel].machines.push({type:type,pos:'center'}); closeSheet(); render(); renderPanel(); }
+  function connIcon(t){ var g='#86857e';
+    if(t==='belt') return '<svg width="26" height="40" viewBox="0 0 26 40"><circle cx="13" cy="10" r="5" fill="none" stroke="'+g+'" stroke-width="2"/><circle cx="13" cy="30" r="5" fill="none" stroke="'+g+'" stroke-width="2"/><line x1="8" y1="10" x2="8" y2="30" stroke="'+g+'" stroke-width="1.5"/><line x1="18" y1="10" x2="18" y2="30" stroke="'+g+'" stroke-width="1.5"/></svg>';
+    if(t==='gear') return '<svg width="26" height="40" viewBox="0 0 26 40"><circle cx="13" cy="11" r="5" fill="none" stroke="'+g+'" stroke-width="1.8"/><circle cx="13" cy="22" r="5" fill="none" stroke="'+g+'" stroke-width="1.8"/></svg>';
+    if(t==='shaft') return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="3.4" stroke-linecap="round"/></svg>';
+    if(t==='elastic') return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="2.3"/><rect x="9" y="13" width="2.4" height="14" fill="'+g+'"/><rect x="15" y="13" width="2.4" height="14" fill="'+g+'"/></svg>';
+    return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="2.3"/><rect x="10" y="13" width="2.4" height="14" fill="'+g+'"/><rect x="14" y="13" width="2.4" height="14" fill="'+g+'"/></svg>';
+  }
+  function openTransSheet(){ document.getElementById('sheetTitle').textContent='Чем соединить новый вал'; var h='';
+    for(var k in LINKS){ var t=LINKS[k]; h+='<div class="opt" onclick="addUnitWith(\''+k+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)">'+connIcon(k)+'</div><div><div class="pn">'+t.name+'</div><div class="pd">'+t.desc+'</div></div></div>'; }
+    document.getElementById('sheetBody').innerHTML=h; openSheet();
+  }
+  function addUnitWith(type){ var T={type:type}; if(LINKS[type].off){ T.beltDir='down'; T.nextDir='right'; }
+    var nu={name:'Вал '+(units.length+1),rpm:'1450',machines:[{type:'pump',pos:'center'}],supports:[{brgs:['']},{brgs:['']}]};
+    if(addSide==='r'){ units.push(nu); trans.push(T); sel=units.length-1; } else { units.unshift(nu); trans.unshift(T); sel=0; }
+    closeSheet(); render(); renderPanel();
+  }
+  function openLink(i){ curLink=i; document.getElementById('sheetTitle').textContent='Передача между валами'; buildLink(i); openSheet(); }
+  function buildLink(i){ var L=trans[i],h='';
+    for(var k in LINKS){ var t=LINKS[k]; h+='<div class="opt'+(L.type===k?' on':'')+'" onclick="setLink(\''+k+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)">'+connIcon(k)+'</div><div><div class="pn">'+t.name+'</div><div class="pd">'+t.desc+'</div></div></div>'; }
+    var sch=LINKS[L.type];
+    if(sch.off){ h+='<div class="lparams"><div class="dirrow">'
+        +'<div class="dg"><div>'+(orient==='h'?'Ремень':'Ремень')+'</div><div class="seg2"><button class="'+(L.beltDir==='up'?'on':'')+'" onclick="setDir(\'beltDir\',\'up\')">'+(orient==='h'?'↑ вверх':'◄ влево')+'</button><button class="'+(L.beltDir==='down'?'on':'')+'" onclick="setDir(\'beltDir\',\'down\')">'+(orient==='h'?'↓ вниз':'вправо ►')+'</button></div></div>'
+        +'<div class="dg"><div>Следующий вал</div><div class="seg2"><button class="'+(L.nextDir==='left'?'on':'')+'" onclick="setDir(\'nextDir\',\'left\')">'+(orient==='h'?'◄ влево':'↑ вверх')+'</button><button class="'+(L.nextDir==='right'?'on':'')+'" onclick="setDir(\'nextDir\',\'right\')">'+(orient==='h'?'вправо ►':'↓ вниз')+'</button></div></div>'
+        +'</div><div class="pgrid">';
+      sch.params.forEach(function(pp){ h+='<div class="pf"><label>'+pp.l+'</label><input type="text" value="'+(L[pp.k]||'')+'" placeholder="—" oninput="updLink(\''+pp.k+'\',this.value)"/></div>'; });
+      h+='</div>'; var cf=charFreq(i); if(cf) h+='<div class="freq" id="cf"><i class="ti ti-wave-sine"></i> '+cf+'</div>';
+      h+='<div class="note" style="margin-top:10px"><i class="ti ti-info-circle"></i><span>Параметры пусты → частоту вала после передачи задайте вручную в его панели.</span></div></div>';
+    } else if(sch.params.length){ h+='<div class="lparams"><div class="pgrid">';
+      sch.params.forEach(function(pp){ h+='<div class="pf"><label>'+pp.l+'</label><input type="text" value="'+(L[pp.k]||'')+'" placeholder="—" oninput="updLink(\''+pp.k+'\',this.value)"/></div>'; });
+      h+='</div></div>';
+    }
+    document.getElementById('sheetBody').innerHTML=h;
+  }
+  function charFreq(i){ var L=trans[i],n=parseFloat(units[i].rpm)||0;
+    if(L.type==='belt'){ var d1=parseFloat(L.d1),len=parseFloat(L.len); if(d1&&len) return 'Частота ремня ≈ '+(Math.PI*d1*(n/60)/len).toFixed(1)+' Гц'; }
+    if(L.type==='gear'){ var z1=parseFloat(L.z1); if(z1) return 'Зубцовая GMF ≈ '+(z1*n/60).toFixed(1)+' Гц'; }
+    return null;
+  }
+  function setLink(type){ var L=trans[curLink]; L.type=type; if(LINKS[type].off){ if(!L.beltDir)L.beltDir='down'; if(!L.nextDir)L.nextDir='right'; } render(); renderPanel(); buildLink(curLink); }
+  function setDir(k,v){ trans[curLink][k]=v; render(); buildLink(curLink); }
+  function updLink(k,v){ trans[curLink][k]=v; render(); renderPanel(); var el=document.getElementById('cf'),cf=charFreq(curLink); if(el&&cf) el.innerHTML='<i class="ti ti-wave-sine"></i> '+cf; }
+  function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
+  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+  function saveAndGo(){ try{ localStorage.setItem('nova_agg', JSON.stringify({name:(document.getElementById('aggname').value||'Агрегат'), orient:orient, units:units, trans:trans})); }catch(e){} location.href='defects.html'; }
+  render();
+</script>
+</body>
+</html>

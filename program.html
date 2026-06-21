@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — программа измерений</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55); }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:14px 16px;flex:1;}
+  .banner{display:flex;gap:8px;align-items:flex-start;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--info);line-height:1.4;margin-bottom:14px;}
+  .banner .ti{font-size:17px;margin-top:1px;}
+  .card{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .ptitle{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .pdot{width:9px;height:9px;border-radius:3px;background:#ffb24d;}
+  .pname{font-size:14px;font-weight:500;flex:1;}
+  .kbadge{font-size:10.5px;color:var(--hint);border:0.5px solid var(--border2);border-radius:6px;padding:2px 7px;}
+  .mrow{display:flex;align-items:center;gap:10px;background:var(--secondary);border-radius:9px;padding:9px 10px;margin-bottom:6px;}
+  .mic{font-size:18px;color:var(--muted);flex:0 0 auto;}
+  .mmain{flex:1;min-width:0;}
+  .mn{font-size:13px;}
+  .mb{font-size:11px;color:var(--hint);margin-top:2px;}
+  .mx{font-size:16px;color:#e24b4a;cursor:pointer;flex:0 0 auto;}
+  .addm{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:38px;background:transparent;border:0.5px dashed var(--border2);border-radius:9px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;}
+  .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
+  .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
+  .toolbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:0.5px solid var(--border2);background:transparent;color:var(--text);border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;margin-bottom:14px;}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
+  .backdrop.on{opacity:1;pointer-events:auto;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:90vh;overflow-y:auto;}
+  .sheet.on{transform:translateY(0);}
+  .sheet h3{font-size:15px;font-weight:500;margin:4px 0 10px;}
+  .slbl{font-size:11px;color:var(--hint);margin:14px 0 7px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:0.5px solid var(--border2);font-size:13px;color:var(--muted);cursor:pointer;}
+  .chip.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  .mopt{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;cursor:pointer;border:1.5px solid transparent;}
+  .mopt.on{border-color:var(--info-bd);background:var(--info-bg);}
+  .mopt .pn{font-size:13.5px;font-weight:500;}
+  .mopt .pd{font-size:11px;color:var(--hint);margin-top:2px;}
+  .sbtn{width:100%;height:46px;border-radius:11px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;margin-top:14px;}
+  .sbtn:disabled{opacity:0.4;}
+  .pf{margin-bottom:10px;}
+  .pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px;}
+  .pf input,.pf select{width:100%;height:40px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .createlink{font-size:13px;color:var(--info);text-align:center;padding:10px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="defects.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Программа измерений</div><div class="sttl" id="aggName">—</div></div>
+    <i class="ti ti-bolt" style="color:var(--info);"></i>
+  </div>
+  <div class="body">
+    <div class="banner"><i class="ti ti-wand"></i><span>Точки = опоры. На каждой — свои измерения: величина (вибро/гиро) × направления × метод из БД. Гибко: где-то 3 оси, где-то одна.</span></div>
+    <button class="toolbtn" onclick="openMethods()"><i class="ti ti-database"></i> Библиотека методов (создать / посмотреть)</button>
+    <div id="list"></div>
+  </div>
+  <div class="foot"><button class="next" onclick="alert('Программа сохранена при оборудовании. Готово к измерениям.')">Сохранить программу</button></div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div>
+
+<script>
+  var KIND={'sl-rad':'journal','sl-seg':'journal','sl-thr':'journal'};
+  var FALL={name:'Агрегат (пример)',orient:'h',units:[{name:'Вал 1',rpm:'3000',machines:[{type:'motor'}],supports:[{brgs:['6308']},{brgs:['6308']}]},{name:'Вал 2',rpm:'3000',machines:[{type:'pump'}],supports:[{brgs:['sl-rad']},{brgs:['6308']}]}],trans:[{type:'elastic'}]};
+  var AGG; try{ AGG=JSON.parse(localStorage.getItem('nova_agg')); }catch(e){} if(!AGG||!AGG.units||!AGG.units.length) AGG=FALL;
+  document.getElementById('aggName').textContent=AGG.name||'Агрегат';
+  function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(AGG.units[x].supports||[]).length; return n+k+1; }
+  var DIRS = AGG.orient==='v' ? ['R1','R2','О'] : ['В','П','О'];
+
+  var methods=[
+    {id:'vs', name:'Спектр виброскорости', type:'Спектр', unit:'виброскорость, мм/с', fmin:'10', fmax:'1000', lines:'1600', avg:'8', ov:'50%', win:'Hann'},
+    {id:'va', name:'Спектр виброускорения', type:'Спектр', unit:'виброускорение, м/с²', fmin:'10', fmax:'10000', lines:'3200', avg:'8', ov:'50%', win:'Hann'},
+    {id:'env', name:'Огибающая (демодуляция)', type:'Огибающая', unit:'виброускорение, м/с²', fmin:'500', fmax:'5000', lines:'1600', avg:'8', ov:'50%', win:'Hann'},
+    {id:'rms', name:'Общий уровень (СКЗ)', type:'Общий уровень', unit:'виброскорость, мм/с', fmin:'10', fmax:'1000', lines:'—', avg:'—', ov:'—', win:'—'},
+    {id:'ph', name:'Амплитуда/фаза 1×', type:'Амплитуда-фаза', unit:'виброскорость, мм/с', fmin:'1×', fmax:'1×', lines:'—', avg:'синхр.', ov:'—', win:'—'},
+    {id:'gyro', name:'Гиро-спектр (угловой)', type:'Спектр', unit:'угловая скорость, °/с', fmin:'2', fmax:'500', lines:'1600', avg:'8', ov:'50%', win:'Hann'},
+    {id:'lf', name:'Спектр НЧ + орбита', type:'Спектр', unit:'виброскорость, мм/с', fmin:'2', fmax:'200', lines:'800', avg:'4', ov:'50%', win:'Hann'},
+    {id:'wave', name:'Временной сигнал', type:'Осциллограмма', unit:'виброускорение, м/с²', fmin:'—', fmax:'—', lines:'—', avg:'—', ov:'—', win:'—'}
+  ];
+  function mById(id){ for(var i=0;i<methods.length;i++) if(methods[i].id===id) return methods[i]; return methods[0]; }
+  function mSub(m){ var s=m.type+' · '+m.unit; if(m.fmax&&m.fmax!=='—') s+=' · '+m.fmin+'–'+m.fmax+' Гц'; if(m.avg&&m.avg!=='—') s+=' · '+m.avg+'ср'; if(m.win&&m.win!=='—') s+=' · '+m.win; return s; }
+
+  var points=[];
+  AGG.units.forEach(function(u,i){
+    (u.supports||[]).forEach(function(sp,k){ var kind='rolling'; (sp.brgs||[]).forEach(function(b){ if(KIND[b]==='journal') kind='journal'; });
+      var meas=[{mod:'accel', dirs:DIRS.slice(), mid:'vs'}];
+      if(kind==='rolling') meas.push({mod:'accel', dirs:[DIRS[0]], mid:'env'});
+      else meas.push({mod:'accel', dirs:DIRS.slice(0,2), mid:'lf'});
+      points.push({label:'Опора №'+supNum(i,k)+' · '+u.name, kind:kind, meas:meas});
+    });
+  });
+
+  function render(){
+    var h='';
+    points.forEach(function(p,pi){
+      h+='<div class="card"><div class="ptitle"><span class="pdot"></span><span class="pname">'+p.label+'</span><span class="kbadge">'+(p.kind==='journal'?'скольжение':'качение')+'</span></div>';
+      p.meas.forEach(function(e,ei){ var m=mById(e.mid);
+        h+='<div class="mrow"><i class="ti '+(e.mod==='gyro'?'ti-rotate-clockwise':'ti-wave-sine')+' mic"></i><div class="mmain"><div class="mn">'+(e.mod==='gyro'?'Гироскоп':'Виброускорение')+' · '+e.dirs.join(' ')+'</div><div class="mb">'+m.name+' — '+mSub(m)+'</div></div><i class="ti ti-x mx" onclick="dm('+pi+','+ei+')"></i></div>';
+      });
+      h+='<button class="addm" onclick="openAdd('+pi+')"><i class="ti ti-plus"></i> добавить измерение</button></div>';
+    });
+    document.getElementById('list').innerHTML=h;
+  }
+  function dm(pi,ei){ points[pi].meas.splice(ei,1); render(); }
+
+  var aP=-1, aMod='accel', aDirs=[], aMid='vs';
+  function openAdd(pi){ aP=pi; aMod='accel'; aDirs=DIRS.slice(); aMid='vs'; buildAdd(); openSheet(); }
+  function buildAdd(){
+    document.getElementById('sheetTitle').textContent='Добавить измерение';
+    var h='<div class="slbl">Величина</div><div class="chips">'
+      +'<span class="chip'+(aMod==='accel'?' on':'')+'" onclick="aMod=\'accel\';buildAdd()"><i class="ti ti-wave-sine"></i> Виброускорение</span>'
+      +'<span class="chip'+(aMod==='gyro'?' on':'')+'" onclick="aMod=\'gyro\';buildAdd()"><i class="ti ti-rotate-clockwise"></i> Гироскоп</span></div>';
+    h+='<div class="slbl">Направления</div><div class="chips">';
+    DIRS.forEach(function(d){ h+='<span class="chip'+(aDirs.indexOf(d)>=0?' on':'')+'" onclick="tgDir(\''+d+'\')">'+d+'</span>'; });
+    h+='</div>';
+    h+='<div class="slbl">Метод (из библиотеки)</div>';
+    methods.forEach(function(m){ h+='<div class="mopt'+(aMid===m.id?' on':'')+'" onclick="aMid=\''+m.id+'\';buildAdd()"><div><div class="pn">'+m.name+'</div><div class="pd">'+mSub(m)+'</div></div></div>'; });
+    h+='<div class="createlink" onclick="openCreate(true)"><i class="ti ti-plus"></i> создать свой метод</div>';
+    h+='<button class="sbtn" onclick="addEntry()" '+(aDirs.length?'':'disabled')+'>Добавить измерение</button>';
+    document.getElementById('sheetBody').innerHTML=h;
+  }
+  function tgDir(d){ var i=aDirs.indexOf(d); if(i>=0) aDirs.splice(i,1); else aDirs.push(d); aDirs.sort(function(a,b){return DIRS.indexOf(a)-DIRS.indexOf(b);}); buildAdd(); }
+  function addEntry(){ if(!aDirs.length) return; points[aP].meas.push({mod:aMod, dirs:aDirs.slice(), mid:aMid}); closeSheet(); render(); }
+
+  function openMethods(){ document.getElementById('sheetTitle').textContent='Библиотека методов'; var h='';
+    methods.forEach(function(m){ h+='<div class="mopt"><div><div class="pn">'+m.name+'</div><div class="pd">'+mSub(m)+'</div></div></div>'; });
+    h+='<div class="createlink" onclick="openCreate(false)"><i class="ti ti-plus"></i> создать свой метод</div>';
+    document.getElementById('sheetBody').innerHTML=h; openSheet();
+  }
+  var backToAdd=false;
+  function openCreate(toAdd){ backToAdd=toAdd; document.getElementById('sheetTitle').textContent='Новый метод измерения';
+    document.getElementById('sheetBody').innerHTML=
+      '<div class="pf"><label>Название</label><input id="mn" placeholder="Напр. ВУ-спектр подшипники"/></div>'
+      +'<div class="g2"><div class="pf"><label>Тип измерения</label><select id="mt"><option>Спектр</option><option>Огибающая</option><option>Общий уровень</option><option>Амплитуда-фаза</option><option>Осциллограмма</option><option>Орбита</option></select></div>'
+      +'<div class="pf"><label>Величина (единица)</label><select id="mu"><option>виброускорение, м/с²</option><option>виброскорость, мм/с</option><option>виброперемещение, мкм</option><option>угловая скорость, °/с</option></select></div></div>'
+      +'<div class="g2"><div class="pf"><label>Частота от, Гц</label><input id="mfmin" placeholder="10"/></div><div class="pf"><label>Частота до, Гц</label><input id="mfmax" placeholder="1000"/></div></div>'
+      +'<div class="g2"><div class="pf"><label>Число линий</label><input id="mli" placeholder="1600"/></div><div class="pf"><label>Усреднений</label><input id="mav" placeholder="8"/></div></div>'
+      +'<div class="g2"><div class="pf"><label>Перекрытие</label><select id="mov"><option>0%</option><option selected>50%</option><option>75%</option></select></div>'
+      +'<div class="pf"><label>Окно</label><select id="mwin"><option>Hann</option><option>Hamming</option><option>Flat-top</option><option>Прямоугольное</option></select></div></div>'
+      +'<button class="sbtn" onclick="createMethod()">Создать метод</button>';
+    openSheet();
+  }
+  function createMethod(){ var g=function(id){return document.getElementById(id).value;};
+    var id='m'+(methods.length+1);
+    methods.push({id:id, name:g('mn')||'Метод', type:g('mt'), unit:g('mu'), fmin:g('mfmin')||'—', fmax:g('mfmax')||'—', lines:g('mli')||'—', avg:g('mav')||'—', ov:g('mov'), win:g('mwin')});
+    if(backToAdd){ aMid=id; buildAdd(); } else openMethods();
+  }
+
+  function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
+  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+  render();
+</script>
+</body>
+</html>
