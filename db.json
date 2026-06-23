@@ -19,10 +19,22 @@
     ],
     "program": {
       "points": [
-        { "label": "Опора №1 · Вал 1", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
-        { "label": "Опора №2 · Вал 1", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
-        { "label": "Опора №3 · Вал 2", "kind": "journal", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "disp" } ] },
-        { "label": "Опора №4 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] }
+        { "label": "Опора №1 · Вал 1", "kind": "rolling", "spots": [
+          { "dir": "В", "meas": [
+            { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] },
+            { "mid": "acc", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] }
+          ] },
+          { "dir": "О", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"} ] } ] }
+        ] },
+        { "label": "Опора №2 · Вал 1", "kind": "rolling", "spots": [
+          { "dir": "В", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] } ] }
+        ] },
+        { "label": "Опора №3 · Вал 2", "kind": "journal", "spots": [
+          { "dir": "В", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] } ] }
+        ] },
+        { "label": "Опора №4 · Вал 2", "kind": "rolling", "spots": [
+          { "dir": "В", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] } ] }
+        ] }
       ]
     }
   },
@@ -43,8 +55,13 @@
     ],
     "program": {
       "points": [
-        { "label": "Опора №3 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
-        { "label": "Опора №4 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] }
+        { "label": "Опора №3 · Вал 2", "kind": "rolling", "spots": [
+          { "dir": "В", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] } ] },
+          { "dir": "О", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"} ] } ] }
+        ] },
+        { "label": "Опора №4 · Вал 2", "kind": "rolling", "spots": [
+          { "dir": "В", "meas": [ { "mid": "vel", "chans": [ {"s":"a","ax":"Z"},{"s":"a","ax":"X"},{"s":"a","ax":"Y"},{"s":"g","ax":"Z"},{"s":"g","ax":"X"},{"s":"g","ax":"Y"} ] } ] }
+        ] }
       ]
     }
   }

@@ -21,17 +21,22 @@
   .banner{display:flex;gap:8px;align-items:flex-start;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--info);line-height:1.4;margin-bottom:14px;}
   .banner .ti{font-size:17px;margin-top:1px;}
   .card{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
-  .ptitle{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .ptitle{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .pdot{width:9px;height:9px;border-radius:3px;background:#ffb24d;}
   .pname{font-size:14px;font-weight:500;flex:1;}
   .kbadge{font-size:10.5px;color:var(--hint);border:0.5px solid var(--border2);border-radius:6px;padding:2px 7px;}
-  .mrow{display:flex;align-items:center;gap:10px;background:var(--secondary);border-radius:9px;padding:9px 10px;margin-bottom:6px;}
+  .spot{background:var(--secondary);border:0.5px solid var(--border);border-radius:10px;padding:11px;margin-top:9px;}
+  .spothd{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .spotname{font-size:13.5px;font-weight:600;}
+  .spotmap{font-size:10px;color:var(--hint);}
+  .mrow{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:9px;padding:9px 10px;margin-bottom:6px;}
   .mic{font-size:18px;color:var(--muted);flex:0 0 auto;}
   .mmain{flex:1;min-width:0;}
   .mn{font-size:13px;}
   .mb{font-size:11px;color:var(--hint);margin-top:2px;}
   .mx{font-size:16px;color:#e24b4a;cursor:pointer;flex:0 0 auto;}
-  .addm{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:38px;background:transparent;border:0.5px dashed var(--border2);border-radius:9px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;}
+  .addm{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:36px;background:transparent;border:0.5px dashed var(--border2);border-radius:9px;color:var(--text);font-size:12.5px;font-family:inherit;cursor:pointer;margin-top:4px;}
+  .addspot{margin-top:10px;border-style:solid;color:var(--info);}
   .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
   .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
   .toolbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:0.5px solid var(--border2);background:transparent;color:var(--text);border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;margin-bottom:14px;}
@@ -44,6 +49,13 @@
   .chips{display:flex;flex-wrap:wrap;gap:7px;}
   .chip{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:0.5px solid var(--border2);font-size:13px;color:var(--muted);cursor:pointer;}
   .chip.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  .matrix{display:grid;grid-template-columns:56px 1fr 1fr 1fr;gap:6px;margin-top:4px;}
+  .mh{font-size:11px;color:var(--hint);text-align:center;line-height:1.25;padding:2px 0;cursor:pointer;}
+  .mh b{color:var(--muted);font-weight:600;}
+  .mrh{font-size:12.5px;color:var(--muted);display:flex;align-items:center;cursor:pointer;}
+  .cell{height:42px;border-radius:8px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--info);}
+  .cell.on{background:var(--info-bg);border-color:var(--info-bd);}
+  .cell .ti{font-size:18px;}
   .mopt{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;cursor:pointer;border:1.5px solid transparent;}
   .mopt.on{border-color:var(--info-bd);background:var(--info-bg);}
   .mopt .pn{font-size:13.5px;font-weight:500;}
@@ -65,7 +77,7 @@
     <i class="ti ti-bolt" style="color:var(--info);"></i>
   </div>
   <div class="body">
-    <div class="banner"><i class="ti ti-wand"></i><span>Точки = опоры. На каждой — измерения: датчик (вибро / гиро / оба) × величина × направления. При «оба» вибрация и угол пишутся вместе на один график.</span></div>
+    <div class="banner"><i class="ti ti-wand"></i><span>Опора → точки установки (Z⊥поверхности = направление точки) → измерения. Каждое измерение = метод × выбранные каналы (Вибро/Гиро × Z/X/Y). Где надо — все 6 каналов, где надо — один.</span></div>
     <button class="toolbtn" onclick="openMethods()"><i class="ti ti-database"></i> Библиотека методов (создать / посмотреть)</button>
     <div id="list"></div>
   </div>
@@ -80,80 +92,123 @@
   var FALL={name:'Агрегат (пример)',orient:'h',units:[{name:'Вал 1',rpm:'3000',machines:[{type:'motor'}],supports:[{brgs:['6308']},{brgs:['6308']}]},{name:'Вал 2',rpm:'3000',machines:[{type:'pump'}],supports:[{brgs:['sl-rad']},{brgs:['6308']}]}],trans:[{type:'elastic'}]};
   var AGG; try{ AGG=JSON.parse(localStorage.getItem('nova_agg')); }catch(e){} if(!AGG||!AGG.units||!AGG.units.length) AGG=FALL;
   document.getElementById('aggName').textContent=AGG.name||'Агрегат';
+  var orient=AGG.orient==='v'?'v':'h';
+  var DIRS = orient==='v' ? ['R1','R2','О'] : ['В','П','О'];
   function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(AGG.units[x].supports||[]).length; return n+k+1; }
-  var DIRS = AGG.orient==='v' ? ['R1','R2','О'] : ['В','П','О'];
 
-  var QUNIT={ vel:{label:'Скорость',va:'мм/с',ga:'°/с'}, disp:{label:'Перемещение',va:'мкм',ga:'°'}, acc:{label:'Ускорение',va:'м/с²',ga:'°/с²'}, env:{label:'Огибающая',va:'м/с²',ga:'°/с²'} };
-  var SENS={ accel:{name:'Акселерометр',icon:'ti-wave-sine'}, gyro:{name:'Гироскоп',icon:'ti-rotate-clockwise'}, both:{name:'Оба (вибро+гиро)',icon:'ti-layers-intersect'} };
-  function unitFor(qk,sens){ var q=QUNIT[qk]||QUNIT.vel; if(sens==='gyro') return q.ga; if(sens==='both') return q.va+' + '+q.ga; return q.va; }
+  // ось → направление машины для точки (Z = нормаль = направление точки)
+  function axisMap(dir){ var rads = orient==='v'?['R1','R2']:['В','П']; var ax='О';
+    if(dir===ax) return {Z:ax, X:rads[0], Y:rads[1]};
+    var other = rads[0]===dir?rads[1]:rads[0];
+    return {Z:dir, X:ax, Y:other};
+  }
+  var AXES=['Z','X','Y'], SENSES=[['a','Вибро'],['g','Гиро']];
+  function allChans(){ var c=[]; ['a','g'].forEach(function(s){ AXES.forEach(function(ax){ c.push({s:s,ax:ax}); }); }); return c; }
+
+  // ----- методы (величина + параметры, без привязки к датчику) -----
+  var QUNIT={ vel:{va:'мм/с',ga:'°/с'}, disp:{va:'мкм',ga:'°'}, acc:{va:'м/с²',ga:'°/с²'}, env:{va:'м/с²',ga:'°/с²'} };
+  function unitFor(qk){ var q=QUNIT[qk]||QUNIT.vel; return q.va+' + '+q.ga; }
   var methods=[
     {id:'acc',  name:'Ускорение',   type:'Спектр', qk:'acc',  fmin:'2', fmax:'10000', lines:'10000', avg:'2', ov:'50%', win:'Hann'},
     {id:'vel',  name:'Скорость',    type:'Спектр', qk:'vel',  fmin:'2', fmax:'1000',  lines:'10000', avg:'2', ov:'50%', win:'Hann'},
     {id:'disp', name:'Перемещение', type:'Спектр', qk:'disp', fmin:'2', fmax:'1000',  lines:'10000', avg:'2', ov:'50%', win:'Hann'}
   ];
   function mById(id){ for(var i=0;i<methods.length;i++) if(methods[i].id===id) return methods[i]; return methods[0]; }
-  function mSub(m,sens){ sens=sens||'both'; var s=m.type+' · '+unitFor(m.qk,sens); if(m.fmax&&m.fmax!=='—') s+=' · '+m.fmin+'–'+m.fmax+' Гц'; if(m.avg&&m.avg!=='—') s+=' · '+m.avg+'ср'; if(m.win&&m.win!=='—') s+=' · '+m.win; return s; }
+  function mSub(m){ var s=m.type+' · '+unitFor(m.qk); if(m.fmax&&m.fmax!=='—') s+=' · '+m.fmin+'–'+m.fmax+' Гц'; if(m.avg&&m.avg!=='—') s+=' · '+m.avg+'ср'; if(m.win&&m.win!=='—') s+=' · '+m.win; return s; }
+  function mShort(m){ var s=''; if(m.fmax&&m.fmax!=='—') s+=m.fmin+'–'+m.fmax+' Гц'; if(m.lines&&m.lines!=='—') s+=(s?' · ':'')+m.lines+' лин'; return s||m.type; }
 
+  // ----- модель точек -----
+  function defaultSpot(dir){ return { dir:dir, meas:[ {mid:'vel', chans:allChans()} ] }; }
   var points=[];
   AGG.units.forEach(function(u,i){
     (u.supports||[]).forEach(function(sp,k){ var kind='rolling'; (sp.brgs||[]).forEach(function(b){ if(KIND[b]==='journal') kind='journal'; });
-      var meas=[{sens:'both', dirs:DIRS.slice(), mid:'vel'}];
-      points.push({label:'Опора №'+supNum(i,k)+' · '+u.name, kind:kind, meas:meas});
+      points.push({ label:'Опора №'+supNum(i,k)+' · '+u.name, kind:kind, spots:[ defaultSpot(DIRS[0]) ] });
     });
   });
-  (function restoreProgram(){ var saved; try{ saved=JSON.parse(localStorage.getItem('nova_program')); }catch(e){} if(!saved||!saved.points||!saved.points.length) return;
-    points.forEach(function(p){ var sp=saved.points.filter(function(x){return x.label===p.label;})[0]; if(sp&&sp.meas) p.meas=sp.meas; });
-  })();
-  // нормализация старой модели (mod/gyro → sens)
-  points.forEach(function(p){ (p.meas||[]).forEach(function(e){ if(!e.sens) e.sens=(e.mod==='gyro'?'gyro':'accel'); if(e.mid==='gyro') e.mid='va'; }); });
 
+  // ----- восстановление + миграция старого формата (meas:[{sens,dirs,mid}]) -----
+  var MIGMID={vs:'vel',va:'acc',env:'acc',lf:'vel',ph:'vel',wave:'acc',gyro:'acc',acc:'acc',vel:'vel',disp:'disp'};
+  (function restoreProgram(){ var saved; try{ saved=JSON.parse(localStorage.getItem('nova_program')); }catch(e){} if(!saved||!saved.points||!saved.points.length) return;
+    var amap0=axisMap(DIRS[0]), d2a={}; Object.keys(amap0).forEach(function(ax){ d2a[amap0[ax]]=ax; });
+    points.forEach(function(p){ var sp=saved.points.filter(function(x){return x.label===p.label;})[0]; if(!sp) return;
+      if(sp.spots){ p.spots=sp.spots; return; }                       // уже новый формат
+      if(sp.meas){                                                    // старый → одна точка В/R1
+        var spot={dir:DIRS[0], meas:[]};
+        sp.meas.forEach(function(m){ var senss = m.sens==='both'?['a','g']:(m.sens==='gyro'?['g']:['a']); var chans=[];
+          senss.forEach(function(s){ (m.dirs||[]).forEach(function(d){ var ax=d2a[d]; if(ax) chans.push({s:s,ax:ax}); }); });
+          if(chans.length) spot.meas.push({mid:MIGMID[m.mid]||'vel', chans:chans});
+        });
+        if(spot.meas.length) p.spots=[spot];
+      }
+    });
+  })();
+
+  // ----- отрисовка -----
+  function chanSummary(sp,chans){ var amap=axisMap(sp.dir);
+    function dirs(s){ return chans.filter(function(c){return c.s===s;}).map(function(c){return amap[c.ax];}); }
+    var a=dirs('a'), g=dirs('g'), parts=[];
+    if(a.length) parts.push('Вибро '+a.join('/'));
+    if(g.length) parts.push('Гиро '+g.join('/'));
+    return chans.length+' кан · '+(parts.join(' · ')||'—');
+  }
   function render(){
     var h='';
     points.forEach(function(p,pi){
       h+='<div class="card"><div class="ptitle"><span class="pdot"></span><span class="pname">'+p.label+'</span><span class="kbadge">'+(p.kind==='journal'?'скольжение':'качение')+'</span></div>';
-      p.meas.forEach(function(e,ei){ var m=mById(e.mid), sc=SENS[e.sens]||SENS.accel;
-        h+='<div class="mrow"><i class="ti '+sc.icon+' mic"></i><div class="mmain"><div class="mn">'+sc.name+' · '+e.dirs.join(' ')+'</div><div class="mb">'+m.name+' — '+mSub(m,e.sens)+'</div></div><i class="ti ti-x mx" onclick="dm('+pi+','+ei+')"></i></div>';
+      p.spots.forEach(function(sp,si){ var amap=axisMap(sp.dir);
+        h+='<div class="spot"><div class="spothd"><span class="spotname">Точка '+sp.dir+'</span><span class="spotmap">Z⊥='+sp.dir+' · X='+amap.X+', Y='+amap.Y+'</span><span style="flex:1"></span>'
+          +(p.spots.length>1?'<i class="ti ti-trash" style="color:#e24b4a;font-size:15px;cursor:pointer" onclick="delSpot('+pi+','+si+')"></i>':'')+'</div>';
+        sp.meas.forEach(function(e,ei){ var m=mById(e.mid);
+          h+='<div class="mrow"><i class="ti ti-wave-sine mic"></i><div class="mmain"><div class="mn">'+m.name+'</div><div class="mb">'+chanSummary(sp,e.chans)+' · '+mShort(m)+'</div></div><i class="ti ti-x mx" onclick="delMeas('+pi+','+si+','+ei+')"></i></div>';
+        });
+        h+='<button class="addm" onclick="openAdd('+pi+','+si+')"><i class="ti ti-plus"></i> измерение</button></div>';
       });
-      h+='<button class="addm" onclick="openAdd('+pi+')"><i class="ti ti-plus"></i> добавить измерение</button></div>';
+      h+='<button class="addm addspot" onclick="openAddSpot('+pi+')"><i class="ti ti-map-pin-plus"></i> точка установки</button></div>';
     });
     document.getElementById('list').innerHTML=h;
   }
-  function dm(pi,ei){ points[pi].meas.splice(ei,1); render(); }
+  function delSpot(pi,si){ if(points[pi].spots.length<=1) return; points[pi].spots.splice(si,1); render(); }
+  function delMeas(pi,si,ei){ points[pi].spots[si].meas.splice(ei,1); render(); }
 
-  var aP=-1, aSens='both', aDirs=[], aMid='acc', aTargets={};
-  function openAdd(pi){ aP=pi; aSens='both'; aDirs=DIRS.slice(); aMid='acc'; aTargets={}; aTargets[pi]=true; buildAdd(); openSheet(); }
-  function candPoints(){ var a=[]; points.forEach(function(p,i){ if(!p.meas.some(function(e){return e.mid===aMid;})) a.push(i); }); return a; }
-  function selTargets(){ return candPoints().filter(function(i){ return aTargets[i]; }); }
-  function buildAdd(){
-    document.getElementById('sheetTitle').textContent='Добавить измерение';
-    var h='<div class="slbl">Датчик</div><div class="chips">'
-      +'<span class="chip'+(aSens==='accel'?' on':'')+'" onclick="aSens=\'accel\';buildAdd()"><i class="ti ti-wave-sine"></i> Акселерометр</span>'
-      +'<span class="chip'+(aSens==='gyro'?' on':'')+'" onclick="aSens=\'gyro\';buildAdd()"><i class="ti ti-rotate-clockwise"></i> Гироскоп</span>'
-      +'<span class="chip'+(aSens==='both'?' on':'')+'" onclick="aSens=\'both\';buildAdd()"><i class="ti ti-layers-intersect"></i> Оба</span></div>'
-      +(aSens==='both'?'<div style="font-size:11px;color:var(--hint);margin-top:7px;line-height:1.4">Вибрация и угол пишутся одновременно с одинаковыми настройками — на один график.</div>':'');
-    h+='<div class="slbl">Направления</div><div class="chips">';
-    DIRS.forEach(function(d){ h+='<span class="chip'+(aDirs.indexOf(d)>=0?' on':'')+'" onclick="tgDir(\''+d+'\')">'+d+'</span>'; });
+  // ----- добавить точку -----
+  function openAddSpot(pi){ var used=points[pi].spots.map(function(s){return s.dir;}); var avail=DIRS.filter(function(d){return used.indexOf(d)<0;});
+    document.getElementById('sheetTitle').textContent='Точка установки';
+    if(!avail.length){ document.getElementById('sheetBody').innerHTML='<div style="color:var(--hint);font-size:13px;padding:8px 2px">Все три точки ('+DIRS.join('/')+') уже добавлены на эту опору.</div>'; openSheet(); return; }
+    var h='<div class="slbl">Куда крепим датчик — Z⊥поверхности = направление точки</div>';
+    avail.forEach(function(d){ var amap=axisMap(d); h+='<div class="mopt" onclick="addSpot('+pi+',\''+d+'\')"><div><div class="pn">Точка '+d+'</div><div class="pd">Z='+d+' · X='+amap.X+', Y='+amap.Y+'</div></div></div>'; });
+    document.getElementById('sheetBody').innerHTML=h; openSheet();
+  }
+  function addSpot(pi,d){ points[pi].spots.push(defaultSpot(d)); closeSheet(); render(); }
+
+  // ----- добавить измерение (матрица каналов) -----
+  var aP=-1, aS=-1, aChans={}, aMid='vel';
+  function chanCount(){ return Object.keys(aChans).filter(function(k){return aChans[k];}).length; }
+  function openAdd(pi,si){ aP=pi; aS=si; aMid='vel'; aChans={}; allChans().forEach(function(c){ aChans[c.s+'_'+c.ax]=true; }); buildAdd(); openSheet(); }
+  function buildAdd(){ var sp=points[aP].spots[aS], amap=axisMap(sp.dir);
+    document.getElementById('sheetTitle').textContent='Измерение · Точка '+sp.dir;
+    var h='<div class="slbl">Каналы — датчик × ось (→ направление)</div><div class="matrix">';
+    h+='<div class="mh"></div>'; AXES.forEach(function(ax){ h+='<div class="mh" onclick="tgCol(\''+ax+'\')">'+ax+'<br><b>'+amap[ax]+'</b></div>'; });
+    SENSES.forEach(function(row){ h+='<div class="mrh" onclick="tgRow(\''+row[0]+'\')">'+row[1]+'</div>';
+      AXES.forEach(function(ax){ var on=aChans[row[0]+'_'+ax]; h+='<div class="cell'+(on?' on':'')+'" onclick="tgCell(\''+row[0]+'\',\''+ax+'\')">'+(on?'<i class="ti ti-check"></i>':'')+'</div>'; });
+    });
     h+='</div>';
-    h+='<div class="slbl">Величина и метод (из библиотеки)</div>';
-    methods.forEach(function(m){ h+='<div class="mopt'+(aMid===m.id?' on':'')+'" onclick="setMid(\''+m.id+'\')"><div><div class="pn">'+m.name+'</div><div class="pd">'+mSub(m,aSens)+'</div></div></div>'; });
+    var n=chanCount();
+    h+='<div class="chips" style="margin-top:8px"><span class="chip'+(n===6?' on':'')+'" onclick="tgAllChan()">выбрать все 6</span></div>';
+    h+='<div class="slbl">Метод</div>';
+    methods.forEach(function(m){ h+='<div class="mopt'+(aMid===m.id?' on':'')+'" onclick="aMid=\''+m.id+'\';buildAdd()"><div><div class="pn">'+m.name+'</div><div class="pd">'+mSub(m)+'</div></div></div>'; });
     h+='<div class="createlink" onclick="openCreate(true)"><i class="ti ti-plus"></i> создать свой метод</div>';
-    var cands=candPoints();
-    h+='<div class="slbl">Применить к опорам</div>';
-    if(!cands.length){ h+='<div style="font-size:12px;color:var(--hint);padding:2px 0 4px">Все опоры уже имеют этот метод.</div>'; }
-    else{ var allOn=cands.every(function(i){ return aTargets[i]; });
-      h+='<div class="chips" style="margin-bottom:8px"><span class="chip'+(allOn?' on':'')+'" onclick="tgAllTargets()">'+(allOn?'снять все':'выбрать все')+'</span></div>';
-      cands.forEach(function(i){ h+='<div class="mopt'+(aTargets[i]?' on':'')+'" onclick="tgTarget('+i+')"><div style="display:flex;align-items:center;gap:10px;width:100%"><i class="ti '+(aTargets[i]?'ti-square-check-filled':'ti-square')+'" style="font-size:18px;color:'+(aTargets[i]?'var(--info)':'var(--hint)')+'"></i><div class="pn" style="font-weight:400">'+points[i].label+'</div></div></div>'; });
-    }
-    var n=selTargets().length;
-    h+='<button class="sbtn" onclick="addEntry()" '+((aDirs.length&&n)?'':'disabled')+'>'+(n>1?('Добавить на '+n+' опор'):'Добавить измерение')+'</button>';
+    h+='<button class="sbtn" onclick="addMeas()" '+(n?'':'disabled')+'>Добавить ('+n+' кан.)</button>';
     document.getElementById('sheetBody').innerHTML=h;
   }
-  function setMid(id){ aMid=id; aTargets={}; if(candPoints().indexOf(aP)>=0) aTargets[aP]=true; buildAdd(); }
-  function tgDir(d){ var i=aDirs.indexOf(d); if(i>=0) aDirs.splice(i,1); else aDirs.push(d); aDirs.sort(function(a,b){return DIRS.indexOf(a)-DIRS.indexOf(b);}); buildAdd(); }
-  function tgTarget(i){ aTargets[i]=!aTargets[i]; buildAdd(); }
-  function tgAllTargets(){ var c=candPoints(); var allOn=c.every(function(i){ return aTargets[i]; }); c.forEach(function(i){ aTargets[i]=!allOn; }); buildAdd(); }
-  function addEntry(){ if(!aDirs.length) return; var tg=selTargets(); if(!tg.length) return; tg.forEach(function(i){ points[i].meas.push({sens:aSens, dirs:aDirs.slice(), mid:aMid}); }); closeSheet(); render(); }
+  function tgCell(s,ax){ var k=s+'_'+ax; aChans[k]=!aChans[k]; buildAdd(); }
+  function tgRow(s){ var allOn=AXES.every(function(ax){return aChans[s+'_'+ax];}); AXES.forEach(function(ax){ aChans[s+'_'+ax]=!allOn; }); buildAdd(); }
+  function tgCol(ax){ var allOn=['a','g'].every(function(s){return aChans[s+'_'+ax];}); ['a','g'].forEach(function(s){ aChans[s+'_'+ax]=!allOn; }); buildAdd(); }
+  function tgAllChan(){ var allOn=chanCount()===6; ['a','g'].forEach(function(s){ AXES.forEach(function(ax){ aChans[s+'_'+ax]=!allOn; }); }); buildAdd(); }
+  function addMeas(){ var chans=[]; ['a','g'].forEach(function(s){ AXES.forEach(function(ax){ if(aChans[s+'_'+ax]) chans.push({s:s,ax:ax}); }); }); if(!chans.length) return;
+    points[aP].spots[aS].meas.push({mid:aMid, chans:chans}); closeSheet(); render();
+  }
 
+  // ----- библиотека методов / создание -----
   function openMethods(){ document.getElementById('sheetTitle').textContent='Библиотека методов'; var h='';
     methods.forEach(function(m){ h+='<div class="mopt"><div><div class="pn">'+m.name+'</div><div class="pd">'+mSub(m)+'</div></div></div>'; });
     h+='<div class="createlink" onclick="openCreate(false)"><i class="ti ti-plus"></i> создать свой метод</div>';
@@ -162,11 +217,11 @@
   var backToAdd=false;
   function openCreate(toAdd){ backToAdd=toAdd; document.getElementById('sheetTitle').textContent='Новый метод измерения';
     document.getElementById('sheetBody').innerHTML=
-      '<div class="pf"><label>Название</label><input id="mn" placeholder="Напр. ВУ-спектр подшипники"/></div>'
+      '<div class="pf"><label>Название</label><input id="mn" placeholder="Напр. Спектр НЧ"/></div>'
       +'<div class="g2"><div class="pf"><label>Тип измерения</label><select id="mt"><option>Спектр</option><option>Огибающая</option><option>Общий уровень</option><option>Амплитуда-фаза</option><option>Осциллограмма</option><option>Орбита</option></select></div>'
       +'<div class="pf"><label>Величина</label><select id="mu"><option value="vel">Скорость</option><option value="acc">Ускорение</option><option value="disp">Перемещение</option><option value="env">Огибающая</option></select></div></div>'
-      +'<div class="g2"><div class="pf"><label>Частота от, Гц</label><input id="mfmin" placeholder="10"/></div><div class="pf"><label>Частота до, Гц</label><input id="mfmax" placeholder="1000"/></div></div>'
-      +'<div class="g2"><div class="pf"><label>Число линий</label><input id="mli" placeholder="1600"/></div><div class="pf"><label>Усреднений</label><input id="mav" placeholder="8"/></div></div>'
+      +'<div class="g2"><div class="pf"><label>Частота от, Гц</label><input id="mfmin" placeholder="2"/></div><div class="pf"><label>Частота до, Гц</label><input id="mfmax" placeholder="1000"/></div></div>'
+      +'<div class="g2"><div class="pf"><label>Число линий</label><input id="mli" placeholder="10000"/></div><div class="pf"><label>Усреднений</label><input id="mav" placeholder="2"/></div></div>'
       +'<div class="g2"><div class="pf"><label>Перекрытие</label><select id="mov"><option>0%</option><option selected>50%</option><option>75%</option></select></div>'
       +'<div class="pf"><label>Окно</label><select id="mwin"><option>Hann</option><option>Hamming</option><option>Flat-top</option><option>Прямоугольное</option></select></div></div>'
       +'<button class="sbtn" onclick="createMethod()">Создать метод</button>';
@@ -180,6 +235,7 @@
 
   function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+
   function saveProgram(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     var entry={name:(AGG.name||'Агрегат'), agg:localStorage.getItem('nova_agg')||JSON.stringify(AGG), defects:localStorage.getItem('nova_defects')||'[]', program:JSON.stringify({points:points})};
     var idx=-1, eid=localStorage.getItem('nova_editId'); if(eid!==null&&eid!==''&&!isNaN(+eid)&&list[+eid]) idx=+eid;
