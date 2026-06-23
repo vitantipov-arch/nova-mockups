@@ -119,21 +119,27 @@
   function loadTestDb(){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     if(cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
     fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
-      var list=(data||[]).map(function(e){ return { name:e.name||'Агрегат',
+      var aggs = Array.isArray(data) ? data : ((data&&data.aggregates)||[]);
+      var list=aggs.map(function(e){ return { name:e.name||'Агрегат',
         agg: typeof e.agg==='string'?e.agg:JSON.stringify(e.agg||{}),
         defects: typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]),
         program: typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
-      localStorage.setItem('nova_list', JSON.stringify(list)); location.reload();
+      localStorage.setItem('nova_list', JSON.stringify(list));
+      if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); }
+      location.reload();
     }).catch(function(err){ alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); });
   }
   function exportDb(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     function P(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
-    var out=list.map(function(it){ return { name:it.name||'Агрегат', agg:P(it.agg,{}), defects:P(it.defects,[]), program:P(it.program,{points:[]}) }; });
+    var aggs=list.map(function(it){ return { name:it.name||'Агрегат', agg:P(it.agg,{}), defects:P(it.defects,[]), program:P(it.program,{points:[]}) }; });
+    var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets');
+    var out=(ops.length||sets.length)?{aggregates:aggs, opTemplates:ops, methodSets:sets}:aggs;
     var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
   }
   function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+  function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
   function saveList(l){ try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
   function curFilter(){ var s=document.getElementById('search'); return s?s.value:''; }
   function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }

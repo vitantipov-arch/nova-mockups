@@ -157,8 +157,7 @@
       h+='<div class="card"><div class="ptitle"><span class="pdot"></span><span class="pname">'+p.label+'</span><span class="kbadge">'+(p.kind==='journal'?'скольжение':'качение')+'</span><i class="ti ti-dots-vertical" style="color:var(--hint);font-size:18px;cursor:pointer;margin-left:6px" onclick="openOporaMenu('+pi+')"></i></div>';
       p.spots.forEach(function(sp,si){ var amap=axisMap(sp.dir);
         h+='<div class="spot"><div class="spothd"><span class="spotname">Точка '+sp.dir+'</span><span class="spotmap">Z⊥='+sp.dir+' · X='+amap.X+', Y='+amap.Y+'</span><span style="flex:1"></span>'
-          +(p.spots.length>1?'<i class="ti ti-copy" style="color:var(--info);font-size:14px;cursor:pointer;margin-right:12px" onclick="openCopySpot('+pi+','+si+')"></i>':'')
-          +(p.spots.length>1?'<i class="ti ti-trash" style="color:#e24b4a;font-size:15px;cursor:pointer" onclick="delSpot('+pi+','+si+')"></i>':'')+'</div>';
+          +'<i class="ti ti-dots-vertical" style="color:var(--hint);font-size:16px;cursor:pointer" onclick="openSpotMenu('+pi+','+si+')"></i></div>';
         sp.meas.forEach(function(e,ei){ var m=mById(e.mid);
           h+='<div class="mrow"><i class="ti ti-wave-sine mic"></i><div class="mmain"><div class="mn">'+m.name+'</div><div class="mb">'+chanSummary(sp,e.chans)+' · '+mShort(m)+'</div></div><i class="ti ti-x mx" onclick="delMeas('+pi+','+si+','+ei+')"></i></div>';
         });
@@ -261,7 +260,11 @@
   var coP=-1, coSel={};
   function oporaTargets(){ var a=[]; points.forEach(function(p,j){ if(j!==coP) a.push(j); }); return a; }
   function openOporaMenu(pi){ document.getElementById('sheetTitle').textContent=points[pi].label;
-    document.getElementById('sheetBody').innerHTML='<div class="mopt" onclick="openCopyOpora('+pi+')"><div><div class="pn">Копировать опору в другие</div><div class="pd">точки и методы → выбранные опоры</div></div></div>'; openSheet();
+    document.getElementById('sheetBody').innerHTML=
+      '<div class="mopt" onclick="openCopyOpora('+pi+')"><div><div class="pn">Копировать опору в другие</div><div class="pd">точки и методы → выбранные опоры</div></div></div>'
+      +'<div class="mopt" onclick="saveOporaTpl('+pi+')"><div><div class="pn">Сохранить как шаблон опоры</div><div class="pd">в БД, для других агрегатов</div></div></div>'
+      +'<div class="mopt" onclick="applyOporaTpl('+pi+')"><div><div class="pn">Применить шаблон опоры…</div></div></div>';
+    openSheet();
   }
   function openCopyOpora(pi){ coP=pi; coSel={}; buildCopyOpora(); }
   function buildCopyOpora(){ var src=points[coP];
@@ -279,6 +282,49 @@
   function tgOpora(j){ coSel[j]=!coSel[j]; buildCopyOpora(); }
   function tgAllOpora(){ var tg=oporaTargets(); var allOn=tg.every(function(j){return coSel[j];}); tg.forEach(function(j){ coSel[j]=!allOn; }); buildCopyOpora(); }
   function doCopyOpora(){ var src=points[coP]; oporaTargets().forEach(function(j){ if(coSel[j]) points[j].spots=JSON.parse(JSON.stringify(src.spots)); }); closeSheet(); render(); }
+
+  // ----- шаблоны в БД: опоры и наборы методов -----
+  function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
+  function setTpls(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function remapDir(d, from){ if(from===orient) return d; var m=(from==='h')?{'В':'R1','П':'R2','О':'О'}:{'R1':'В','R2':'П','О':'О'}; return m[d]||d; }
+  function remapSpots(spots, from){ var cp=JSON.parse(JSON.stringify(spots||[])); if(from!==orient) cp.forEach(function(s){ s.dir=remapDir(s.dir, from); }); return cp; }
+
+  // меню точки
+  function openSpotMenu(pi,si){ var sp=points[pi].spots[si], multi=points[pi].spots.length>1;
+    document.getElementById('sheetTitle').textContent='Точка '+sp.dir;
+    var h='';
+    if(multi) h+='<div class="mopt" onclick="openCopySpot('+pi+','+si+')"><div><div class="pn">Копировать методы в точки опоры</div></div></div>';
+    h+='<div class="mopt" onclick="saveMethodSet('+pi+','+si+')"><div><div class="pn">Сохранить методы как набор</div><div class="pd">в БД, для повторного применения</div></div></div>'
+     +'<div class="mopt" onclick="applyMethodSet('+pi+','+si+')"><div><div class="pn">Применить набор методов…</div></div></div>';
+    if(multi) h+='<div class="mopt" onclick="delSpot('+pi+','+si+');closeSheet()"><div><div class="pn" style="color:#e24b4a">Удалить точку</div></div></div>';
+    document.getElementById('sheetBody').innerHTML=h; openSheet();
+  }
+  // наборы методов
+  var msP=-1, msS=-1;
+  function saveMethodSet(pi,si){ var name=prompt('Название набора методов:', 'Набор '+points[pi].spots[si].dir); if(!name) return;
+    var t=getTpls('nova_method_sets'); t.push({name:name, meas:JSON.parse(JSON.stringify(points[pi].spots[si].meas))}); setTpls('nova_method_sets',t); closeSheet(); alert('Набор сохранён в БД.');
+  }
+  function applyMethodSet(pi,si){ msP=pi; msS=si; renderSetList(); openSheet(); }
+  function renderSetList(){ var t=getTpls('nova_method_sets'); document.getElementById('sheetTitle').textContent='Наборы методов';
+    if(!t.length){ document.getElementById('sheetBody').innerHTML='<div style="color:var(--hint);font-size:13px;padding:6px 2px">В БД пока нет наборов. Сохраните методы точки как набор.</div>'; return; }
+    var h=''; t.forEach(function(s,idx){ h+='<div class="mopt" onclick="pickMethodSet('+idx+')"><div style="flex:1"><div class="pn">'+s.name+'</div><div class="pd">'+s.meas.length+' изм.</div></div><i class="ti ti-trash" style="color:#e24b4a;font-size:15px" onclick="event.stopPropagation();delMethodSet('+idx+')"></i></div>'; });
+    document.getElementById('sheetBody').innerHTML=h;
+  }
+  function pickMethodSet(idx){ var s=getTpls('nova_method_sets')[idx]; if(!s) return; points[msP].spots[msS].meas=JSON.parse(JSON.stringify(s.meas)); closeSheet(); render(); }
+  function delMethodSet(idx){ var t=getTpls('nova_method_sets'); t.splice(idx,1); setTpls('nova_method_sets',t); renderSetList(); }
+  // шаблоны опор
+  var otP=-1;
+  function saveOporaTpl(pi){ var name=prompt('Название шаблона опоры:', points[pi].label); if(!name) return;
+    var t=getTpls('nova_op_templates'); t.push({name:name, orient:orient, spots:JSON.parse(JSON.stringify(points[pi].spots))}); setTpls('nova_op_templates',t); closeSheet(); alert('Шаблон опоры сохранён в БД.');
+  }
+  function applyOporaTpl(pi){ otP=pi; renderOpTplList(); openSheet(); }
+  function renderOpTplList(){ var t=getTpls('nova_op_templates'); document.getElementById('sheetTitle').textContent='Шаблоны опор';
+    if(!t.length){ document.getElementById('sheetBody').innerHTML='<div style="color:var(--hint);font-size:13px;padding:6px 2px">В БД пока нет шаблонов опор.</div>'; return; }
+    var h=''; t.forEach(function(s,idx){ var warn=(s.orient&&s.orient!==orient)?' · ⚠ другая ориентация — направления переназначу':''; h+='<div class="mopt" onclick="pickOporaTpl('+idx+')"><div style="flex:1"><div class="pn">'+s.name+'</div><div class="pd">'+((s.spots||[]).length)+' точ.'+warn+'</div></div><i class="ti ti-trash" style="color:#e24b4a;font-size:15px" onclick="event.stopPropagation();delOporaTpl('+idx+')"></i></div>'; });
+    document.getElementById('sheetBody').innerHTML=h;
+  }
+  function pickOporaTpl(idx){ var s=getTpls('nova_op_templates')[idx]; if(!s) return; points[otP].spots=remapSpots(s.spots, s.orient||orient); closeSheet(); render(); }
+  function delOporaTpl(idx){ var t=getTpls('nova_op_templates'); t.splice(idx,1); setTpls('nova_op_templates',t); renderOpTplList(); }
 
   function saveProgram(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     var entry={name:(AGG.name||'Агрегат'), agg:localStorage.getItem('nova_agg')||JSON.stringify(AGG), defects:localStorage.getItem('nova_defects')||'[]', program:JSON.stringify({points:points})};
