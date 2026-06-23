@@ -63,7 +63,7 @@
   </div>
 
   <div style="padding:18px 16px 8px;">
-    <button onclick="location.href='create.html'" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px;text-align:left;border:2px solid var(--info-border);background:var(--info-bg);border-radius:var(--r-lg);cursor:pointer;">
+    <button onclick="newAgg()" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px;text-align:left;border:2px solid var(--info-border);background:var(--info-bg);border-radius:var(--r-lg);cursor:pointer;">
       <i class="ti ti-plus" style="font-size:27px;color:var(--info);"></i>
       <span style="display:flex;flex-direction:column;">
         <span style="font-weight:500;color:var(--info);font-size:16px;">Создать агрегат</span>
@@ -75,6 +75,15 @@
       <i class="ti ti-folder-open" style="font-size:23px;color:var(--text-secondary);"></i>
       Открыть агрегат
     </button>
+
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button onclick="loadTestDb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;font-size:12.5px;color:var(--text-secondary);">
+        <i class="ti ti-database-import" style="font-size:17px;"></i> Тестовая БД
+      </button>
+      <button onclick="exportDb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;font-size:12.5px;color:var(--text-secondary);">
+        <i class="ti ti-database-export" style="font-size:17px;"></i> Экспорт БД
+      </button>
+    </div>
   </div>
 
   <div style="padding:16px 16px 8px;">
@@ -106,9 +115,27 @@
 
 </div>
 <script>
+  function newAgg(){ ['nova_agg','nova_defects','nova_program','nova_editId'].forEach(function(k){ localStorage.removeItem(k); }); location.href='create.html'; }
+  function loadTestDb(){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+    if(cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
+    fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
+      var list=(data||[]).map(function(e){ return { name:e.name||'Агрегат',
+        agg: typeof e.agg==='string'?e.agg:JSON.stringify(e.agg||{}),
+        defects: typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]),
+        program: typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
+      localStorage.setItem('nova_list', JSON.stringify(list)); location.reload();
+    }).catch(function(err){ alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); });
+  }
+  function exportDb(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+    function P(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
+    var out=list.map(function(it){ return { name:it.name||'Агрегат', agg:P(it.agg,{}), defects:P(it.defects,[]), program:P(it.program,{points:[]}) }; });
+    var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
+  }
   (function(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     var el=document.getElementById('recent'); if(!el) return;
-    if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый, чтобы начать.</div></div>'; return; }
+    if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый или загрузите тестовую БД.</div><button onclick="loadTestDb()" style="margin-top:2px;padding:9px 16px;font-size:13px;color:var(--info);border:0.5px solid var(--info-border);border-radius:var(--r-md);"><i class="ti ti-database-import"></i> Загрузить тестовую БД</button></div>'; return; }
     var h=''; list.forEach(function(it,i){ var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
       h+='<div onclick="location.href=\'equipment.html?id='+i+'\'" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;cursor:pointer;"><i class="ti ti-box" style="font-size:22px;color:var(--info);"></i><div style="flex:1;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);">'+(it.name||'Агрегат')+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор</div></div><i class="ti ti-chevron-right" style="color:var(--text-tertiary);"></i></div>';
     }); el.innerHTML=h;

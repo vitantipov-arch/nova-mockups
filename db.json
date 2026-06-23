@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Насосный агрегат Н-3",
+    "agg": {
+      "name": "Насосный агрегат Н-3",
+      "orient": "h",
+      "units": [
+        { "name": "Вал 1", "rpm": "2940", "machines": [ { "type": "motor", "pos": "center" } ], "supports": [ { "brgs": ["6308"] }, { "brgs": ["6308"] } ] },
+        { "name": "Вал 2", "rpm": "2940", "machines": [ { "type": "pump", "pos": "center" } ], "supports": [ { "brgs": ["sl-rad"] }, { "brgs": ["6309"] } ] }
+      ],
+      "trans": [ { "type": "elastic", "pins": "6" } ]
+    },
+    "defects": [
+      { "title": "Вал 1", "cat": "shaft", "sel": ["unb", "mis"], "thr": { "unb": "4.5", "mis": "4.5" }, "custom": [] },
+      { "title": "Двигатель (Вал 1)", "cat": "motor", "sel": ["emag"], "thr": {}, "custom": [] },
+      { "title": "Муфта (Вал 1→Вал 2)", "cat": "coupling", "sel": ["cmis", "cpin"], "thr": {}, "custom": [] },
+      { "title": "Вал 2", "cat": "shaft", "sel": ["unb"], "thr": {}, "custom": [] },
+      { "title": "Насос (Вал 2)", "cat": "pump", "sel": ["vpf", "cav"], "thr": {}, "custom": [] }
+    ],
+    "program": {
+      "points": [
+        { "label": "Опора №1 · Вал 1", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
+        { "label": "Опора №2 · Вал 1", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
+        { "label": "Опора №3 · Вал 2", "kind": "journal", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "disp" } ] },
+        { "label": "Опора №4 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] }
+      ]
+    }
+  },
+  {
+    "name": "Дымосос ДН-12 (консольный)",
+    "agg": {
+      "name": "Дымосос ДН-12 (консольный)",
+      "orient": "h",
+      "units": [
+        { "name": "Вал 1", "rpm": "1480", "machines": [ { "type": "motor", "pos": "center" } ], "supports": [ { "brgs": ["6309"] }, { "brgs": ["6309"] } ] },
+        { "name": "Вал 2", "rpm": "740", "machines": [ { "type": "fan", "pos": "right" } ], "supports": [ { "brgs": ["22310"] }, { "brgs": ["22310"] } ] }
+      ],
+      "trans": [ { "type": "belt", "d1": "200", "d2": "400", "len": "1800", "beltDir": "down", "nextDir": "right" } ]
+    },
+    "defects": [
+      { "title": "Вал 2", "cat": "shaft", "sel": ["unb", "mis"], "thr": { "unb": "7.1" }, "custom": [] },
+      { "title": "Вентилятор (Вал 2)", "cat": "fan", "sel": ["bpf", "fimb"], "thr": {}, "custom": [] }
+    ],
+    "program": {
+      "points": [
+        { "label": "Опора №3 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] },
+        { "label": "Опора №4 · Вал 2", "kind": "rolling", "meas": [ { "sens": "both", "dirs": ["В", "П", "О"], "mid": "vel" }, { "sens": "both", "dirs": ["В", "П", "О"], "mid": "acc" } ] }
+      ]
+    }
+  }
+]

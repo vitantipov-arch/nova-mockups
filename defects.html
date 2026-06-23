@@ -171,7 +171,11 @@
   function delCust(bi,ci){ blocks[bi].custom.splice(ci,1); render(); }
   function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function saveGo(){ try{ localStorage.setItem('nova_defects', JSON.stringify(blocks.map(function(b){ return {title:b.title,cat:b.cat,sel:Object.keys(b.sel).filter(function(k){return b.sel[k];}),custom:b.custom}; }))); }catch(e){} location.href='program.html'; }
+  function saveGo(){ try{ localStorage.setItem('nova_defects', JSON.stringify(blocks.map(function(b){ return {title:b.title,cat:b.cat,sel:Object.keys(b.sel).filter(function(k){return b.sel[k];}),thr:b.thr,custom:b.custom}; }))); }catch(e){} location.href='program.html'; }
+  (function restoreDefects(){ var saved; try{ saved=JSON.parse(localStorage.getItem('nova_defects')); }catch(e){} if(!saved||!saved.length) return;
+    saved.forEach(function(sb){ var bk=blocks.filter(function(b){return b.title===sb.title&&b.cat===sb.cat;})[0]; if(!bk) return;
+      (sb.sel||[]).forEach(function(id){ bk.sel[id]=true; }); if(sb.thr) bk.thr=sb.thr; if(sb.custom&&sb.custom.length) bk.custom=sb.custom; });
+  })();
   render();
 </script>
 </body>
