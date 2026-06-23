@@ -24,6 +24,18 @@
   button:active{transform:scale(0.98);}
   .row{display:flex;align-items:center;}
   .ti{line-height:1;}
+  .field-search{display:flex;align-items:center;gap:8px;background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--r-md);padding:0 12px;margin-bottom:12px;}
+  .field-search input{flex:1;height:40px;background:transparent;border:none;outline:none;color:var(--text-primary);font-size:14px;font-family:inherit;}
+  .rowmenu{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-right:6px;border:none;background:transparent;color:var(--text-tertiary);border-radius:8px;}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
+  .backdrop.on{opacity:1;pointer-events:auto;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--bg-primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:10px 12px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;}
+  .sheet.on{transform:translateY(0);}
+  .sheet h3{font-size:13px;font-weight:500;color:var(--text-tertiary);margin:6px 8px 6px;}
+  .mitem{display:flex;align-items:center;gap:13px;padding:14px 12px;border-radius:10px;cursor:pointer;font-size:15px;color:var(--text-primary);}
+  .mitem:active{background:var(--bg-secondary);}
+  .mitem .ti{font-size:21px;color:var(--text-secondary);}
+  .mitem.danger{color:var(--danger);} .mitem.danger .ti{color:var(--danger);}
 </style>
 </head>
 <body>
@@ -51,7 +63,7 @@
         <div style="font-size:12px;color:var(--text-tertiary);">Революция в вибродиагностике</div>
       </div>
     </div>
-    <i class="ti ti-settings" style="font-size:24px;color:var(--text-secondary);"></i>
+    <i class="ti ti-settings" onclick="openSettings()" style="font-size:24px;color:var(--text-secondary);cursor:pointer;"></i>
   </div>
 
   <div class="row" style="justify-content:space-between;margin:0 16px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);">
@@ -70,24 +82,10 @@
         <span style="font-size:13px;color:var(--info);opacity:0.85;">Собрать агрегат из блоков</span>
       </span>
     </button>
-
-    <button style="width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;font-size:15px;">
-      <i class="ti ti-folder-open" style="font-size:23px;color:var(--text-secondary);"></i>
-      Открыть агрегат
-    </button>
-
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button onclick="loadTestDb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;font-size:12.5px;color:var(--text-secondary);">
-        <i class="ti ti-database-import" style="font-size:17px;"></i> Тестовая БД
-      </button>
-      <button onclick="exportDb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;font-size:12.5px;color:var(--text-secondary);">
-        <i class="ti ti-database-export" style="font-size:17px;"></i> Экспорт БД
-      </button>
-    </div>
   </div>
 
   <div style="padding:16px 16px 8px;">
-    <div style="font-size:14px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;">Недавние агрегаты</div>
+    <div class="field-search" id="searchWrap" style="display:none;"><i class="ti ti-search" style="font-size:18px;color:var(--text-tertiary);"></i><input id="search" placeholder="Поиск по названию" oninput="render(this.value)"/></div>
     <div id="recent"></div>
   </div>
 
@@ -114,6 +112,8 @@
   </div>
 
 </div>
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
 <script>
   function newAgg(){ ['nova_agg','nova_defects','nova_program','nova_editId'].forEach(function(k){ localStorage.removeItem(k); }); location.href='create.html'; }
   function loadTestDb(){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
@@ -133,13 +133,38 @@
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
   }
-  (function(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+  function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+  function saveList(l){ try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
+  function curFilter(){ var s=document.getElementById('search'); return s?s.value:''; }
+  function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
+  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+  function openSettings(){ openSheet('<h3>База данных</h3><div class="mitem" onclick="loadTestDb()"><i class="ti ti-database-import"></i> Загрузить тестовую БД</div><div class="mitem" onclick="exportDb()"><i class="ti ti-database-export"></i> Экспорт БД (db.json)</div>'); }
+  function openRowMenu(i){ var list=getList(); var nm=(list[i]&&list[i].name)||'Агрегат';
+    openSheet('<h3>'+nm+'</h3><div class="mitem" onclick="duplicate('+i+')"><i class="ti ti-copy"></i> Дублировать</div><div class="mitem danger" onclick="delAgg('+i+')"><i class="ti ti-trash"></i> Удалить</div>');
+  }
+  function duplicate(i){ var list=getList(), src=list[i]; if(!src) return;
+    list.push({ name:(src.name||'Агрегат')+' (копия)', agg:src.agg, defects:src.defects, program:src.program });
+    saveList(list); closeSheet(); render(curFilter());
+  }
+  function delAgg(i){ var list=getList(), nm=(list[i]&&list[i].name)||'агрегат';
+    if(!confirm('Удалить «'+nm+'»? Действие необратимо.')) return;
+    list.splice(i,1); saveList(list); closeSheet(); render(curFilter());
+  }
+  function render(filter){ var list=getList(); filter=(filter||'').trim().toLowerCase();
+    var wrap=document.getElementById('searchWrap'); if(wrap) wrap.style.display=list.length?'flex':'none';
     var el=document.getElementById('recent'); if(!el) return;
     if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый или загрузите тестовую БД.</div><button onclick="loadTestDb()" style="margin-top:2px;padding:9px 16px;font-size:13px;color:var(--info);border:0.5px solid var(--info-border);border-radius:var(--r-md);"><i class="ti ti-database-import"></i> Загрузить тестовую БД</button></div>'; return; }
-    var h=''; list.forEach(function(it,i){ var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
-      h+='<div onclick="location.href=\'equipment.html?id='+i+'\'" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;cursor:pointer;"><i class="ti ti-box" style="font-size:22px;color:var(--info);"></i><div style="flex:1;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);">'+(it.name||'Агрегат')+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор</div></div><i class="ti ti-chevron-right" style="color:var(--text-tertiary);"></i></div>';
-    }); el.innerHTML=h;
-  })();
+    var h='', shown=0;
+    list.forEach(function(it,i){ var name=it.name||'Агрегат'; if(filter && name.toLowerCase().indexOf(filter)<0) return; shown++;
+      var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
+      h+='<div style="display:flex;align-items:center;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;">'
+        +'<div onclick="location.href=\'equipment.html?id='+i+'\'" style="flex:1;display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;min-width:0;"><i class="ti ti-box" style="font-size:22px;color:var(--info);flex:0 0 auto;"></i><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор</div></div></div>'
+        +'<button class="rowmenu" onclick="event.stopPropagation();openRowMenu('+i+')"><i class="ti ti-dots-vertical" style="font-size:20px;"></i></button>'
+        +'</div>';
+    });
+    el.innerHTML = shown ? h : '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary);">Ничего не найдено</div>';
+  }
+  render('');
 </script>
 </body>
 </html>
