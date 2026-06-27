@@ -8,7 +8,7 @@
 <style>
   :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
          --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
-         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; --gyro:#c79bff; }
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
   *{box-sizing:border-box;}
   html,body{margin:0;background:var(--bg);}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
@@ -19,20 +19,30 @@
   .ttl{font-size:16px;font-weight:500;}
   .sttl{font-size:12px;color:var(--hint);}
   .body{padding:14px 16px;flex:1;}
-  .cfgbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;cursor:pointer;}
+  .cfgbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px;cursor:pointer;}
   .cchip{font-size:11.5px;color:var(--muted);background:var(--secondary);border-radius:7px;padding:5px 9px;display:inline-flex;align-items:center;gap:5px;}
   .cchip.act{color:var(--info);background:var(--info-bg);}
-  .chart{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:10px 8px 6px;position:relative;min-height:140px;}
+  .vtabs{display:flex;gap:5px;background:var(--secondary);border-radius:9px;padding:3px;margin-bottom:9px;overflow-x:auto;}
+  .vtabs button{flex:1 0 auto;min-width:64px;height:32px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .vtabs button.on{background:var(--info-bg);color:var(--info);}
+  .vchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .cc2{font-size:12px;color:var(--muted);border:0.5px solid var(--border2);border-radius:7px;padding:5px 9px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+  .cc2.on{border-color:var(--info-bd);color:var(--text);}
+  .cdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .chart{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:10px 8px 6px;position:relative;min-height:150px;}
   .read{margin-top:12px;}
   .big{display:flex;align-items:center;gap:14px;background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;}
-  .rms{font-size:28px;font-weight:600;line-height:1;}
+  .rms{font-size:26px;font-weight:600;line-height:1;}
   .rmsu{font-size:13px;color:var(--hint);}
   .zone{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;margin-top:5px;}
   .zdot{width:11px;height:11px;border-radius:50%;}
   .crow{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--primary);border:0.5px solid var(--border);border-radius:9px;margin-top:6px;}
-  .cn{font-size:13px;font-weight:500;width:78px;flex:0 0 auto;}
+  .cn{font-size:13px;font-weight:500;width:84px;flex:0 0 auto;display:flex;align-items:center;gap:6px;}
   .cf{font-size:12px;color:var(--hint);flex:1;}
   .ca{font-size:13px;}
+  .det{display:flex;gap:5px;background:var(--secondary);border-radius:8px;padding:3px;margin-bottom:8px;width:max-content;}
+  .det button{height:28px;padding:0 12px;border:none;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;}
+  .det button.on{background:var(--info-bg);color:var(--info);}
   .foot{padding:14px 16px;border-top:0.5px solid var(--border);display:flex;gap:10px;}
   .meas{flex:1;height:50px;border-radius:12px;border:none;background:#2f7d4f;color:#fff;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;}
   .diag{width:54px;height:50px;border-radius:12px;border:0.5px solid var(--border2);background:transparent;color:var(--info);font-size:22px;cursor:pointer;}
@@ -62,11 +72,13 @@
 <div class="screen">
   <div class="hd">
     <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
-    <div style="flex:1;"><div class="ttl">Свободное измерение</div><div class="sttl">Точка В · свои настройки</div></div>
+    <div style="flex:1;"><div class="ttl">Свободное измерение</div><div class="sttl">Точка В · захват → любой вид</div></div>
     <i class="ti ti-adjustments" style="color:var(--info);cursor:pointer" onclick="openCfg()"></i>
   </div>
   <div class="body">
     <div class="cfgbar" id="cfgbar" onclick="openCfg()"></div>
+    <div class="vtabs" id="vtabs"></div>
+    <div class="vchips" id="vchips"></div>
     <div class="chart"><div id="view"></div><div class="busy" id="busy" style="display:none"><i class="ti ti-loader-2 spin"></i>идёт замер…</div></div>
     <div class="read" id="read"></div>
   </div>
@@ -80,132 +92,136 @@
 
 <script>
   var fr=49;
-  var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', type:'spectrum', detector:'rms', fmin:'2', fmax:'1000', lines:'6400', window:'Hann' };
-  var data=null;
+  var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', fmin:'2', fmax:'1000', lines:'6400', window:'Hann' };
+  var data=null, view='spectrum', viewChans={}, detector='rms';
   var QTY={vel:'Скорость',acc:'Ускорение',disp:'Перемещение'};
-  var TYPE={spectrum:'Спектр',envelope:'Огибающая',level:'Общий уровень',phase:'Амплитуда-фаза',wave:'Временной сигнал'};
+  var VIEW=[['spectrum','Спектр'],['wave','Сигнал'],['envelope','Огибающая'],['phase','Ампл-фаза'],['level','Уровень']];
   var DET={rms:'СКЗ',peak:'Пик',pp:'Размах'};
   var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
   var SLAB={a:'Вибро',g:'Гиро'};
+  var COL={a_Z:'#85b7eb',a_X:'#38e1d6',a_Y:'#97c459',g_Z:'#c79bff',g_X:'#ff5db1',g_Y:'#ffb24d'};
+  function key(c){ return c.s+'_'+c.ax; }
+  function chColor(c){ return COL[key(c)]||'#85b7eb'; }
+  function chName(c){ return SLAB[c.s]+' '+c.ax; }
   function uOf(q,s){ return (UNIT[q]||UNIT.vel)[s]; }
   function rnd(a,b){ return a+Math.random()*(b-a); }
   function selChans(){ var a=[]; ['a','g'].forEach(function(s){ ['Z','X','Y'].forEach(function(ax){ if(cfg.chans[s+'_'+ax]) a.push({s:s,ax:ax}); }); }); return a; }
   function nSel(){ return selChans().length; }
+  function shown(){ return data?data.per.filter(function(p){return viewChans[key(p.c)];}):[]; }
 
-  // ---------- генерация мок-данных ----------
   function scale(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
-  function buildComps(q,s,type){ var sc=scale(q,s);
-    if(type==='envelope'){ var bp=rnd(7,8)*fr; return [{n:'1×',f:fr,a:rnd(0.1,0.3)*sc},{n:'BPFO',f:bp,a:rnd(0.5,1.1)*sc},{n:'2·BPFO',f:2*bp,a:rnd(0.25,0.6)*sc}]; }
+  function comps(q,s,kind){ var sc=scale(q,s);
+    if(kind==='env'){ var bp=rnd(7,8)*fr; return [{n:'1×',f:fr,a:rnd(0.1,0.3)*sc},{n:'BPFO',f:bp,a:rnd(0.5,1.1)*sc},{n:'2·BPFO',f:2*bp,a:rnd(0.25,0.6)*sc}]; }
     return [{n:'0.5×',f:0.5*fr,a:rnd(0.04,0.2)*sc},{n:'1×',f:fr,a:rnd(0.4,1.0)*sc},{n:'2×',f:2*fr,a:rnd(0.15,0.6)*sc},{n:'3×',f:3*fr,a:rnd(0.05,0.3)*sc}];
   }
-  function genChannel(c){ var comps=buildComps(cfg.qty,c.s,cfg.type);
-    var rms=Math.sqrt(comps.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02);
+  function binsOf(cm,fmax,nf){ var N=160,b=[]; for(var i=0;i<N;i++){ var f=fmax*i/(N-1),a=rnd(0,1)*nf; cm.forEach(function(k){ var w=fmax*0.012; a+=k.a*Math.exp(-Math.pow((f-k.f)/w,2)); }); b.push({f:f,a:a}); } return b; }
+  function genChannel(c){ var fmax=parseFloat(cfg.fmax)||1000;
+    var cm=comps(cfg.qty,c.s,'spec'), ecm=comps(cfg.qty,c.s,'env');
+    var rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02);
     var crest=rnd(1.4,1.9), peak=rms*1.414*crest, pp=peak*rnd(1.8,2.0);
-    var one=comps.filter(function(k){return k.n==='1×';})[0]||comps[1]||comps[0];
-    var fmax=parseFloat(cfg.fmax)||1000, N=160, bins=[];
-    for(var i=0;i<N;i++){ var f=fmax*i/(N-1), a=rnd(0,1)*0.05*(rms||1);
-      comps.forEach(function(k){ var w=fmax*0.012; a+=k.a*Math.exp(-Math.pow((f-k.f)/w,2)); }); bins.push({f:f,a:a}); }
-    var mx=Math.max.apply(null,bins.map(function(b){return b.a;}));
-    var M=130, wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr), y=0; comps.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
-    return {c:c,unit:uOf(cfg.qty,c.s),comps:comps,rms:rms,peak:peak,pp:pp,amp1:one.a,phase:rnd(0,360),bins:bins,max:mx,wave:wave};
+    var one=cm.filter(function(k){return k.n==='1×';})[0]||cm[1];
+    var bins=binsOf(cm,fmax,0.05*rms), ebins=binsOf(ecm,fmax,0.04*rms);
+    var M=130,wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr),y=0; cm.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
+    var bmax=Math.max.apply(null,bins.map(function(x){return x.a;})), emax=Math.max.apply(null,ebins.map(function(x){return x.a;})), wmax=Math.max.apply(null,wave.map(Math.abs));
+    return {c:c,unit:uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:peak,pp:pp,amp1:one.a,phase:rnd(0,360),bins:bins,ebins:ebins,wave:wave,bmax:bmax,emax:emax,wmax:wmax};
   }
-  function genData(){ return { type:cfg.type, per:selChans().map(genChannel) }; }
-  function detVal(p){ return cfg.detector==='peak'?p.peak:(cfg.detector==='pp'?p.pp:p.rms); }
+  function genData(){ var per=selChans().map(genChannel); viewChans={}; per.forEach(function(p){ viewChans[key(p.c)]=true; }); return {per:per}; }
+  function detVal(p){ return detector==='peak'?p.peak:(detector==='pp'?p.pp:p.rms); }
   function zoneVel(v){ return v<2.8?'g':v<7.1?'y':'r'; }
   var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, ZN={g:'норма',y:'повышено',r:'недопустимо'};
-  function chColor(c){ return c.s==='g'?'var(--gyro)':'var(--info)'; }
-  function chName(c){ return SLAB[c.s]+' '+c.ax; }
 
-  // ---------- отрисовка ----------
-  function svgWrap(inner,h){ return '<svg viewBox="0 0 360 '+h+'" width="100%" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>'; }
-  function barsHalf(ch,X,base,limit){ var dir=limit<base?1:-1, ph=Math.abs(base-limit), col=chColor(ch.c)==='var(--gyro)'?'#c79bff':'#85b7eb'; var s='';
-    ch.bins.forEach(function(b){ var y=base-dir*ph*Math.min(b.a,ch.max)/ch.max; s+='<line x1="'+X(b.f)+'" y1="'+base.toFixed(1)+'" x2="'+X(b.f)+'" y2="'+y.toFixed(1)+'" stroke="'+col+'" stroke-width="1.4"/>'; });
+  // ---- рисование ----
+  function svg(inner,h){ return '<svg viewBox="0 0 360 '+h+'" width="100%" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>'; }
+  function bandSpectrum(list,X,base,bandH,dir,src,maxKey){ if(!list.length) return '';
+    var mx=Math.max.apply(null,list.map(function(p){return p[maxKey];}).concat([1e-6])), s='';
+    list.forEach(function(p){ var d=''; p[src].forEach(function(b,i){ var y=base-dir*bandH*Math.min(b.a,mx)/mx; d+=(i?'L':'M')+X(b.f).toFixed(1)+' '+y.toFixed(1); }); s+='<path d="'+d+'" fill="none" stroke="'+chColor(p.c)+'" stroke-width="1.5"/>'; });
     return s;
   }
-  function drawSpec(){ var per=data.per, vib=per.filter(function(p){return p.c.s==='a';})[0], gyr=per.filter(function(p){return p.c.s==='g';})[0];
-    var L=42,Rr=352,fmax=parseFloat(cfg.fmax)||1000; function X(f){ return (L+310*f/fmax).toFixed(1); }
-    var s='', H=176;
-    if(vib&&gyr){ var mid=88;
-      s+=barsHalf(vib,X,mid,10)+barsHalf(gyr,X,mid,166);
-      s+='<line x1="'+L+'" y1="'+mid+'" x2="'+Rr+'" y2="'+mid+'" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>';
-      s+='<text x="'+L+'" y="20" font-size="9" fill="#85b7eb">Вибро '+vib.c.ax+' ('+vib.unit+')</text>';
-      s+='<text x="'+L+'" y="162" font-size="9" fill="#c79bff">Гиро '+gyr.c.ax+' ('+gyr.unit+')</text>';
-    } else { var ch=vib||gyr, B=160; if(!ch){ return '<div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Выберите каналы</div>'; }
-      s+=barsHalf(ch,X,B,8);
-      for(var k=0;k<=4;k++){ var val=ch.max*k/4,y=(B-152*k/4); s+='<line x1="'+L+'" y1="'+y+'" x2="'+Rr+'" y2="'+y+'" stroke="rgba(255,255,255,0.06)"/><text x="'+(L-4)+'" y="'+(y+3)+'" font-size="8" fill="#86857e" text-anchor="end">'+val.toFixed(2)+'</text>'; }
-      s+='<text x="'+L+'" y="20" font-size="9" fill="'+(ch.c.s==='g'?'#c79bff':'#85b7eb')+'">'+chName(ch.c)+' ('+ch.unit+')</text>';
-      if(cfg.qty==='vel'&&ch.c.s==='a'){ var ty=B-152*Math.min(4.5,ch.max)/ch.max; s+='<line x1="'+L+'" y1="'+ty.toFixed(1)+'" x2="'+Rr+'" y2="'+ty.toFixed(1)+'" stroke="#ef9f27" stroke-dasharray="4 3"/><text x="'+Rr+'" y="'+(ty-3).toFixed(1)+'" font-size="8" fill="#ef9f27" text-anchor="end">порог 4.5</text>'; }
+  function drawSpec(srcKey,maxKey){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
+    var vib=sh.filter(function(p){return p.c.s==='a';}), gyr=sh.filter(function(p){return p.c.s==='g';});
+    var L=40,Rr=352,fmax=parseFloat(cfg.fmax)||1000; function X(f){ return L+312*f/fmax; }
+    var s='',H=176;
+    if(vib.length&&gyr.length){ var mid=90;
+      s+=bandSpectrum(vib,X,mid,78,1,srcKey,maxKey)+bandSpectrum(gyr,X,mid,72,-1,srcKey,maxKey);
+      s+='<line x1="'+L+'" y1="'+mid+'" x2="'+Rr+'" y2="'+mid+'" stroke="rgba(255,255,255,0.18)"/>';
+      s+='<text x="'+L+'" y="12" font-size="8" fill="#85b7eb">Вибро ('+vib[0].unit+')</text><text x="'+L+'" y="170" font-size="8" fill="#c79bff">Гиро ('+gyr[0].unit+')</text>';
+    } else { var B=158; s+=bandSpectrum(sh,X,B,150,1,srcKey,maxKey);
+      if(cfg.qty==='vel'&&sh[0].c.s==='a'){ var mx=Math.max.apply(null,sh.map(function(p){return p[maxKey];})); var ty=B-150*Math.min(4.5,mx)/mx; s+='<line x1="'+L+'" y1="'+ty.toFixed(1)+'" x2="'+Rr+'" y2="'+ty.toFixed(1)+'" stroke="#ef9f27" stroke-dasharray="4 3"/><text x="'+Rr+'" y="'+(ty-3).toFixed(1)+'" font-size="8" fill="#ef9f27" text-anchor="end">порог 4.5</text>'; }
     }
-    for(var j=0;j<=5;j++){ var f=fmax*j/5; s+='<text x="'+X(f)+'" y="'+(H-2)+'" font-size="8" fill="#86857e" text-anchor="middle">'+Math.round(f)+'</text>'; }
-    return svgWrap(s,H);
+    for(var j=0;j<=5;j++){ var f=fmax*j/5; s+='<text x="'+X(f).toFixed(1)+'" y="'+(H-2)+'" font-size="8" fill="#86857e" text-anchor="middle">'+Math.round(f)+'</text>'; }
+    return svg(s,H);
   }
-  function drawWave(){ var ch=data.per[0]; if(!ch) return ''; var w=ch.wave, n=w.length, mx=Math.max.apply(null,w.map(Math.abs))||1;
-    var L=42,Rr=352,T=12,B=150,mid=(T+B)/2; var s=''; var d='';
-    for(var i=0;i<n;i++){ var x=L+(Rr-L)*i/(n-1), y=mid-(B-T)/2*w[i]/mx; d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }
-    s+='<line x1="'+L+'" y1="'+mid+'" x2="'+Rr+'" y2="'+mid+'" stroke="rgba(255,255,255,0.12)"/>';
-    s+='<path d="'+d+'" fill="none" stroke="'+(ch.c.s==='g'?'#c79bff':'#85b7eb')+'" stroke-width="1.6"/>';
-    s+='<text x="'+L+'" y="18" font-size="9" fill="#86857e">'+chName(ch.c)+' · '+ch.unit+' · время</text>';
-    return svgWrap(s,168);
+  function drawWave(){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
+    var vib=sh.filter(function(p){return p.c.s==='a';}), gyr=sh.filter(function(p){return p.c.s==='g';});
+    var L=40,Rr=352; function band(list,cy,half){ if(!list.length) return ''; var mx=Math.max.apply(null,list.map(function(p){return p.wmax;}).concat([1e-6])),s='';
+      list.forEach(function(p){ var d=''; p.wave.forEach(function(v,i){ var x=L+(Rr-L)*i/(p.wave.length-1), y=cy-half*v/mx; d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); }); s+='<path d="'+d+'" fill="none" stroke="'+chColor(p.c)+'" stroke-width="1.5"/>'; });
+      s+='<line x1="'+L+'" y1="'+cy+'" x2="'+Rr+'" y2="'+cy+'" stroke="rgba(255,255,255,0.1)"/>'; return s; }
+    var s='';
+    if(vib.length&&gyr.length){ s+=band(vib,52,42)+band(gyr,128,42); s+='<text x="'+L+'" y="14" font-size="8" fill="#85b7eb">Вибро</text><text x="'+L+'" y="166" font-size="8" fill="#c79bff">Гиро</text>'; }
+    else s+=band(sh,88,72);
+    return svg(s,176);
   }
-  function drawPhase(){ var cx=180,cy=86,R=70; var s='';
+  function drawPhase(){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
+    var cx=180,cy=88,R=72,s='';
     s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="rgba(255,255,255,0.12)"/><circle cx="'+cx+'" cy="'+cy+'" r="'+(R/2)+'" fill="none" stroke="rgba(255,255,255,0.07)"/>';
-    s+='<line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="rgba(255,255,255,0.1)"/><line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="rgba(255,255,255,0.1)"/>';
-    s+='<text x="'+(cx+R+2)+'" y="'+(cy+3)+'" font-size="8" fill="#86857e">0°</text>';
-    var mx=Math.max.apply(null,data.per.map(function(p){return p.amp1;}))||1;
-    data.per.forEach(function(p){ var ph=p.phase*Math.PI/180, r=R*Math.min(p.amp1,mx)/mx, x=cx+r*Math.cos(ph), y=cy-r*Math.sin(ph), col=p.c.s==='g'?'#c79bff':'#85b7eb';
-      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+col+'" stroke-width="2"/><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5" fill="'+col+'"/>'; });
-    return svgWrap(s,172);
+    s+='<line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="rgba(255,255,255,0.1)"/><line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="rgba(255,255,255,0.1)"/><text x="'+(cx+R+2)+'" y="'+(cy+3)+'" font-size="8" fill="#86857e">0°</text>';
+    var mx=Math.max.apply(null,sh.map(function(p){return p.amp1;}).concat([1e-6]));
+    sh.forEach(function(p){ var ph=p.phase*Math.PI/180,r=R*Math.min(p.amp1,mx)/mx,x=cx+r*Math.cos(ph),y=cy-r*Math.sin(ph);
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+chColor(p.c)+'" stroke-width="2"/><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5" fill="'+chColor(p.c)+'"/>'; });
+    return svg(s,180);
   }
+  function drawLevel(){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
+    var mx=Math.max.apply(null,sh.map(function(p){return detVal(p);}).concat([1e-6])), L=92,Rr=348, s='', H=Math.max(120, sh.length*30+16);
+    sh.forEach(function(p,i){ var y=16+i*30, v=detVal(p), w=(Rr-L)*Math.min(v,mx)/mx, z=(cfg.qty==='vel'&&p.c.s==='a')?zoneVel(v):null, col=z?ZC[z].replace('var(--success)','#97c459').replace('var(--warning)','#ef9f27').replace('var(--danger)','#e24b4a'):chColor(p.c);
+      s+='<text x="6" y="'+(y+13)+'" font-size="11" fill="#ececea">'+chName(p.c)+'</text>';
+      s+='<rect x="'+L+'" y="'+y+'" width="'+(Rr-L)+'" height="18" rx="4" fill="rgba(255,255,255,0.05)"/><rect x="'+L+'" y="'+y+'" width="'+w.toFixed(1)+'" height="18" rx="4" fill="'+col+'"/>';
+      s+='<text x="'+Rr+'" y="'+(y+13)+'" font-size="10" fill="#b4b2a9" text-anchor="end">'+v.toFixed(2)+'</text>';
+    });
+    return svg(s,H);
+  }
+  function empty(t){ return '<div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">'+t+'</div>'; }
 
-  function renderChips(){ var sel=selChans(), va=sel.filter(function(c){return c.s==='a';}).map(function(c){return c.ax;}), gy=sel.filter(function(c){return c.s==='g';}).map(function(c){return c.ax;});
-    var ch=[]; if(va.length) ch.push('Вибро '+va.join('/')); if(gy.length) ch.push('Гиро '+gy.join('/'));
-    var h='<span class="cchip act"><i class="ti ti-versions"></i> '+(ch.join(' · ')||'нет каналов')+'</span>';
-    h+='<span class="cchip">'+QTY[cfg.qty]+'</span>';
-    h+='<span class="cchip">'+TYPE[cfg.type]+(cfg.type==='level'?' · '+DET[cfg.detector]:'')+'</span>';
-    if(cfg.type==='spectrum'||cfg.type==='envelope') h+='<span class="cchip">'+cfg.fmin+'–'+cfg.fmax+' Гц · '+cfg.lines+' лин · '+cfg.window+'</span>';
-    else if(cfg.type==='level') h+='<span class="cchip">'+cfg.fmin+'–'+cfg.fmax+' Гц</span>';
-    else if(cfg.type==='phase') h+='<span class="cchip">1× · синхр.</span>';
-    document.getElementById('cfgbar').innerHTML=h;
+  function renderCfgBar(){ var sel=selChans(), va=sel.filter(function(c){return c.s==='a';}).map(function(c){return c.ax;}), gy=sel.filter(function(c){return c.s==='g';}).map(function(c){return c.ax;}), ch=[];
+    if(va.length) ch.push('Вибро '+va.join('/')); if(gy.length) ch.push('Гиро '+gy.join('/'));
+    document.getElementById('cfgbar').innerHTML='<span class="cchip act"><i class="ti ti-adjustments"></i> '+(ch.join(' · ')||'нет каналов')+'</span><span class="cchip">'+QTY[cfg.qty]+'</span><span class="cchip">'+cfg.fmin+'–'+cfg.fmax+' Гц · '+cfg.lines+' лин · '+cfg.window+'</span>';
   }
-  function render(){ renderChips();
-    var view=document.getElementById('view'), read=document.getElementById('read');
-    if(!data){ view.innerHTML='<div style="height:140px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Нажмите «Измерить»</div>'; read.innerHTML=''; return; }
-    if(!data.per.length){ view.innerHTML='<div style="height:140px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Выберите каналы в настройках</div>'; read.innerHTML=''; return; }
-    var t=data.type;
-    if(t==='spectrum'||t==='envelope') view.innerHTML=drawSpec();
-    else if(t==='wave') view.innerHTML=drawWave();
-    else if(t==='phase') view.innerHTML=drawPhase();
-    else view.innerHTML='<div style="height:140px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:12.5px">Общий уровень — значения ниже</div>';
-    // readouts
-    var rh='';
-    if(t==='level'){ data.per.forEach(function(p){ var v=detVal(p), z=(cfg.qty==='vel'&&p.c.s==='a')?zoneVel(v):null;
-      rh+='<div class="crow"><span class="cn" style="color:'+chColor(p.c)+'">'+chName(p.c)+'</span><span class="cf">'+DET[cfg.detector]+'</span><span class="ca">'+v.toFixed(2)+' '+p.unit+(z?' <span class="zdot" style="display:inline-block;vertical-align:middle;background:'+ZC[z]+'"></span>':'')+'</span></div>'; });
-    } else if(t==='phase'){ data.per.forEach(function(p){ rh+='<div class="crow"><span class="cn" style="color:'+chColor(p.c)+'">'+chName(p.c)+'</span><span class="cf">1×</span><span class="ca">'+p.amp1.toFixed(2)+' '+p.unit+' ∠ '+p.phase.toFixed(0)+'°</span></div>'; });
-    } else { // spectrum/envelope/wave: СКЗ по каналам + компоненты первого
-      var prim=data.per[0]; var v=prim.rms, z=(cfg.qty==='vel'&&prim.c.s==='a')?zoneVel(v):null;
-      rh+='<div class="big"><div><div><span class="rms">'+v.toFixed(2)+'</span> <span class="rmsu">'+prim.unit+' СКЗ</span></div>'+(z?'<div class="zone"><span class="zdot" style="background:'+ZC[z]+'"></span>'+ZN[z]+'</div>':'<div class="zone" style="color:var(--hint)">'+chName(prim.c)+'</div>')+'</div><div style="flex:1"></div><div style="text-align:right"><div style="font-size:11px;color:var(--hint)">режим</div><div style="font-size:14px">2940 об/мин</div></div></div>';
-      prim.comps.slice().sort(function(a,b){return b.a-a.a;}).forEach(function(c){ rh+='<div class="crow"><span class="cn">'+c.n+'</span><span class="cf">'+c.f.toFixed(1)+' Гц</span><span class="ca">'+c.a.toFixed(2)+' '+prim.unit+'</span></div>'; });
-      if(data.per.length>1){ rh+='<div style="font-size:11px;color:var(--hint);margin:10px 0 4px">СКЗ по каналам</div>'; data.per.forEach(function(p){ rh+='<div class="crow"><span class="cn" style="color:'+chColor(p.c)+'">'+chName(p.c)+'</span><span class="cf"></span><span class="ca">'+p.rms.toFixed(2)+' '+p.unit+'</span></div>'; }); }
+  function render(){ renderCfgBar();
+    var vt=document.getElementById('vtabs'), vc=document.getElementById('vchips'), vw=document.getElementById('view'), rd=document.getElementById('read');
+    if(!data||!data.per.length){ vt.innerHTML=''; vc.innerHTML=''; vw.innerHTML=empty(data?'Выберите каналы в настройках':'Нажмите «Измерить»'); rd.innerHTML=''; return; }
+    vt.innerHTML=VIEW.map(function(v){ return '<button class="'+(view===v[0]?'on':'')+'" onclick="setView(\''+v[0]+'\')">'+v[1]+'</button>'; }).join('');
+    vc.innerHTML=data.per.map(function(p){ var on=viewChans[key(p.c)]; return '<span class="cc2'+(on?' on':'')+'" onclick="tgChan(\''+key(p.c)+'\')"><span class="cdot" style="background:'+chColor(p.c)+';opacity:'+(on?1:0.3)+'"></span>'+chName(p.c)+'</span>'; }).join('');
+    if(view==='spectrum') vw.innerHTML=drawSpec('bins','bmax');
+    else if(view==='envelope') vw.innerHTML=drawSpec('ebins','emax');
+    else if(view==='wave') vw.innerHTML=drawWave();
+    else if(view==='phase') vw.innerHTML=drawPhase();
+    else vw.innerHTML=drawLevel();
+    // readout
+    var sh=shown(), rh='';
+    if(view==='level'){ rh+='<div class="det">'+['rms','peak','pp'].map(function(d){return '<button class="'+(detector===d?'on':'')+'" onclick="setDet(\''+d+'\')">'+DET[d]+'</button>';}).join('')+'</div>'; }
+    else if(view==='phase'){ sh.forEach(function(p){ rh+='<div class="crow"><span class="cn"><span class="cdot" style="background:'+chColor(p.c)+'"></span>'+chName(p.c)+'</span><span class="cf">1×</span><span class="ca">'+p.amp1.toFixed(2)+' '+p.unit+' ∠ '+p.phase.toFixed(0)+'°</span></div>'; }); }
+    else if(sh.length){ var prim=sh[0], v=prim.rms, z=(cfg.qty==='vel'&&prim.c.s==='a')?zoneVel(v):null;
+      rh+='<div class="big"><div><div><span class="rms">'+v.toFixed(2)+'</span> <span class="rmsu">'+prim.unit+' СКЗ</span></div>'+(z?'<div class="zone"><span class="zdot" style="background:'+ZC[z]+'"></span>'+ZN[z]+'</div>':'<div class="zone" style="color:var(--hint)"><span class="cdot" style="background:'+chColor(prim.c)+'"></span>'+chName(prim.c)+'</div>')+'</div><div style="flex:1"></div><div style="text-align:right"><div style="font-size:11px;color:var(--hint)">режим</div><div style="font-size:14px">2940 об/мин</div></div></div>';
+      if(sh.length===1){ prim.comps.slice().sort(function(a,b){return b.a-a.a;}).forEach(function(c){ rh+='<div class="crow"><span class="cn">'+c.n+'</span><span class="cf">'+c.f.toFixed(1)+' Гц</span><span class="ca">'+c.a.toFixed(2)+' '+prim.unit+'</span></div>'; }); }
+      else { sh.forEach(function(p){ rh+='<div class="crow"><span class="cn"><span class="cdot" style="background:'+chColor(p.c)+'"></span>'+chName(p.c)+'</span><span class="cf">СКЗ</span><span class="ca">'+p.rms.toFixed(2)+' '+p.unit+'</span></div>'; }); }
     }
-    read.innerHTML=rh;
+    rd.innerHTML=rh;
   }
-  function measure(){ if(!nSel()){ render(); return; } document.getElementById('busy').style.display='flex';
+  function setView(v){ view=v; render(); }
+  function setDet(d){ detector=d; render(); }
+  function tgChan(k){ viewChans[k]=!viewChans[k]; render(); }
+  function measure(){ if(!nSel()){ data={per:[]}; render(); return; } document.getElementById('busy').style.display='flex';
     setTimeout(function(){ data=genData(); document.getElementById('busy').style.display='none'; render(); }, 700);
   }
 
-  // ---------- настройки ----------
+  // ---- настройки захвата ----
   function openCfg(){ buildCfg(); document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function buildCfg(){ var h='<h3>Настройка измерения</h3>';
-    h+='<div class="slbl">Каналы (Вибро/Гиро × оси) — совместно или раздельно</div><div class="matrix">';
+  function buildCfg(){ var h='<h3>Настройка захвата</h3><div class="slbl">Каналы (Вибро/Гиро × оси) — совместно или раздельно</div><div class="matrix">';
     h+='<div class="mh"></div>'+['Z','X','Y'].map(function(ax){return '<div class="mh" onclick="cfgCol(\''+ax+'\')">'+ax+'</div>';}).join('');
     [['a','Вибро'],['g','Гиро']].forEach(function(r){ h+='<div class="mrh" onclick="cfgRow(\''+r[0]+'\')">'+r[1]+'</div>'+['Z','X','Y'].map(function(ax){ var on=cfg.chans[r[0]+'_'+ax]; return '<div class="cell'+(on?' on':'')+'" onclick="cfgCell(\''+r[0]+'\',\''+ax+'\')">'+(on?'<i class="ti ti-check"></i>':'')+'</div>'; }).join(''); });
-    h+='</div>';
-    h+='<div class="slbl">Величина</div><div class="chips">'+['vel','acc','disp'].map(function(q){return '<span class="chip'+(cfg.qty===q?' on':'')+'" onclick="cfg.qty=\''+q+'\';buildCfg()">'+QTY[q]+'</span>';}).join('')+'</div>';
-    h+='<div class="slbl">Тип измерения</div><div class="chips">'+['spectrum','envelope','level','phase','wave'].map(function(t){return '<span class="chip'+(cfg.type===t?' on':'')+'" onclick="cfg.type=\''+t+'\';buildCfg()">'+TYPE[t]+'</span>';}).join('')+'</div>';
-    if(cfg.type==='level') h+='<div class="slbl">Детектор</div><div class="chips">'+['rms','peak','pp'].map(function(d){return '<span class="chip'+(cfg.detector===d?' on':'')+'" onclick="cfg.detector=\''+d+'\';buildCfg()">'+DET[d]+'</span>';}).join('')+'</div>';
-    if(cfg.type!=='phase'&&cfg.type!=='wave') h+='<div class="slbl">Частотный диапазон, Гц</div><div class="g2"><div class="pf"><input id="fmin" value="'+cfg.fmin+'" placeholder="от"/></div><div class="pf"><input id="fmax" value="'+cfg.fmax+'" placeholder="до"/></div></div>';
-    if(cfg.type==='spectrum'||cfg.type==='envelope') h+='<div class="slbl">Разрешение и окно</div><div class="g2"><div class="pf"><label>Линий</label><select id="lines">'+['400','800','1600','3200','6400','12800','25600'].map(function(l){return '<option'+(cfg.lines===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div><div class="pf"><label>Окно</label><select id="win">'+['Hann','Hamming','Flat-top','Прямоугольное'].map(function(w){return '<option'+(cfg.window===w?' selected':'')+'>'+w+'</option>';}).join('')+'</select></div></div>';
+    h+='</div><div class="slbl">Величина</div><div class="chips">'+['vel','acc','disp'].map(function(q){return '<span class="chip'+(cfg.qty===q?' on':'')+'" onclick="cfg.qty=\''+q+'\';buildCfg()">'+QTY[q]+'</span>';}).join('')+'</div>';
+    h+='<div class="slbl">Частотный диапазон, Гц</div><div class="g2"><div class="pf"><input id="fmin" value="'+cfg.fmin+'" placeholder="от"/></div><div class="pf"><input id="fmax" value="'+cfg.fmax+'" placeholder="до"/></div></div>';
+    h+='<div class="slbl">Разрешение и окно</div><div class="g2"><div class="pf"><label>Линий</label><select id="lines">'+['400','800','1600','3200','6400','12800','25600'].map(function(l){return '<option'+(cfg.lines===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div><div class="pf"><label>Окно</label><select id="win">'+['Hann','Hamming','Flat-top','Прямоугольное'].map(function(w){return '<option'+(cfg.window===w?' selected':'')+'>'+w+'</option>';}).join('')+'</select></div></div>';
     h+='<button class="sbtn" onclick="applyCfg()">Применить</button>';
     document.getElementById('sheet').innerHTML=h;
   }
@@ -214,7 +230,7 @@
   function cfgCol(ax){ var all=['a','g'].every(function(s){return cfg.chans[s+'_'+ax];}); ['a','g'].forEach(function(s){ cfg.chans[s+'_'+ax]=!all; }); buildCfg(); }
   function applyCfg(){ var g=function(id){var e=document.getElementById(id);return e?e.value:null;};
     if(g('fmin')!==null) cfg.fmin=g('fmin'); if(g('fmax')!==null) cfg.fmax=g('fmax'); if(g('lines')!==null) cfg.lines=g('lines'); if(g('win')!==null) cfg.window=g('win');
-    closeSheet(); if(data) data=genData(); render();
+    closeSheet(); if(data&&data.per.length) data=genData(); render();
   }
   render();
 </script>
