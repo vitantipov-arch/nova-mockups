@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — подключение датчиков</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .body{padding:16px;flex:1;}
+  .lbl{font-size:12px;color:var(--hint);margin:6px 0 9px;display:flex;align-items:center;gap:7px;}
+  .card{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:15px;margin-bottom:11px;}
+  .dev{display:flex;align-items:center;gap:12px;}
+  .dic{width:40px;height:40px;border-radius:10px;background:var(--secondary);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .dic .ti{font-size:21px;color:var(--info);}
+  .dname{font-size:15px;font-weight:500;}
+  .dsub{font-size:12px;color:var(--hint);margin-top:2px;}
+  .btn{height:34px;padding:0 14px;border-radius:8px;border:0.5px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:13px;font-family:inherit;cursor:pointer;}
+  .btn.gray{border-color:var(--border2);background:transparent;color:var(--muted);}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;}
+  .pill{display:flex;align-items:center;gap:6px;background:var(--secondary);border-radius:8px;padding:7px 11px;font-size:12.5px;color:var(--muted);}
+  .pill .ti{font-size:15px;}
+  .chgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:13px;}
+  .ch{background:var(--secondary);border-radius:8px;padding:9px;text-align:center;font-size:12px;color:var(--muted);}
+  .ch .v{display:block;font-size:11px;color:var(--success);margin-top:3px;}
+  .scanline{display:flex;align-items:center;gap:8px;color:var(--hint);font-size:13px;padding:8px 2px;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Подключение датчиков</div></div>
+    <i class="ti ti-refresh" style="color:var(--muted);cursor:pointer" onclick="rescan()"></i>
+  </div>
+  <div class="body" id="body"></div>
+</div>
+
+<script>
+  function getSensors(){ try{ return JSON.parse(localStorage.getItem('nova_sensors'))||null; }catch(e){ return null; } }
+  function setSensors(s){ try{ if(s) localStorage.setItem('nova_sensors', JSON.stringify(s)); else localStorage.removeItem('nova_sensors'); }catch(e){} }
+
+  function render(){ var s=getSensors(), h='';
+    if(s&&s.vibro){
+      h+='<div class="lbl"><i class="ti ti-circle-filled" style="color:var(--success);font-size:9px"></i> Подключено</div>';
+      h+='<div class="card"><div class="dev"><div class="dic"><i class="ti ti-device-watch"></i></div><div style="flex:1"><div class="dname">'+(s.name||'VibroGyro-01')+'</div><div class="dsub">ICM-42688 · 6 осей · SN '+(s.sn||'A1-0427')+'</div></div><button class="btn gray" onclick="disconnect()">Отключить</button></div>'
+        +'<div class="meta"><span class="pill"><i class="ti ti-battery-3" style="color:var(--success)"></i> '+(s.batt||82)+'%</span><span class="pill"><i class="ti ti-antenna-bars-5" style="color:var(--success)"></i> −'+(s.rssi||58)+' дБм</span><span class="pill"><i class="ti ti-temperature" ></i> '+(s.temp||31)+'°C</span><span class="pill"><i class="ti ti-calendar-check"></i> калибр. '+(s.cal||'04.2026')+'</span></div>'
+        +'<div class="chgrid"><div class="ch">Вибро X<span class="v">live</span></div><div class="ch">Вибро Y<span class="v">live</span></div><div class="ch">Вибро Z<span class="v">live</span></div><div class="ch">Гиро X<span class="v">live</span></div><div class="ch">Гиро Y<span class="v">live</span></div><div class="ch">Гиро Z<span class="v">live</span></div></div></div>';
+      h+='<div class="lbl">Тахометр / опора фазы</div>';
+      if(s.tacho){ h+='<div class="card"><div class="dev"><div class="dic"><i class="ti ti-bolt"></i></div><div style="flex:1"><div class="dname">Лазерный тахометр</div><div class="dsub">опорная метка ✓ · 2940 об/мин</div></div><button class="btn gray" onclick="toggleTacho()">Отключить</button></div></div>'; }
+      else{ h+='<div class="card"><div class="dev"><div class="dic"><i class="ti ti-bolt" style="color:var(--hint)"></i></div><div style="flex:1"><div class="dname">Тахометр не подключён</div><div class="dsub">обороты — ручной ввод или по спектру</div></div><button class="btn" onclick="toggleTacho()">Подключить</button></div></div>'; }
+    } else {
+      h+='<div class="lbl"><i class="ti ti-loader" style="font-size:13px"></i> Поиск устройств…</div>';
+      h+='<div class="card"><div class="dev"><div class="dic"><i class="ti ti-device-watch"></i></div><div style="flex:1"><div class="dname">VibroGyro-01</div><div class="dsub">ICM-42688 · батарея 82% · −58 дБм</div></div><button class="btn" onclick="connectVibro()">Подключить</button></div></div>';
+      h+='<div class="card" style="opacity:0.6"><div class="dev"><div class="dic"><i class="ti ti-device-watch"></i></div><div style="flex:1"><div class="dname">VibroGyro-02</div><div class="dsub">ICM-42688 · батарея 47% · −74 дБм</div></div><button class="btn gray" onclick="connectVibro(2)">Подключить</button></div></div>';
+      h+='<div class="scanline"><i class="ti ti-bluetooth"></i> Убедитесь, что датчик включён (кнопка soft-latch) и рядом.</div>';
+    }
+    document.getElementById('body').innerHTML=h;
+  }
+  function connectVibro(n){ setSensors({vibro:true, name:'VibroGyro-0'+(n||1), sn:(n===2?'A1-0512':'A1-0427'), batt:(n===2?47:82), rssi:(n===2?74:58), temp:31, cal:'04.2026', tacho:false}); render(); }
+  function disconnect(){ setSensors(null); render(); }
+  function toggleTacho(){ var s=getSensors(); if(!s) return; s.tacho=!s.tacho; setSensors(s); render(); }
+  function rescan(){ render(); }
+  render();
+</script>
+</body>
+</html>

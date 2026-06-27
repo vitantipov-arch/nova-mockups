@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — измерение / спектр</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:14px 16px;flex:1;}
+  .ctx{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .cchip{font-size:11.5px;color:var(--muted);background:var(--secondary);border-radius:7px;padding:5px 9px;display:inline-flex;align-items:center;gap:5px;}
+  .tabs{display:flex;gap:6px;background:var(--secondary);border-radius:10px;padding:4px;margin-bottom:12px;}
+  .tabs button{flex:1;height:34px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;}
+  .tabs button.on{background:var(--info-bg);color:var(--info);}
+  .chart{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:10px 8px 6px;position:relative;}
+  .readout{display:flex;align-items:center;gap:14px;margin-top:12px;background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;}
+  .rms{font-size:30px;font-weight:600;line-height:1;}
+  .rmsu{font-size:13px;color:var(--hint);}
+  .zone{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-top:5px;}
+  .zdot{width:11px;height:11px;border-radius:50%;}
+  .comps{margin-top:12px;}
+  .crow{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--primary);border:0.5px solid var(--border);border-radius:9px;margin-bottom:6px;}
+  .cn{font-size:13px;font-weight:500;width:46px;flex:0 0 auto;}
+  .cf{font-size:12px;color:var(--hint);flex:1;}
+  .ca{font-size:13px;}
+  .foot{padding:14px 16px;border-top:0.5px solid var(--border);display:flex;gap:10px;}
+  .meas{flex:1;height:50px;border-radius:12px;border:none;background:#2f7d4f;color:#fff;font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .diag{width:54px;height:50px;border-radius:12px;border:0.5px solid var(--border2);background:transparent;color:var(--info);font-size:22px;cursor:pointer;}
+  .busy{position:absolute;inset:0;background:rgba(20,20,19,0.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--info);font-size:14px;border-radius:12px;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .spin{animation:sp 0.9s linear infinite;font-size:26px;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Свободное измерение</div><div class="sttl" id="sub">Точка В · Вибро-Z</div></div>
+    <i class="ti ti-adjustments" style="color:var(--muted);cursor:pointer" onclick="openSettings()"></i>
+  </div>
+  <div class="body">
+    <div class="ctx" id="ctx"></div>
+    <div class="tabs">
+      <button id="tvel" class="on" onclick="setQty('vel')">Скорость</button>
+      <button id="tacc" onclick="setQty('acc')">Ускорение</button>
+    </div>
+    <div class="chart"><div id="svg"></div><div class="busy" id="busy" style="display:none"><i class="ti ti-loader-2 spin"></i>идёт замер…</div></div>
+    <div class="readout">
+      <div><div><span class="rms" id="rmsv">—</span> <span class="rmsu" id="rmsu"></span></div><div class="zone" id="zone"></div></div>
+      <div style="flex:1"></div>
+      <div style="text-align:right"><div style="font-size:11px;color:var(--hint)">режим</div><div style="font-size:14px" id="rpm">2940 об/мин</div></div>
+    </div>
+    <div class="comps" id="comps"></div>
+  </div>
+  <div class="foot">
+    <button class="meas" onclick="measure()"><i class="ti ti-player-play"></i> Измерить</button>
+    <button class="diag" onclick="alert('Авто-диагностика — отдельный модуль (позже). Сейчас: оценка по зоне СКЗ.')"><i class="ti ti-stethoscope"></i></button>
+  </div>
+</div>
+
+<script>
+  var fr=49, qty='vel', data=null;
+  function rnd(a,b){ return a+Math.random()*(b-a); }
+  function genData(q){
+    var comps,fmax,unit,thr;
+    if(q==='acc'){ fmax=10000; unit='м/с²'; thr=5;
+      comps=[{n:'1×',f:fr,a:rnd(0.3,0.8)},{n:'2×',f:2*fr,a:rnd(0.2,0.6)},{n:'BPFO',f:rnd(7,8)*fr,a:rnd(0.6,2.4)},{n:'BPFI',f:rnd(11,12)*fr,a:rnd(0.3,1.5)}];
+    } else { fmax=1000; unit='мм/с'; thr=4.5;
+      comps=[{n:'0.5×',f:0.5*fr,a:rnd(0.05,0.4)},{n:'1×',f:fr,a:rnd(1.6,5.6)},{n:'2×',f:2*fr,a:rnd(0.4,2.3)},{n:'3×',f:3*fr,a:rnd(0.1,0.9)}];
+    }
+    var N=200,bins=[],nf=(q==='acc'?0.08:0.06);
+    for(var i=0;i<N;i++){ var f=fmax*i/(N-1), a=rnd(0,1)*nf;
+      comps.forEach(function(c){ var w=fmax*0.011; a+=c.a*Math.exp(-Math.pow((f-c.f)/w,2)); });
+      bins.push({f:f,a:a});
+    }
+    var rms=Math.sqrt(comps.reduce(function(s,c){return s+0.5*c.a*c.a;},0)+(q==='acc'?0.05:0.04));
+    var zone=q==='acc'?(rms<2?'g':rms<5?'y':'r'):(rms<2.8?'g':rms<7.1?'y':'r');
+    var mx=Math.max(thr*1.15, Math.max.apply(null,bins.map(function(b){return b.a;})));
+    return {q:q,fmax:fmax,unit:unit,thr:thr,comps:comps,bins:bins,rms:rms,zone:zone,max:mx};
+  }
+  var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, ZN={g:'Зона A — норма',y:'Зона B/C — повышено',r:'Зона D — недопустимо'};
+
+  function chart(d){
+    var L=42,R=352,T=8,B=150,pw=310,ph=142;
+    function X(f){ return (L+pw*f/d.fmax).toFixed(1); }
+    function Y(a){ return (B-ph*Math.min(a,d.max)/d.max).toFixed(1); }
+    var s='<svg viewBox="0 0 360 168" width="100%" xmlns="http://www.w3.org/2000/svg">';
+    var k;
+    for(k=0;k<=4;k++){ var val=d.max*k/4, y=Y(val); s+='<line x1="'+L+'" y1="'+y+'" x2="'+R+'" y2="'+y+'" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>'; s+='<text x="'+(L-5)+'" y="'+(+y+3)+'" font-size="8" fill="#86857e" text-anchor="end">'+val.toFixed(1)+'</text>'; }
+    for(k=0;k<=5;k++){ var f=d.fmax*k/5, x=X(f); s+='<text x="'+x+'" y="164" font-size="8" fill="#86857e" text-anchor="middle">'+Math.round(f)+'</text>'; }
+    d.bins.forEach(function(b){ s+='<line x1="'+X(b.f)+'" y1="'+B+'" x2="'+X(b.f)+'" y2="'+Y(b.a)+'" stroke="#85b7eb" stroke-width="1.4"/>'; });
+    var ty=Y(d.thr); s+='<line x1="'+L+'" y1="'+ty+'" x2="'+R+'" y2="'+ty+'" stroke="#ef9f27" stroke-width="1" stroke-dasharray="4 3"/><text x="'+R+'" y="'+(+ty-3)+'" font-size="8" fill="#ef9f27" text-anchor="end">порог '+d.thr+'</text>';
+    d.comps.forEach(function(c){ if(c.a>d.max*0.18) s+='<text x="'+X(c.f)+'" y="'+(+Y(c.a)-3)+'" font-size="8.5" fill="#ececea" text-anchor="middle">'+c.n+'</text>'; });
+    s+='<text x="'+L+'" y="167" font-size="8" fill="#86857e">Гц</text>';
+    s+='</svg>';
+    return s;
+  }
+  function render(){
+    document.getElementById('ctx').innerHTML=
+      '<span class="cchip"><i class="ti ti-map-pin"></i> Точка В</span>'
+      +'<span class="cchip"><i class="ti ti-wave-sine"></i> Вибро · Z</span>'
+      +'<span class="cchip"><i class="ti ti-settings-2"></i> '+(qty==='acc'?'2–10000 Гц · 10000 лин':'2–1000 Гц · 10000 лин')+' · Hann</span>';
+    if(!data){ document.getElementById('svg').innerHTML='<div style="height:168px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Нажмите «Измерить»</div>';
+      document.getElementById('rmsv').textContent='—'; document.getElementById('rmsu').textContent=''; document.getElementById('zone').innerHTML=''; document.getElementById('comps').innerHTML=''; return; }
+    document.getElementById('svg').innerHTML=chart(data);
+    document.getElementById('rmsv').textContent=data.rms.toFixed(2);
+    document.getElementById('rmsu').textContent=data.unit;
+    document.getElementById('zone').innerHTML='<span class="zdot" style="background:'+ZC[data.zone]+'"></span>'+ZN[data.zone];
+    var ch=''; data.comps.slice().sort(function(a,b){return b.a-a.a;}).forEach(function(c){ ch+='<div class="crow"><span class="cn">'+c.n+'</span><span class="cf">'+c.f.toFixed(1)+' Гц</span><span class="ca">'+c.a.toFixed(2)+' '+data.unit+'</span></div>'; });
+    document.getElementById('comps').innerHTML=ch;
+  }
+  function setQty(q){ qty=q; document.getElementById('tvel').classList.toggle('on',q==='vel'); document.getElementById('tacc').classList.toggle('on',q==='acc'); if(data) data=genData(q); render(); }
+  function measure(){ document.getElementById('busy').style.display='flex';
+    setTimeout(function(){ data=genData(qty); document.getElementById('busy').style.display='none'; render(); }, 750);
+  }
+  function openSettings(){ alert('Настройки свободного замера (точка / канал / метод / разрешение) — расширим. Сейчас демо: Точка В · Вибро-Z.'); }
+  render();
+</script>
+</body>
+</html>

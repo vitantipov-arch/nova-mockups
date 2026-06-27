@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — измерение</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:16px;flex:1;}
+  .lbl{font-size:12px;color:var(--hint);margin:18px 0 9px;}
+  .lbl:first-child{margin-top:0;}
+  .sensor{display:flex;align-items:center;gap:12px;background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;}
+  .sdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
+  .act{display:flex;align-items:center;gap:13px;background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:15px;margin-bottom:10px;cursor:pointer;}
+  .aic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .aic .ti{font-size:22px;}
+  .amain{flex:1;min-width:0;}
+  .aname{font-size:15px;font-weight:500;}
+  .asub{font-size:12.5px;color:var(--hint);margin-top:2px;}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 16px;border:0.5px dashed var(--border2);border-radius:12px;color:var(--hint);font-size:13px;text-align:center;}
+  .navbar{display:flex;justify-content:space-around;padding:10px 6px 16px;border-top:0.5px solid var(--border);}
+  .nav{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--hint);font-size:11px;cursor:pointer;}
+  .nav.on{color:var(--info);}
+  .nav .ti{font-size:23px;}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
+  .backdrop.on{opacity:1;pointer-events:auto;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 24px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:85vh;overflow-y:auto;}
+  .sheet.on{transform:translateY(0);}
+  .sheet h3{font-size:15px;font-weight:500;margin:4px 0 12px;}
+  .field-search{display:flex;align-items:center;gap:8px;background:var(--secondary);border:0.5px solid var(--border);border-radius:9px;padding:0 12px;margin-bottom:12px;}
+  .field-search input{flex:1;height:40px;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;}
+  .pick{display:flex;align-items:center;gap:11px;padding:12px;border-radius:10px;cursor:pointer;}
+  .pick:active{background:var(--secondary);}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="index.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Измерение</div><div class="sttl">Сессии и свободные замеры</div></div>
+  </div>
+  <div class="body">
+    <div class="lbl">Датчики</div>
+    <div class="sensor" onclick="location.href='connect.html'" id="sensorCard"></div>
+
+    <div class="lbl">Новое измерение</div>
+    <div class="act" onclick="openAgg()">
+      <div class="aic" style="background:rgba(133,183,235,0.16)"><i class="ti ti-checklist" style="color:var(--info)"></i></div>
+      <div class="amain"><div class="aname">По программе агрегата</div><div class="asub">сессия: обход точек по программе → тренды</div></div>
+      <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
+    </div>
+    <div class="act" onclick="location.href='spectrum.html?free=1'">
+      <div class="aic" style="background:rgba(151,196,89,0.16)"><i class="ti ti-wave-sine" style="color:var(--success)"></i></div>
+      <div class="amain"><div class="aname">Свободное измерение</div><div class="asub">точка · свои каналы, метод и настройки</div></div>
+      <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
+    </div>
+
+    <div class="lbl">Недавние сессии</div>
+    <div id="recent"></div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav" onclick="location.href='index.html'"><i class="ti ti-box"></i><span>Агрегаты</span></div>
+    <div class="nav on"><i class="ti ti-activity"></i><span>Измерение</span></div>
+    <div class="nav"><i class="ti ti-scale"></i><span>Баланс.</span></div>
+    <div class="nav"><i class="ti ti-chart-bar"></i><span>Диагност.</span></div>
+    <div class="nav"><i class="ti ti-settings"></i><span>Настройки</span></div>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+  function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+  function getSensors(){ try{ return JSON.parse(localStorage.getItem('nova_sensors'))||null; }catch(e){ return null; } }
+  function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
+  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+
+  function renderSensor(){ var s=getSensors(), el=document.getElementById('sensorCard');
+    if(s&&s.vibro){ el.innerHTML='<span class="sdot" style="background:var(--success)"></span><div style="flex:1"><div style="font-size:14px">'+(s.name||'VibroGyro')+' подключён</div><div style="font-size:12px;color:var(--hint)">батарея '+(s.batt||80)+'% · '+(s.tacho?'тахо ✓':'тахо —')+'</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i>'; }
+    else{ el.innerHTML='<span class="sdot" style="background:var(--hint)"></span><div style="flex:1"><div style="font-size:14px">Датчики не подключены</div><div style="font-size:12px;color:var(--info)">Подключить</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i>'; }
+  }
+  function openAgg(){ var list=getList();
+    var h='<h3>Выбор агрегата</h3>';
+    if(!list.length){ h+='<div class="empty" style="border:none"><i class="ti ti-box-off" style="font-size:30px"></i>Нет агрегатов. Создайте в разделе «Агрегаты».</div>'; openSheet(h); return; }
+    h+='<div class="field-search"><i class="ti ti-search" style="font-size:18px;color:var(--hint)"></i><input id="aggq" placeholder="Поиск по названию" oninput="filterAgg(this.value)"/></div><div id="aggList"></div>';
+    openSheet(h); filterAgg('');
+  }
+  function filterAgg(q){ var list=getList(); q=(q||'').trim().toLowerCase(); var h='';
+    list.forEach(function(it,i){ var name=it.name||'Агрегат'; if(q&&name.toLowerCase().indexOf(q)<0) return; var ns=0; try{ var a=JSON.parse(it.agg); a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
+      h+='<div class="pick" onclick="startSession('+i+')"><i class="ti ti-box" style="font-size:21px;color:var(--info)"></i><div style="flex:1"><div style="font-size:15px;font-weight:500">'+name+'</div><div style="font-size:12px;color:var(--hint)">'+ns+' опор</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>';
+    });
+    document.getElementById('aggList').innerHTML=h||'<div style="padding:18px;text-align:center;color:var(--hint);font-size:13px">Ничего не найдено</div>';
+  }
+  function startSession(i){ location.href='session.html?id='+i; }
+
+  function renderRecent(){ var s=[]; try{ s=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
+    var el=document.getElementById('recent');
+    if(!s.length){ el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:30px"></i>Сессий пока нет. Начните измерение по программе или свободное.</div>'; return; }
+    var h=''; s.slice(-6).reverse().forEach(function(se){ h+='<div class="act"><div class="aic" style="background:var(--secondary)"><i class="ti ti-history" style="color:var(--muted)"></i></div><div class="amain"><div class="aname">'+(se.agg||'Свободное')+'</div><div class="asub">'+(se.date||'')+' · '+(se.operator||'—')+' · '+(se.count||0)+' замеров</div></div></div>'; });
+    el.innerHTML=h;
+  }
+  renderSensor(); renderRecent();
+</script>
+</body>
+</html>
