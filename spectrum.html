@@ -93,7 +93,7 @@
 <script>
   var fr=49;
   var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', fmin:'2', fmax:'1000', lines:'6400', window:'Hann' };
-  var data=null, view='spectrum', viewChans={}, detector='rms';
+  var data=null, view='spectrum', viewChans={}, detector='rms', VIEWMODE=false;
   var QTY={vel:'Скорость',acc:'Ускорение',disp:'Перемещение'};
   var VIEW=[['spectrum','Спектр'],['wave','Сигнал'],['envelope','Огибающая'],['phase','Ампл-фаза'],['level','Уровень']];
   var DET={rms:'СКЗ',peak:'Пик',pp:'Размах'};
@@ -209,12 +209,12 @@
   function setView(v){ view=v; render(); }
   function setDet(d){ detector=d; render(); }
   function tgChan(k){ viewChans[k]=!viewChans[k]; render(); }
-  function measure(){ if(!nSel()){ data={per:[]}; render(); return; } document.getElementById('busy').style.display='flex';
+  function measure(){ if(VIEWMODE) return; if(!nSel()){ data={per:[]}; render(); return; } document.getElementById('busy').style.display='flex';
     setTimeout(function(){ data=genData(); document.getElementById('busy').style.display='none'; render(); }, 700);
   }
 
   // ---- настройки захвата ----
-  function openCfg(){ buildCfg(); document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
+  function openCfg(){ if(VIEWMODE) return; buildCfg(); document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
   function buildCfg(){ var h='<h3>Настройка захвата</h3><div class="slbl">Каналы (Вибро/Гиро × оси) — совместно или раздельно</div><div class="matrix">';
     h+='<div class="mh"></div>'+['Z','X','Y'].map(function(ax){return '<div class="mh" onclick="cfgCol(\''+ax+'\')">'+ax+'</div>';}).join('');
@@ -232,6 +232,24 @@
     if(g('fmin')!==null) cfg.fmin=g('fmin'); if(g('fmax')!==null) cfg.fmax=g('fmax'); if(g('lines')!==null) cfg.lines=g('lines'); if(g('win')!==null) cfg.window=g('win');
     closeSheet(); if(data&&data.per.length) data=genData(); render();
   }
+  function fromComps(c){ var fmax=parseFloat(cfg.fmax)||1000, cm=c.comps||[], ecm=c.ecomps||cm, rms=c.rms||0;
+    var bins=binsOf(cm,fmax,0.05*rms), ebins=binsOf(ecm,fmax,0.04*rms);
+    var M=130,wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr),y=0; cm.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
+    return {c:{s:c.s,ax:c.ax},unit:c.unit||uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:c.peak||rms*2,pp:c.pp||rms*4,amp1:(c.amp1!=null?c.amp1:rms),phase:c.phase||0,bins:bins,ebins:ebins,wave:wave,
+      bmax:Math.max.apply(null,bins.map(function(x){return x.a;}).concat([1e-6])),emax:Math.max.apply(null,ebins.map(function(x){return x.a;}).concat([1e-6])),wmax:Math.max.apply(null,wave.map(Math.abs).concat([1e-6]))};
+  }
+  (function initView(){ if((location.search||'').indexOf('mode=view')<0) return; VIEWMODE=true;
+    var v; try{ v=JSON.parse(localStorage.getItem('nova_view')); }catch(e){}
+    if(!v||!v.channels||!v.channels.length) return;
+    cfg.qty=v.qty||'vel';
+    data={per:v.channels.map(fromComps)};
+    viewChans={}; data.per.forEach(function(p){ viewChans[key(p.c)]=true; });
+    var t=document.querySelector('.ttl'); if(t) t.textContent=v.title||'Просмотр замера';
+    var st=document.querySelector('.sttl'); if(st) st.textContent=v.sub||'из истории';
+    var bk=document.querySelector('.hd a'); if(bk&&v.back) bk.setAttribute('href',v.back);
+    var g=document.querySelector('.hd .ti-adjustments'); if(g) g.style.display='none';
+    var mb=document.querySelector('.meas'); if(mb) mb.style.display='none';
+  })();
   render();
 </script>
 </body>

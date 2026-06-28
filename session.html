@@ -71,8 +71,20 @@
   var units=(AGG&&AGG.units)||[], trans=(AGG&&AGG.trans)||[], orient=(AGG&&AGG.orient==='v')?'v':'h';
   document.getElementById('aggName').textContent=(it&&it.name)||'Сессия';
   var operator=localStorage.getItem('nova_operator')||'';
-  var sess={}; // ключ pi_dir -> {zone,rms}
+  var sess={}; // ключ pi_dir -> {zone,rms,data}
   var active=-1;
+  var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
+  var FR=(parseFloat((units[0]&&units[0].rpm))||2940)/60;
+  function sc(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
+  function cmps(q,s,kind){ var k=sc(q,s);
+    if(kind==='env'){ var bp=(7+Math.random())*FR; return [{n:'BPFO',f:bp,a:(0.5+Math.random()*0.6)*k},{n:'2·BPFO',f:2*bp,a:(0.25+Math.random()*0.35)*k}]; }
+    return [{n:'0.5×',f:0.5*FR,a:(0.04+Math.random()*0.16)*k},{n:'1×',f:FR,a:(0.4+Math.random()*0.6)*k},{n:'2×',f:2*FR,a:(0.15+Math.random()*0.45)*k},{n:'3×',f:3*FR,a:(0.05+Math.random()*0.25)*k}]; }
+  function chanData(s,ax,q){ var cm=cmps(q,s,'spec'), ecm=cmps(q,s,'env'), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
+    return {s:s,ax:ax,unit:UNIT[q][s],comps:cm,ecomps:ecm,rms:rms,peak:peak,pp:peak*1.9,amp1:cm[1].a,phase:Math.random()*360}; }
+  function genPoint(spot){ var qty=(spot.meas&&spot.meas[0]&&['vel','acc','disp'].indexOf(spot.meas[0].mid)>=0)?spot.meas[0].mid:'vel', seen={}, chans=[];
+    (spot.meas||[]).forEach(function(m){ (m.chans||[]).forEach(function(ch){ var kk=ch.s+ch.ax; if(seen[kk])return; seen[kk]=1; chans.push(chanData(ch.s,ch.ax,qty)); }); });
+    if(!chans.length) chans.push(chanData('a','Z',qty));
+    return {qty:qty,channels:chans}; }
 
   function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(units[x].supports||[]).length; return n+k+1; }
 
@@ -176,21 +188,28 @@
       +'<div class="pmap">'+(n.label||'')+' · '+chanCount(n.spot)+' каналов · '+( (n.spot.meas||[]).length )+' изм. (база)</div>';
     if(st) h+='<div class="presult"><span class="zdot" style="background:'+ZC[st.zone]+'"></span><b>'+st.rms.toFixed(2)+' мм/с</b> · '+ZN[st.zone]+' · СКЗ</div>';
     h+='<div class="pbtns"><button class="pb go" onclick="doMeasure()"><i class="ti ti-player-play"></i> '+(st?'Повторить':'Измерить')+'</button>'
-      +'<button class="pb alt" onclick="location.href=\'spectrum.html?free=1\'"><i class="ti ti-wave-sine"></i> Диагностич.</button></div>';
+      +(st?'<button class="pb alt" onclick="openData()"><i class="ti ti-chart-histogram"></i> Данные</button>':'')
+      +'<button class="pb alt" onclick="location.href=\'spectrum.html?free=1\'"><i class="ti ti-wave-sine"></i> Диагн.</button></div>';
     p.innerHTML=h; p.classList.remove('hidden');
   }
   function tapNode(idx){ active=idx; render(); }
   function doMeasure(){ if(active<0) return; var n=nodes[active], rms=2+Math.random()*7, zone=rms<2.8?'g':rms<7.1?'y':'r';
-    sess[nkey(n)]={zone:zone,rms:rms};
+    sess[nkey(n)]={zone:zone,rms:rms,data:genPoint(n.spot)};
     var nxt=nextPending(); if(nxt>=0) active=nxt;
     render();
   }
+  function openData(){ if(active<0) return; var n=nodes[active], st=sess[nkey(n)]; if(!st||!st.data) return; var m=(n.label||'').match(/№(\d+)/);
+    var payload={ title:'Точка '+n.dir+' · Опора '+(m?'№'+m[1]:''), sub:((it&&it.name)||'')+' · '+((units[0]&&units[0].rpm)||'')+' об/мин', qty:st.data.qty, channels:st.data.channels, back:'session.html?id='+qid() };
+    try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
+    location.href='spectrum.html?mode=view';
+  }
   function nextPending(){ for(var d=1;d<=nodes.length;d++){ var idx=(active+d)%nodes.length; if(!sess[nkey(nodes[idx])]) return idx; } return active; }
   function setOp(){ var v=prompt('Оператор:', operator||''); if(v!==null){ operator=v; try{ localStorage.setItem('nova_operator',v); }catch(e){} render(); } }
-  function finish(){ var done=nodes.filter(function(n){return sess[nkey(n)];}).length;
-    if(!done){ alert('Нет ни одного замера.'); return; }
+  function finish(){ var meas=nodes.filter(function(n){return sess[nkey(n)];});
+    if(!meas.length){ alert('Нет ни одного замера.'); return; }
+    var pts=meas.map(function(n){ var st=sess[nkey(n)], m=(n.label||'').match(/№(\d+)/); return {dir:n.dir, label:n.label, sup:m?+m[1]:0, rms:st.rms, zone:st.zone, data:st.data}; });
     var arr=[]; try{ arr=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
-    arr.push({agg:(it&&it.name)||'Агрегат', date:new Date().toLocaleString('ru'), operator:operator||'—', count:done, total:nodes.length});
+    arr.push({agg:(it&&it.name)||'Агрегат', aggId:qid(), date:new Date().toLocaleString('ru'), operator:operator||'—', count:meas.length, total:nodes.length, points:pts});
     try{ localStorage.setItem('nova_sessions', JSON.stringify(arr)); }catch(e){}
     location.href='measure.html';
   }

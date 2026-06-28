@@ -67,7 +67,7 @@
       <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
     </div>
 
-    <div class="lbl">Недавние сессии</div>
+    <div class="lbl" style="display:flex;justify-content:space-between;align-items:center">Недавние сессии <span style="color:var(--info);font-size:12px;cursor:pointer" onclick="location.href='journal.html'">Журнал всех →</span></div>
     <div id="recent"></div>
   </div>
 
@@ -110,7 +110,7 @@
   function renderRecent(){ var s=[]; try{ s=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
     var el=document.getElementById('recent');
     if(!s.length){ el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:30px"></i>Сессий пока нет. Начните измерение по программе или свободное.</div>'; return; }
-    var h=''; s.slice(-6).reverse().forEach(function(se){ h+='<div class="act"><div class="aic" style="background:var(--secondary)"><i class="ti ti-history" style="color:var(--muted)"></i></div><div class="amain"><div class="aname">'+(se.agg||'Свободное')+'</div><div class="asub">'+(se.date||'')+' · '+(se.operator||'—')+' · '+(se.count||0)+' замеров</div></div></div>'; });
+    var h=''; s.slice(-6).reverse().forEach(function(se){ h+='<div class="act" onclick="location.href=\'journal.html\'"><div class="aic" style="background:var(--secondary)"><i class="ti ti-history" style="color:var(--muted)"></i></div><div class="amain"><div class="aname">'+(se.agg||'Свободное')+'</div><div class="asub">'+(se.date||'')+' · '+(se.operator||'—')+' · '+(se.count||0)+' замеров</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'; });
     el.innerHTML=h;
   }
   renderSensor(); renderRecent();
