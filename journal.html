@@ -21,6 +21,8 @@
   .body{padding:14px 16px;flex:1;}
   .field-search{display:flex;align-items:center;gap:8px;background:var(--secondary);border:0.5px solid var(--border);border-radius:9px;padding:0 12px;margin-bottom:12px;}
   .field-search input{flex:1;height:40px;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;}
+  .crumb{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--secondary);border-radius:9px;margin-bottom:12px;cursor:pointer;font-size:13px;}
+  .crumb .ti{font-size:18px;color:var(--info);}
   .sess{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
   .shead{display:flex;align-items:center;gap:12px;padding:13px;cursor:pointer;}
   .zdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
@@ -37,11 +39,11 @@
 <body>
 <div class="screen">
   <div class="hd">
-    <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
-    <div style="flex:1;"><div class="ttl">Журнал сессий</div><div class="sttl">Кто · что · когда мерил</div></div>
+    <a href="measure.html" id="back"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl" id="ttl">Журнал сессий</div><div class="sttl" id="sub">Кто · что · когда мерил</div></div>
   </div>
   <div class="body">
-    <div class="field-search" id="searchWrap" style="display:none;"><i class="ti ti-search" style="font-size:18px;color:var(--hint)"></i><input id="q" placeholder="Поиск: агрегат или оператор" oninput="render(this.value)"/></div>
+    <div class="field-search" id="searchWrap" style="display:none;"><i class="ti ti-search" style="font-size:18px;color:var(--hint)"></i><input id="q" placeholder="Поиск по агрегату" oninput="onSearch(this.value)"/></div>
     <div id="list"></div>
   </div>
 </div>
@@ -49,30 +51,45 @@
   var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, RANK={g:0,y:1,r:2}, INV=['g','y','r'];
   function getSess(){ try{ return JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){ return []; } }
   function worst(s){ var w=0; (s.points||[]).forEach(function(p){ if(RANK[p.zone]>w) w=RANK[p.zone]; }); return INV[w]; }
-  var open={};
-  function tg(i){ open[i]=!open[i]; render(curq()); }
-  function curq(){ var e=document.getElementById('q'); return e?e.value:''; }
-  function openPoint(si,pi){ var s=getSess()[si], p=s&&s.points[pi]; if(!p||!p.data) return;
+  function aggKeyOf(s){ return (s.aggId!=null&&s.aggId>=0)?('id'+s.aggId):('nm'+(s.agg||'')); }
+
+  var mode='all', curKey='', curName='', open=-1, q='';
+  function onSearch(v){ q=v; render(); }
+  function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; render(); }
+  function backAll(){ mode='all'; open=-1; render(); }
+  function tg(gi){ open=(open===gi?-1:gi); render(); }
+  function openPoint(gi,pi){ var s=getSess()[gi], p=s&&s.points[pi]; if(!p||!p.data) return;
     var payload={ title:'Точка '+p.dir+' · Опора №'+(p.sup||''), sub:s.agg+' · '+s.date+' · '+s.operator, qty:p.data.qty, channels:p.data.channels, back:'journal.html' };
     try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
     location.href='spectrum.html?mode=view';
   }
-  function render(q){ var ss=getSess(); q=(q||'').trim().toLowerCase();
-    var wrap=document.getElementById('searchWrap'); if(wrap) wrap.style.display=ss.length?'flex':'none';
-    var el=document.getElementById('list');
-    if(!ss.length){ el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:32px"></i>Сессий пока нет.<br>Проведите измерение по программе агрегата.</div>'; return; }
-    var h=''; ss.map(function(s,i){return {s:s,i:i};}).reverse().forEach(function(o){ var s=o.s, i=o.i;
-      var hay=((s.agg||'')+' '+(s.operator||'')).toLowerCase(); if(q&&hay.indexOf(q)<0) return;
-      var w=worst(s);
-      h+='<div class="sess"><div class="shead" onclick="tg('+i+')"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(s.agg||'Агрегат')+'</div><div class="ssub">'+(s.date||'')+' · '+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-chevron-'+(open[i]?'up':'down')+'" style="color:var(--hint)"></i></div>';
-      if(open[i]){ h+='<div class="pts">'; (s.points||[]).forEach(function(p,pi){ h+='<div class="pt" onclick="openPoint('+i+','+pi+')"><span class="zdot" style="background:'+ZC[p.zone]+'"></span><span class="ptn">Точка '+p.dir+' · Опора №'+(p.sup||'')+'</span><span class="pta">'+(p.rms!=null?p.rms.toFixed(1)+' мм/с':'')+'</span><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'; });
-        if(!(s.points||[]).length) h+='<div style="color:var(--hint);font-size:12.5px;padding:8px">Нет точек.</div>';
-        h+='</div>'; }
-      h+='</div>';
-    });
-    el.innerHTML=h||'<div style="padding:24px;text-align:center;color:var(--hint);font-size:13px">Ничего не найдено</div>';
+  function sessRow(s,gi,withPts){ var w=worst(s), exp=(open===gi);
+    var h='<div class="sess"><div class="shead" onclick="'+(withPts?'tg('+gi+')':'enterAgg('+gi+')')+'"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(withPts?(s.date||''):(s.agg||'Агрегат'))+'</div><div class="ssub">'+(withPts?'':(s.date||'')+' · ')+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-chevron-'+(withPts?(exp?'up':'down'):'right')+'" style="color:var(--hint)"></i></div>';
+    if(withPts&&exp){ h+='<div class="pts">'; (s.points||[]).forEach(function(p,pi){ h+='<div class="pt" onclick="openPoint('+gi+','+pi+')"><span class="zdot" style="background:'+ZC[p.zone]+'"></span><span class="ptn">Точка '+p.dir+' · Опора №'+(p.sup||'')+'</span><span class="pta">'+(p.rms!=null?p.rms.toFixed(1)+' мм/с':'')+'</span><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'; });
+      if(!(s.points||[]).length) h+='<div style="color:var(--hint);font-size:12.5px;padding:8px">Нет точек.</div>'; h+='</div>'; }
+    return h+'</div>';
   }
-  render('');
+  function render(){ var ss=getSess(), el=document.getElementById('list'), sw=document.getElementById('searchWrap');
+    document.getElementById('back').setAttribute('href', mode==='agg'?'javascript:void(0)':'measure.html');
+    document.getElementById('back').onclick=mode==='agg'?function(e){e.preventDefault();backAll();}:null;
+    if(!ss.length){ sw.style.display='none'; document.getElementById('ttl').textContent='Журнал сессий'; document.getElementById('sub').textContent='Кто · что · когда мерил';
+      el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:32px"></i>Сессий пока нет.<br>Проведите измерение по программе агрегата.</div>'; return; }
+    if(mode==='all'){
+      document.getElementById('ttl').textContent='Журнал сессий'; document.getElementById('sub').textContent=ss.length+' сессий';
+      sw.style.display='flex';
+      var qq=(q||'').trim().toLowerCase(), h='';
+      ss.map(function(s,i){return {s:s,i:i};}).reverse().forEach(function(o){ if(qq&&(o.s.agg||'').toLowerCase().indexOf(qq)<0) return; h+=sessRow(o.s,o.i,false); });
+      el.innerHTML=h||'<div style="padding:24px;text-align:center;color:var(--hint);font-size:13px">Ничего не найдено</div>';
+    } else {
+      var mine=ss.map(function(s,i){return {s:s,i:i};}).filter(function(o){ return aggKeyOf(o.s)===curKey; });
+      document.getElementById('ttl').textContent=curName; document.getElementById('sub').textContent=mine.length+' сессий агрегата';
+      sw.style.display='none';
+      var h='<div class="crumb" onclick="backAll()"><i class="ti ti-arrow-left"></i> Все сессии</div>';
+      mine.reverse().forEach(function(o){ h+=sessRow(o.s,o.i,true); });
+      el.innerHTML=h;
+    }
+  }
+  render();
 </script>
 </body>
 </html>
