@@ -33,6 +33,15 @@
 <div class="msg" id="msg"></div>
 <div class="panel" id="panel" style="display:none">
   <div class="leg" id="leg"></div>
+  <div style="display:flex;gap:6px;margin-bottom:9px">
+    <button id="mRot" style="flex:1;height:32px;border-radius:8px;border:0.5px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:12.5px;font-family:inherit;cursor:pointer">1× оборотная</button>
+    <button id="mBand" style="flex:1;height:32px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.22);background:transparent;color:#aebbcf;font-size:12.5px;font-family:inherit;cursor:pointer">Диапазон частот</button>
+  </div>
+  <div id="bandrow" style="display:none;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;color:#aebbcf">
+    <span>от</span><input id="fmin" type="number" style="width:64px;height:30px;background:#0a0e16;border:0.5px solid rgba(255,255,255,0.22);border-radius:7px;color:#ececea;font-size:13px;padding:0 8px;font-family:inherit"/>
+    <span>до</span><input id="fmax" type="number" style="width:64px;height:30px;background:#0a0e16;border:0.5px solid rgba(255,255,255,0.22);border-radius:7px;color:#ececea;font-size:13px;padding:0 8px;font-family:inherit"/>
+    <span>Гц</span>
+  </div>
   <div class="sliders">
     <div class="sl"><label>Усиление: <span id="vGain">6×</span></label><input id="gain" type="range" min="1" max="20" value="6"></div>
     <div class="sl"><label>Скорость: <span id="vSlow">медл.</span></label><input id="slow" type="range" min="6" max="100" value="26"></div>
@@ -75,7 +84,14 @@
 
   // замеренные амп/фаза по опоре/направлению
   var D1=(orient==='v')?'R1':'В', D2=(orient==='v')?'R2':'П';
-  function pick(snum,sensor,dir){ var best=null; pts.forEach(function(p){ if(p.sup!==snum) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==sensor||c.dir!==dir) return; var cand={c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best?{a:best.c.amp1||0,ph:(best.c.phase||0)*Math.PI/180}:{a:0,ph:0}; }
+  var FR=(parseFloat(units[0]&&units[0].rpm)||2940)/60;
+  var mode='rot', fmin=0, fmax=1000;
+  (function(){ var f=[]; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ var v=c.vals&&(c.vals.vel||c.vals[Object.keys(c.vals)[0]]); if(v&&v.comps) v.comps.forEach(function(k){ f.push(k.f); }); }); }); if(f.length) fmax=Math.ceil(Math.max.apply(null,f)/50)*50; })();
+  function pickChan(snum,sensor,dir){ var best=null; pts.forEach(function(p){ if(p.sup!==snum) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==sensor||c.dir!==dir) return; var cand={c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best?best.c:null; }
+  function dispAt(snum,sensor,dir,theta){ var c=pickChan(snum,sensor,dir); if(!c) return 0;
+    if(mode==='rot') return (c.amp1||0)*Math.sin(theta+(c.phase||0)*Math.PI/180);
+    var v=c.vals&&(c.vals.vel||c.vals[Object.keys(c.vals)[0]]), comps=v&&v.comps; if(!comps) return 0;
+    var sum=0, ph0=(c.phase||0)*Math.PI/180; comps.forEach(function(k){ if(k.f<fmin||k.f>fmax) return; sum+=k.a*Math.sin((k.f/FR)*theta+ph0+k.f*0.03); }); return sum; }
   function supHasAG(snum){ return pts.some(function(p){ return p.sup===snum && ptHasAG(p); }); }
 
   // сцена
@@ -126,9 +142,9 @@
   var GAIN=6, slow=26, theta=0, last=performance.now();
   var BT=0.012, BR=0.05, CT=0.22, CR=0.18;
   function clamp(v,c){ return v<-c?-c:(v>c?c:v); }
-  function transOf(G,th){ var n=0,y=0,z=0,x=0; G.sups.forEach(function(s){ var B=pick(s,'a',D1),Pp=pick(s,'a',D2),O=pick(s,'a','О'); if(B.a||Pp.a||O.a){ n++; y+=B.a*Math.sin(th+B.ph); z+=Pp.a*Math.sin(th+Pp.ph); x+=O.a*Math.sin(th+O.ph); } });
+  function transOf(G,th){ var n=0,y=0,z=0,x=0; G.sups.forEach(function(s){ if(!(pickChan(s,'a',D1)||pickChan(s,'a',D2)||pickChan(s,'a','О'))) return; n++; y+=dispAt(s,'a',D1,th); z+=dispAt(s,'a',D2,th); x+=dispAt(s,'a','О',th); });
     if(!n) return {x:0,y:0,z:0}; var g=GAIN*BT; return {x:clamp(g*x/n,CT),y:clamp(g*y/n,CT),z:clamp(g*z/n,CT)}; }
-  function rotOf(G,th){ var n=0,rx=0,ry=0,rz=0; G.sups.forEach(function(s){ var B=pick(s,'g',D1),Pp=pick(s,'g',D2),O=pick(s,'g','О'); if(B.a||Pp.a||O.a){ n++; ry+=B.a*Math.sin(th+B.ph); rz+=Pp.a*Math.sin(th+Pp.ph); rx+=O.a*Math.sin(th+O.ph); } });
+  function rotOf(G,th){ var n=0,rx=0,ry=0,rz=0; G.sups.forEach(function(s){ if(!(pickChan(s,'g',D1)||pickChan(s,'g',D2)||pickChan(s,'g','О'))) return; n++; ry+=dispAt(s,'g',D1,th); rz+=dispAt(s,'g',D2,th); rx+=dispAt(s,'g','О',th); });
     if(!n) return {x:0,y:0,z:0}; var g=GAIN*BR; return {x:clamp(g*rx/n,CR),y:clamp(g*ry/n,CR),z:clamp(g*rz/n,CR)}; }
   function frame(now){ requestAnimationFrame(frame); var dt=Math.min((now-last)/1000,0.05); last=now;
     theta += 2*Math.PI*dt*(slow/100*2.4);
@@ -154,6 +170,15 @@
   var $=function(id){return document.getElementById(id);};
   $('gain').oninput=function(e){GAIN=+e.target.value;$('vGain').textContent=GAIN+'×';};
   $('slow').oninput=function(e){slow=+e.target.value;$('vSlow').textContent=slow<15?'оч. медл.':slow<50?'медл.':'быстро';};
+  function setMode(m){ mode=m;
+    $('mRot').style.background=m==='rot'?'var(--info-bg)':'transparent'; $('mRot').style.borderColor=m==='rot'?'var(--info-bd)':'rgba(255,255,255,0.22)'; $('mRot').style.color=m==='rot'?'var(--info)':'#aebbcf';
+    $('mBand').style.background=m==='band'?'var(--info-bg)':'transparent'; $('mBand').style.borderColor=m==='band'?'var(--info-bd)':'rgba(255,255,255,0.22)'; $('mBand').style.color=m==='band'?'var(--info)':'#aebbcf';
+    $('bandrow').style.display=m==='band'?'flex':'none'; }
+  $('mRot').onclick=function(){ setMode('rot'); };
+  $('mBand').onclick=function(){ setMode('band'); };
+  $('fmin').value=fmin; $('fmax').value=fmax;
+  $('fmin').oninput=function(e){ fmin=parseFloat(e.target.value); if(isNaN(fmin)) fmin=0; };
+  $('fmax').oninput=function(e){ fmax=parseFloat(e.target.value); if(isNaN(fmax)) fmax=1e9; };
   addEventListener('resize',function(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
   requestAnimationFrame(frame);
 })();
