@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — 3D живая коробка</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55); --muted:#9fb3cc; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:#0a0e16;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#ececea;}
+  canvas{display:block;position:fixed;inset:0;}
+  .top{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(#0a0e16cc,#0a0e1600);z-index:5;}
+  .top a{color:#cfd8e6;text-decoration:none;font-size:23px;}
+  .ttl{font-size:15px;font-weight:500;}
+  .sttl{font-size:11px;color:#7d8aa0;}
+  .panel{position:fixed;left:0;right:0;bottom:0;background:#10182699;backdrop-filter:blur(8px);border-top:0.5px solid rgba(255,255,255,0.12);padding:11px 13px calc(14px + env(safe-area-inset-bottom));z-index:5;}
+  .desc{font-size:12px;color:#aebbcf;line-height:1.45;margin-bottom:9px;}
+  .desc b{color:#ececea;}
+  .row{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px;}
+  .row button{flex:0 0 auto;height:32px;padding:0 12px;border:0.5px solid rgba(255,255,255,0.22);border-radius:8px;background:transparent;color:#aebbcf;font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .row button.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  .sliders{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .sl label{display:block;font-size:10px;color:#7d8aa0;margin-bottom:3px;}
+  .sl input{width:100%;}
+  .err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;color:#7d8aa0;font-size:14px;padding:30px;z-index:6;}
+</style>
+</head>
+<body>
+<div class="top">
+  <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
+  <div style="flex:1"><div class="ttl" id="ttl">3D живая коробка</div><div class="sttl">торцы дышат · вал гнётся · перетаскивай — вращение</div></div>
+</div>
+<div class="err" id="err">Не удалось загрузить 3D-движок (нужен интернет для three.js).</div>
+<div class="panel">
+  <div class="desc" id="desc"></div>
+  <div class="row" id="defs">
+    <button class="on" data-d="imbalance">Дисбаланс</button>
+    <button data-d="misalign">Расцентровка</button>
+    <button data-d="looseness">Ослабление</button>
+    <button data-d="bent">Изгиб вала</button>
+  </div>
+  <div class="sliders">
+    <div class="sl"><label>Обороты: <span id="vRpm">600</span></label><input id="rpm" type="range" min="200" max="1500" value="600"></div>
+    <div class="sl"><label>Усиление: <span id="vGain">5×</span></label><input id="gain" type="range" min="1" max="10" value="5"></div>
+    <div class="sl"><label>Скорость: <span id="vSlow">медл.</span></label><input id="slow" type="range" min="6" max="100" value="22"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+(function(){
+  if(!window.THREE){ document.getElementById('err').style.display='flex'; return; }
+  var m=location.search.match(/id=(\d+)/), aggName='';
+  try{ if(m){ var list=JSON.parse(localStorage.getItem('nova_list'))||[]; aggName=(list[+m[1]]&&list[+m[1]].name)||''; } }catch(e){}
+  if(aggName) document.getElementById('ttl').textContent='3D · '+aggName;
+
+  var scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0e16); scene.fog=new THREE.Fog(0x0a0e16,16,36);
+  var camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,200);
+  var renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); document.body.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xb9c7dc,0.75));
+  var d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(8,14,9); scene.add(d1);
+  var d2=new THREE.DirectionalLight(0x6a86b8,0.4); d2.position.set(-8,5,-6); scene.add(d2);
+
+  var matMotor=new THREE.MeshStandardMaterial({color:0x33425a,roughness:0.55,metalness:0.4});
+  var matPump =new THREE.MeshStandardMaterial({color:0x2f4a4a,roughness:0.55,metalness:0.4});
+  var matShaft=new THREE.MeshStandardMaterial({color:0xc2cede,roughness:0.3,metalness:0.85});
+  var matFlange=new THREE.MeshStandardMaterial({color:0xf07a2a,roughness:0.5,metalness:0.5});
+  scene.add(new THREE.Mesh(new THREE.BoxGeometry(8,0.3,3),new THREE.MeshStandardMaterial({color:0x141d2c,roughness:0.85}))).position.y=-0.15;
+  var grid=new THREE.GridHelper(26,52,0x223048,0x141d2c); grid.position.y=0.001; scene.add(grid);
+
+  var HW=1.2,HH=0.7,HD=0.6;
+  function label(text,x,y,z,col){ var c=document.createElement('canvas'); c.width=256;c.height=64; var g=c.getContext('2d');
+    g.fillStyle=col; g.font='bold 30px monospace'; g.textAlign='center'; g.fillText(text,128,42);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true})); sp.position.set(x,y,z); sp.scale.set(1.7,0.42,1); scene.add(sp); }
+  label('ДВИГАТЕЛЬ',-1.8,2.05,0,'#9fb3cc'); label('НАСОС',1.8,2.05,0,'#9fc7c0');
+
+  function makeUnit(px,mat){ var g=new THREE.Group(); g.position.set(px,0.9,0);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(HW*2,HH*2,HD*2),mat));
+    g.userData.px=px; scene.add(g); return g; }
+  var motor=makeUnit(-1.8,matMotor), pump=makeUnit(1.8,matPump);
+  // полумуфты у внутренних торцов
+  [[-0.66,motor],[0.66,pump]].forEach(function(p){ var f=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.12,20),matFlange); f.rotation.z=Math.PI/2; f.position.set(p[0]<0?HW*0.5+0.0:-HW*0.5,0,0); /*локально у внутр.торца*/ });
+  var fM=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.12,20),matFlange); fM.rotation.z=Math.PI/2; fM.position.set(HW-0.02,0,0); motor.add(fM);
+  var fP=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.12,20),matFlange); fP.rotation.z=Math.PI/2; fP.position.set(-HW+0.02,0,0); pump.add(fP);
+
+  // гнущийся вал-ребро (труба по кривой Безье между внутренними торцами)
+  var shaftMesh=null;
+  function rebuildShaft(p0,p1,mid){ if(shaftMesh){ scene.remove(shaftMesh); shaftMesh.geometry.dispose(); }
+    var curve=new THREE.QuadraticBezierCurve3(p0,mid,p1);
+    shaftMesh=new THREE.Mesh(new THREE.TubeGeometry(curve,20,0.085,10,false),matShaft); scene.add(shaftMesh); }
+
+  // точки измерения на ТОРЦЕВЫХ гранях (4 опоры), сверху = направление В
+  var TRAIL=140;
+  var sd=[ {host:motor,lx:-HW,col:0x46cabe}, {host:motor,lx:HW,col:0x6bbf59}, {host:pump,lx:-HW,col:0xe8b84b}, {host:pump,lx:HW,col:0xe0739f} ];
+  var sensors=sd.map(function(d){ var sph=new THREE.Mesh(new THREE.SphereGeometry(0.075,16,16),new THREE.MeshStandardMaterial({color:d.col,emissive:d.col,emissiveIntensity:0.6}));
+    sph.position.set(d.lx,HH+0.02,0); d.host.add(sph);
+    var geo=new THREE.BufferGeometry(), pos=new Float32Array(TRAIL*3); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    var line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:d.col,transparent:true,opacity:0.85})); line.frustumCulled=false; scene.add(line);
+    return {sph:sph,pos:pos,line:line}; });
+  var tmp=new THREE.Vector3();
+  function resetTrails(){ scene.updateMatrixWorld(true); sensors.forEach(function(s){ s.sph.getWorldPosition(tmp); for(var i=0;i<TRAIL;i++){ s.pos[i*3]=tmp.x; s.pos[i*3+1]=tmp.y; s.pos[i*3+2]=tmp.z; } s.line.geometry.attributes.position.needsUpdate=true; }); }
+
+  var defect='imbalance', gain=5, rpm=600, slow=22, theta=0;
+  var DESC={ imbalance:'<b>Дисбаланс:</b> торцевые грани описывают синфазные <b>круговые орбиты</b> (1×). Вал почти прямой — биение от центробежной силы.',
+    misalign:'<b>Расцентровка:</b> вал <b>гнётся у муфты</b>, торцы двиг/насоса идут в противофазе; в орбитах 2× (восьмёрки).',
+    looseness:'<b>Ослабление:</b> бьёт <b>одна лапа двигателя</b> — рвано, его торец кренится; остальное почти спокойно.',
+    bent:'<b>Изгиб вала:</b> ротор <b>выгнут дугой</b> по своей моде — вал бугрится в центре, оба торца качаются синфазно.' };
+  function setDesc(){ document.getElementById('desc').innerHTML=DESC[defect]; }
+
+  function motion(th){ var A=0.05*gain, R=0.025*gain, s=Math.sin(th), c=Math.cos(th), s2=Math.sin(2*th);
+    var mo={dx:0,dy:0,dz:0,rx:0,ry:0,rz:0}, pu={dx:0,dy:0,dz:0,rx:0,ry:0,rz:0}, bend={y:0,z:0};
+    if(defect==='imbalance'){ mo.dy=A*s; mo.dz=A*c; pu.dy=A*s; pu.dz=A*c; bend.y=0.15*A*s; bend.z=0.15*A*c; }
+    else if(defect==='misalign'){ mo.dy=A*0.7*s; mo.dz=A*0.5*s2; pu.dy=-A*0.7*s; pu.dz=-A*0.5*s2; bend.y=A*1.6*s; bend.z=A*0.7*s2; }
+    else if(defect==='looseness'){ var half=Math.max(0,s), v=half*half*1.4+0.12*Math.sin(3*th); mo.dy=A*0.5*v; mo.rz=R*1.5*v; mo.rx=R*1.1*v; bend.y=0.2*A*v; }
+    else if(defect==='bent'){ mo.dy=A*0.7*s; mo.dz=A*0.7*c; pu.dy=A*0.7*s; pu.dz=A*0.7*c; bend.y=A*2.4*s; bend.z=A*2.4*c; }
+    return {mo:mo,pu:pu,bend:bend};
+  }
+
+  var p0=new THREE.Vector3(), p1=new THREE.Vector3(), mid=new THREE.Vector3();
+  var last=performance.now();
+  function frame(now){ requestAnimationFrame(frame); var dt=Math.min((now-last)/1000,0.05); last=now;
+    var w=2*Math.PI*(rpm/600); theta+=w*dt*(slow/100);
+    var M=motion(theta);
+    motor.position.set(-1.8+M.mo.dx,0.9+M.mo.dy,M.mo.dz); motor.rotation.set(M.mo.rx,M.mo.ry,M.mo.rz);
+    pump.position.set(1.8+M.pu.dx,0.9+M.pu.dy,M.pu.dz); pump.rotation.set(M.pu.rx,M.pu.ry,M.pu.rz);
+    scene.updateMatrixWorld(true);
+    // вал между внутренними торцами + изгиб в середине
+    motor.localToWorld(p0.set(HW,0,0)); pump.localToWorld(p1.set(-HW,0,0));
+    mid.addVectors(p0,p1).multiplyScalar(0.5); mid.y+=M.bend.y; mid.z+=M.bend.z;
+    rebuildShaft(p0.clone(),p1.clone(),mid.clone());
+    sensors.forEach(function(s){ s.sph.getWorldPosition(tmp); s.pos.copyWithin(0,3); s.pos[(TRAIL-1)*3]=tmp.x; s.pos[(TRAIL-1)*3+1]=tmp.y; s.pos[(TRAIL-1)*3+2]=tmp.z; s.line.geometry.attributes.position.needsUpdate=true; });
+    updateCam(); renderer.render(scene,camera);
+  }
+
+  var target=new THREE.Vector3(0,0.9,0), cth=0.9, cph=1.05, crad=9.5;
+  function updateCam(){ camera.position.set(target.x+crad*Math.sin(cph)*Math.cos(cth), target.y+crad*Math.cos(cph), target.z+crad*Math.sin(cph)*Math.sin(cth)); camera.lookAt(target); }
+  var el=renderer.domElement, drag=false, lx=0, ly=0, pinch=0, tmode=0;
+  el.addEventListener('mousedown',function(e){drag=true;lx=e.clientX;ly=e.clientY;});
+  window.addEventListener('mouseup',function(){drag=false;});
+  window.addEventListener('mousemove',function(e){ if(!drag)return; cth-=(e.clientX-lx)*0.008; cph=Math.max(0.2,Math.min(Math.PI-0.2,cph-(e.clientY-ly)*0.008)); lx=e.clientX; ly=e.clientY; });
+  el.addEventListener('wheel',function(e){e.preventDefault(); crad=Math.max(5,Math.min(20,crad+e.deltaY*0.012));},{passive:false});
+  el.addEventListener('touchstart',function(e){ if(e.touches.length===1){tmode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;} else if(e.touches.length===2){tmode=2;pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);} },{passive:false});
+  el.addEventListener('touchmove',function(e){ e.preventDefault();
+    if(tmode===1&&e.touches.length===1){ cth-=(e.touches[0].clientX-lx)*0.008; cph=Math.max(0.2,Math.min(Math.PI-0.2,cph-(e.touches[0].clientY-ly)*0.008)); lx=e.touches[0].clientX; ly=e.touches[0].clientY; }
+    else if(tmode===2&&e.touches.length===2){ var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(pinch) crad=Math.max(5,Math.min(20,crad-(d-pinch)*0.02)); pinch=d; } },{passive:false});
+  el.addEventListener('touchend',function(e){ if(!e.touches.length)tmode=0; else if(e.touches.length===1){tmode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;} });
+
+  document.querySelectorAll('#defs button').forEach(function(b){ b.onclick=function(){ document.querySelectorAll('#defs button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); defect=b.dataset.d; setDesc(); resetTrails(); }; });
+  var $=function(id){return document.getElementById(id);};
+  $('rpm').oninput=function(e){rpm=+e.target.value;$('vRpm').textContent=rpm;};
+  $('gain').oninput=function(e){gain=+e.target.value;$('vGain').textContent=gain+'×';};
+  $('slow').oninput=function(e){slow=+e.target.value;$('vSlow').textContent=slow<15?'оч. медл.':slow<50?'медл.':'быстро';};
+  addEventListener('resize',function(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+  setDesc(); resetTrails(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
