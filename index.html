@@ -125,15 +125,15 @@
         defects: typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]),
         program: typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
       localStorage.setItem('nova_list', JSON.stringify(list));
-      if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); }
+      if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); if(data.sessions) localStorage.setItem('nova_sessions', JSON.stringify(data.sessions)); }
       location.reload();
     }).catch(function(err){ alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); });
   }
   function exportDb(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     function P(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
     var aggs=list.map(function(it){ return { name:it.name||'Агрегат', agg:P(it.agg,{}), defects:P(it.defects,[]), program:P(it.program,{points:[]}) }; });
-    var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets');
-    var out=(ops.length||sets.length)?{aggregates:aggs, opTemplates:ops, methodSets:sets}:aggs;
+    var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets'), sess=getTpls('nova_sessions');
+    var out=(ops.length||sets.length||sess.length)?{aggregates:aggs, opTemplates:ops, methodSets:sets, sessions:sess}:aggs;
     var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
