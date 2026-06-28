@@ -67,7 +67,11 @@
   function tabsFor(pts){ return TABDEF.filter(function(t){ var f=false; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s) return; if(t.q==='ph') f=true; else if(c.vals&&c.vals[t.q]) f=true; }); }); return f; }); }
   function supsFor(pts){ var a=[]; pts.forEach(function(p){ if(a.indexOf(p.sup)<0) a.push(p.sup); }); return a.sort(function(x,y){return x-y;}); }
   function dirsFor(pts){ var d={}; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ d[c.dir]=1; }); }); var ord=(d.R1||d.R2)?['R1','R2','О']:['В','П','О']; var r=ord.filter(function(x){return d[x];}); return r.length?r:['В']; }
-  function cellOf(pts,t,dir,sup){ var best=null; pts.forEach(function(p,pi){ if(p.sup!==sup) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s||c.dir!==dir) return; if(t.q!=='ph'&&!(c.vals&&c.vals[t.q])) return; var cand={pi:pi,c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best; }
+  function cellOf(pts,t,dir,sup){ var hasDirSpot=pts.some(function(p){return p.sup===sup&&p.dir===dir;}), best=null;
+    pts.forEach(function(p,pi){ if(p.sup!==sup) return; if(hasDirSpot&&p.dir!==dir) return;  // есть своя точка направления → только из неё, без кросс-заполнения соседней
+      ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s||c.dir!==dir) return; if(t.q!=='ph'&&!(c.vals&&c.vals[t.q])) return;
+        var cand={pi:pi,c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); });
+    return best; }
   function vchan(c,q){ var vq=(c.vals&&c.vals[q])?q:(c.vals?Object.keys(c.vals)[0]:null), v=vq&&c.vals[vq]; if(!v) return null; return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }
 
   var mode='all', curKey='', curName='', open=-1, tabBy={}, q='';
