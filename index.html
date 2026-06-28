@@ -116,7 +116,7 @@
 <div class="sheet" id="sheet"></div>
 <script>
   function newAgg(){ ['nova_agg','nova_defects','nova_program','nova_editId'].forEach(function(k){ localStorage.removeItem(k); }); location.href='create.html'; }
-  function loadTestDb(){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
+  function loadTestDb(auto){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     if(cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
     fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
       var aggs = Array.isArray(data) ? data : ((data&&data.aggregates)||[]);
@@ -127,7 +127,7 @@
       localStorage.setItem('nova_list', JSON.stringify(list));
       if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); if(data.sessions) localStorage.setItem('nova_sessions', JSON.stringify(data.sessions)); }
       location.reload();
-    }).catch(function(err){ alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); });
+    }).catch(function(err){ if(auto){ render(''); } else { alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); } });
   }
   function exportDb(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     function P(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
@@ -172,7 +172,8 @@
     });
     el.innerHTML = shown ? h : '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary);">Ничего не найдено</div>';
   }
-  render('');
+  // первый заход (пустой список) → автозагрузка публичной db.json
+  if(!getList().length){ loadTestDb(true); } else { render(''); }
 </script>
 </body>
 </html>
