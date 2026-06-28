@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — тренды</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:14px 16px;flex:1;}
+  .lbl{font-size:11px;color:var(--hint);margin:12px 0 6px;}
+  .lbl:first-child{margin-top:0;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{padding:6px 11px;border-radius:8px;border:0.5px solid var(--border2);font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap;}
+  .chip.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  .chart{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:10px 8px 6px;margin-top:14px;}
+  .vlist{margin-top:12px;}
+  .vrow{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--primary);border:0.5px solid var(--border);border-radius:9px;margin-bottom:6px;}
+  .zdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
+  .vd{font-size:12.5px;color:var(--hint);flex:1;}
+  .vv{font-size:13.5px;font-weight:600;}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border2);border-radius:12px;color:var(--hint);font-size:13px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="journal.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl" id="ttl">Тренды</div><div class="sttl" id="sub"></div></div>
+  </div>
+  <div class="body" id="body"></div>
+</div>
+<script>
+  var ZC={g:'#97c459',y:'#ef9f27',r:'#e24b4a'};
+  function zoneVel(v){ return v<2.8?'g':v<7.1?'y':'r'; }
+  function aggKeyOf(s){ return (s.aggId!=null&&s.aggId>=0)?('id'+s.aggId):('nm'+(s.agg||'')); }
+  var TABDEF=[{s:'a',q:'vel',l:'Вибро · скорость'},{s:'a',q:'disp',l:'Вибро · перемещ.'},{s:'a',q:'acc',l:'Вибро · ускор.'},
+              {s:'g',q:'vel',l:'Гиро · скорость'},{s:'g',q:'disp',l:'Гиро · перемещ.'},{s:'g',q:'acc',l:'Гиро · ускор.'},{s:'a',q:'ph',l:'Ампл/фаза'}];
+  function tabsFor(pts){ return TABDEF.filter(function(t){ var f=false; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s) return; if(t.q==='ph') f=true; else if(c.vals&&c.vals[t.q]) f=true; }); }); return f; }); }
+  function supsFor(pts){ var a=[]; pts.forEach(function(p){ if(a.indexOf(p.sup)<0) a.push(p.sup); }); return a.sort(function(x,y){return x-y;}); }
+  function dirsFor(pts){ var d={}; pts.forEach(function(p){ if(p.dir) d[p.dir]=1; ((p.data&&p.data.channels)||[]).forEach(function(c){ d[c.dir]=1; }); }); var ord=(d.R1||d.R2)?['R1','R2','О']:['В','П','О']; var r=ord.filter(function(x){return d[x];}); return r.length?r:['В']; }
+  function cellOf(pts,t,dir,sup){ var hasDirSpot=pts.some(function(p){return p.sup===sup&&p.dir===dir;}), best=null;
+    pts.forEach(function(p,pi){ if(p.sup!==sup) return; if(hasDirSpot&&p.dir!==dir) return;
+      ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s||c.dir!==dir) return; if(t.q!=='ph'&&!(c.vals&&c.vals[t.q])) return;
+        var cand={pi:pi,c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); });
+    return best; }
+  function cellVal(t,best){ if(!best) return null; return t.q==='ph'?best.c.amp1:best.c.vals[t.q].rms; }
+  function cellUnit(t,best){ if(!best) return ''; return t.q==='ph'?(best.c.vals.vel?best.c.vals.vel.unit:'мм/с'):best.c.vals[t.q].unit; }
+
+  var key=(location.search.match(/key=([^&]+)/)||[])[1]; key=key?decodeURIComponent(key):'';
+  var all=[]; try{ all=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
+  var sessions=all.filter(function(s){ return aggKeyOf(s)===key; });  // в хронологическом порядке (порядок записи)
+  var aggName=(sessions[0]&&sessions[0].agg)||'';
+  var allPts=[]; sessions.forEach(function(s){ allPts=allPts.concat(s.points||[]); });
+  var TABS=tabsFor(allPts), SUPS=supsFor(allPts), DIRS=dirsFor(allPts);
+  var at=0, sup=SUPS[0], dir=DIRS[0];
+
+  function chart(series,t){ // series: [{v,zone,date}|null]
+    var L=42,Rr=352,T=10,B=150,pw=310,ph=140;
+    var vals=series.filter(Boolean).map(function(p){return p.v;});
+    var isVel=(t.s==='a'&&t.q==='vel');
+    var mx=Math.max.apply(null,vals.concat([isVel?7.1:0.001]))*1.1;
+    function X(i){ return series.length<=1 ? (L+pw/2) : (L+pw*i/(series.length-1)); }
+    function Y(v){ return B-ph*Math.min(v,mx)/mx; }
+    var s='';
+    if(isVel){ [['g',0,2.8],['y',2.8,7.1],['r',7.1,mx]].forEach(function(z){ var y1=Y(Math.min(z[2],mx)),y2=Y(Math.min(z[1],mx)); if(y2>y1) s+='<rect x="'+L+'" y="'+y1.toFixed(1)+'" width="'+pw+'" height="'+(y2-y1).toFixed(1)+'" fill="'+ZC[z[0]]+'" opacity="0.10"/>'; }); }
+    for(var k=0;k<=3;k++){ var v=mx*k/3,y=Y(v); s+='<line x1="'+L+'" y1="'+y.toFixed(1)+'" x2="'+Rr+'" y2="'+y.toFixed(1)+'" stroke="rgba(255,255,255,0.06)"/><text x="'+(L-4)+'" y="'+(y+3).toFixed(1)+'" font-size="8" fill="#86857e" text-anchor="end">'+v.toFixed(1)+'</text>'; }
+    var d='', pts='';
+    series.forEach(function(p,i){ if(!p) return; var x=X(i),y=Y(p.v); d+=(d?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); var col=isVel?ZC[p.zone]:'#85b7eb'; pts+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.6" fill="'+col+'"/>'; });
+    if(d.indexOf('L')>0) s+='<path d="'+d+'" fill="none" stroke="#85b7eb" stroke-width="1.6"/>';
+    s+=pts;
+    series.forEach(function(p,i){ if(series.length>8 && i%2) return; s+='<text x="'+X(i).toFixed(1)+'" y="'+(B+14)+'" font-size="7.5" fill="#86857e" text-anchor="middle">'+(i+1)+'</text>'; });
+    return '<svg viewBox="0 0 360 168" width="100%" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+  }
+
+  function render(){
+    document.getElementById('ttl').textContent='Тренды · '+aggName;
+    document.getElementById('sub').textContent=sessions.length+' сессий';
+    var body=document.getElementById('body');
+    if(!sessions.length){ body.innerHTML='<div class="empty"><i class="ti ti-chart-line" style="font-size:32px"></i>Нет сессий этого агрегата.</div>'; return; }
+    if(!TABS.length){ body.innerHTML='<div class="empty">Нет данных для трендов.</div>'; return; }
+    if(at>=TABS.length) at=0; var t=TABS[at];
+    if(SUPS.indexOf(sup)<0) sup=SUPS[0]; if(DIRS.indexOf(dir)<0) dir=DIRS[0];
+    var h='<div class="lbl">Метод</div><div class="chips">'+TABS.map(function(tb,i){return '<span class="chip'+(i===at?' on':'')+'" onclick="setTab('+i+')">'+tb.l+'</span>';}).join('')+'</div>';
+    h+='<div class="lbl">Опора</div><div class="chips">'+SUPS.map(function(s){return '<span class="chip'+(s===sup?' on':'')+'" onclick="setSup('+s+')">№'+s+'</span>';}).join('')+'</div>';
+    h+='<div class="lbl">Направление</div><div class="chips">'+DIRS.map(function(d){return '<span class="chip'+(d===dir?' on':'')+'" onclick="setDir(\''+d+'\')">'+d+'</span>';}).join('')+'</div>';
+    var series=sessions.map(function(s){ var best=cellOf(s.points||[],t,dir,sup), v=cellVal(t,best); if(v==null) return null; return {v:v, zone:(t.s==='a'&&t.q==='vel')?zoneVel(v):'g', date:s.date, unit:cellUnit(t,best), op:s.operator}; });
+    var present=series.filter(Boolean);
+    if(!present.length){ h+='<div class="chart"><div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Нет замеров: '+t.l+' · '+dir+' · Оп.№'+sup+'</div></div>'; body.innerHTML=h; return; }
+    h+='<div class="chart">'+chart(series,t)+'<div style="font-size:10.5px;color:var(--hint);text-align:center;margin-top:4px">'+t.l+' · '+dir+' · Опора №'+sup+(present[0].unit?' · '+present[0].unit:'')+' · ось X = № сессии</div></div>';
+    h+='<div class="vlist">';
+    series.forEach(function(p,i){ if(!p) return; h+='<div class="vrow"><span class="zdot" style="background:'+ZC[p.zone]+'"></span><span class="vd">#'+(i+1)+' · '+(p.date||'')+' · '+(p.op||'')+'</span><span class="vv">'+p.v.toFixed(2)+(t.q==='ph'?' '+(p.unit||'')+' ∠'+(cellOf(sessions[i].points,t,dir,sup).c.phase.toFixed(0))+'°':' '+(p.unit||''))+'</span></div>'; });
+    h+='</div>';
+    body.innerHTML=h;
+  }
+  function setTab(i){ at=i; render(); }
+  function setSup(s){ sup=s; render(); }
+  function setDir(d){ dir=d; render(); }
+  render();
+</script>
+</body>
+</html>

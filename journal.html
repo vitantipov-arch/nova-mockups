@@ -79,6 +79,7 @@
   function onSearch(v){ q=v; render(); }
   function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; persist(); render(); }
   function backAll(){ mode='all'; open=-1; persist(); render(); }
+  function goTrends(){ persist(); location.href='trends.html?key='+encodeURIComponent(curKey); }
   function toggle(gi){ open=(open===gi?-1:gi); persist(); render(); }
   function setTab(gi,i){ tabBy[gi]=i; persist(); render(); }
   function delSess(gi){ var arr=getSess(), s=arr[gi]; if(!s) return; if(!confirm('Удалить сессию «'+(s.agg||'')+' · '+(s.date||'')+'»? Действие необратимо.')) return;
@@ -125,7 +126,7 @@
     } else {
       var mine=ss.map(function(s,i){return {s:s,i:i};}).filter(function(o){return aggKeyOf(o.s)===curKey;});
       document.getElementById('ttl').textContent=curName; document.getElementById('sub').textContent=mine.length+' сессий агрегата'; sw.style.display='none';
-      h='<div class="crumb" onclick="backAll()"><i class="ti ti-arrow-left"></i> Все сессии</div>';
+      h='<div style="display:flex;gap:8px;margin-bottom:12px"><div class="crumb" style="flex:1;margin:0" onclick="backAll()"><i class="ti ti-arrow-left"></i> Все сессии</div><div class="crumb" style="margin:0;color:var(--info)" onclick="goTrends()"><i class="ti ti-trending-up"></i> Тренды</div></div>';
       mine.reverse().forEach(function(o){ var s=o.s,gi=o.i,w=worst(s),exp=(open===gi);
         h+='<div class="sess"><div class="shead" onclick="toggle('+gi+')"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(s.date||'')+'</div><div class="ssub">'+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-trash tr" onclick="event.stopPropagation();delSess('+gi+')"></i><i class="ti ti-chevron-'+(exp?'up':'down')+'" style="color:var(--hint)"></i></div>';
         if(exp) h+=tableHTML(gi);

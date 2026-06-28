@@ -140,6 +140,7 @@
   }
   function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
   function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
+  function sesW(n){ var a=n%100,b=n%10; if(a>10&&a<20) return 'сессий'; if(b===1) return 'сессия'; if(b>=2&&b<=4) return 'сессии'; return 'сессий'; }
   function saveList(l){ try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
   function curFilter(){ var s=document.getElementById('search'); return s?s.value:''; }
   function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
@@ -156,15 +157,16 @@
     if(!confirm('Удалить «'+nm+'»? Действие необратимо.')) return;
     list.splice(i,1); saveList(list); closeSheet(); render(curFilter());
   }
-  function render(filter){ var list=getList(); filter=(filter||'').trim().toLowerCase();
+  function render(filter){ var list=getList(), sess=[]; try{ sess=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){} filter=(filter||'').trim().toLowerCase();
     var wrap=document.getElementById('searchWrap'); if(wrap) wrap.style.display=list.length?'flex':'none';
     var el=document.getElementById('recent'); if(!el) return;
     if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый или загрузите тестовую БД.</div><button onclick="loadTestDb()" style="margin-top:2px;padding:9px 16px;font-size:13px;color:var(--info);border:0.5px solid var(--info-border);border-radius:var(--r-md);"><i class="ti ti-database-import"></i> Загрузить тестовую БД</button></div>'; return; }
     var h='', shown=0;
     list.forEach(function(it,i){ var name=it.name||'Агрегат'; if(filter && name.toLowerCase().indexOf(filter)<0) return; shown++;
       var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
+      var nses=sess.filter(function(s){return s.aggId===i;}).length;
       h+='<div style="display:flex;align-items:center;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;">'
-        +'<div onclick="location.href=\'equipment.html?id='+i+'\'" style="flex:1;display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;min-width:0;"><i class="ti ti-box" style="font-size:22px;color:var(--info);flex:0 0 auto;"></i><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор</div></div></div>'
+        +'<div onclick="location.href=\'equipment.html?id='+i+'\'" style="flex:1;display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;min-width:0;"><i class="ti ti-box" style="font-size:22px;color:var(--info);flex:0 0 auto;"></i><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор'+(nses?' · '+nses+' '+sesW(nses):'')+'</div></div></div>'
         +'<button class="rowmenu" onclick="event.stopPropagation();openRowMenu('+i+')"><i class="ti ti-dots-vertical" style="font-size:20px;"></i></button>'
         +'</div>';
     });
