@@ -18,21 +18,29 @@
   .hd .ti{font-size:23px;color:var(--muted);}
   .ttl{font-size:16px;font-weight:500;}
   .sttl{font-size:12px;color:var(--hint);}
-  .body{padding:14px 16px;flex:1;}
+  .body{padding:14px 14px;flex:1;}
   .field-search{display:flex;align-items:center;gap:8px;background:var(--secondary);border:0.5px solid var(--border);border-radius:9px;padding:0 12px;margin-bottom:12px;}
   .field-search input{flex:1;height:40px;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;}
   .crumb{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--secondary);border-radius:9px;margin-bottom:12px;cursor:pointer;font-size:13px;}
   .crumb .ti{font-size:18px;color:var(--info);}
   .sess{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;}
-  .shead{display:flex;align-items:center;gap:12px;padding:13px;cursor:pointer;}
+  .shead{display:flex;align-items:center;gap:11px;padding:13px;cursor:pointer;}
   .zdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
   .sname{font-size:15px;font-weight:500;}
   .ssub{font-size:12px;color:var(--hint);margin-top:2px;}
-  .pts{border-top:0.5px solid var(--border);padding:6px 10px 10px;}
-  .pt{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;}
-  .pt:active{background:var(--secondary);}
-  .ptn{font-size:13.5px;flex:1;}
-  .pta{font-size:12.5px;color:var(--muted);}
+  .tr{font-size:17px;color:#e24b4a;flex:0 0 auto;padding:2px 4px;cursor:pointer;}
+  .pts{border-top:0.5px solid var(--border);padding:10px;}
+  .jtabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;}
+  .jtabs button{flex:0 0 auto;height:30px;padding:0 11px;border:0.5px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .jtabs button.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  .uline{font-size:11px;color:var(--hint);margin-bottom:7px;}
+  table.jt{width:100%;border-collapse:separate;border-spacing:4px;}
+  table.jt th{font-size:10.5px;color:var(--hint);font-weight:500;padding:2px;}
+  td.dd{font-size:13px;font-weight:600;color:var(--muted);width:30px;}
+  td.cl{background:var(--secondary);border-radius:8px;height:44px;text-align:center;cursor:pointer;border:1px solid transparent;}
+  td.cl.empty{background:transparent;color:var(--hint);cursor:default;}
+  td.cl .cv{font-weight:600;font-size:12.5px;}
+  td.cl .cu{font-size:9px;color:var(--hint);display:block;margin-top:1px;}
   .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border2);border-radius:12px;color:var(--hint);font-size:13px;text-align:center;}
 </style>
 </head>
@@ -48,42 +56,81 @@
   </div>
 </div>
 <script>
-  var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, RANK={g:0,y:1,r:2}, INV=['g','y','r'];
+  var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, ZBG={g:'rgba(151,196,89,0.16)',y:'rgba(239,159,39,0.16)',r:'rgba(226,75,74,0.18)'}, RANK={g:0,y:1,r:2}, INV=['g','y','r'];
   function getSess(){ try{ return JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){ return []; } }
+  function saveSess(a){ try{ localStorage.setItem('nova_sessions', JSON.stringify(a)); }catch(e){} }
   function worst(s){ var w=0; (s.points||[]).forEach(function(p){ if(RANK[p.zone]>w) w=RANK[p.zone]; }); return INV[w]; }
   function aggKeyOf(s){ return (s.aggId!=null&&s.aggId>=0)?('id'+s.aggId):('nm'+(s.agg||'')); }
+  function zoneVel(v){ return v<2.8?'g':v<7.1?'y':'r'; }
+  var TABDEF=[{s:'a',q:'vel',l:'Вибро · скорость'},{s:'a',q:'disp',l:'Вибро · перемещ.'},{s:'a',q:'acc',l:'Вибро · ускор.'},
+              {s:'g',q:'vel',l:'Гиро · скорость'},{s:'g',q:'disp',l:'Гиро · перемещ.'},{s:'g',q:'acc',l:'Гиро · ускор.'},{s:'a',q:'ph',l:'Ампл/фаза'}];
+  function tabsFor(pts){ return TABDEF.filter(function(t){ var f=false; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s) return; if(t.q==='ph') f=true; else if(c.vals&&c.vals[t.q]) f=true; }); }); return f; }); }
+  function supsFor(pts){ var a=[]; pts.forEach(function(p){ if(a.indexOf(p.sup)<0) a.push(p.sup); }); return a.sort(function(x,y){return x-y;}); }
+  function dirsFor(pts){ var d={}; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ d[c.dir]=1; }); }); var ord=(d.R1||d.R2)?['R1','R2','О']:['В','П','О']; var r=ord.filter(function(x){return d[x];}); return r.length?r:['В']; }
+  function cellOf(pts,t,dir,sup){ var best=null; pts.forEach(function(p,pi){ if(p.sup!==sup) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s||c.dir!==dir) return; if(t.q!=='ph'&&!(c.vals&&c.vals[t.q])) return; var cand={pi:pi,c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best; }
+  function vchan(c,q){ var vq=(c.vals&&c.vals[q])?q:(c.vals?Object.keys(c.vals)[0]:null), v=vq&&c.vals[vq]; if(!v) return null; return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }
 
-  var mode='all', curKey='', curName='', open=-1, q='';
+  var mode='all', curKey='', curName='', open=-1, tabBy={}, q='';
+  function persist(){ try{ localStorage.setItem('nova_jrnl', JSON.stringify({mode:mode,curKey:curKey,curName:curName,open:open,tabBy:tabBy})); }catch(e){} }
   function onSearch(v){ q=v; render(); }
-  function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; render(); }
-  function backAll(){ mode='all'; open=-1; render(); }
-  function openReport(gi){ location.href='report.html?sid='+gi; }
-  function sessRow(s,gi,agg){ var w=worst(s);
-    var name=agg?(s.date||''):(s.agg||'Агрегат');
-    var sub=(agg?'':(s.date||'')+' · ')+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0);
-    return '<div class="sess"><div class="shead" onclick="'+(agg?'openReport('+gi+')':'enterAgg('+gi+')')+'"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+name+'</div><div class="ssub">'+sub+'</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div></div>';
+  function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; persist(); render(); }
+  function backAll(){ mode='all'; open=-1; persist(); render(); }
+  function toggle(gi){ open=(open===gi?-1:gi); persist(); render(); }
+  function setTab(gi,i){ tabBy[gi]=i; persist(); render(); }
+  function delSess(gi){ var arr=getSess(), s=arr[gi]; if(!s) return; if(!confirm('Удалить сессию «'+(s.agg||'')+' · '+(s.date||'')+'»? Действие необратимо.')) return;
+    arr.splice(gi,1); saveSess(arr); open=-1; tabBy={};
+    if(mode==='agg'&&!arr.some(function(x){return aggKeyOf(x)===curKey;})) mode='all';
+    persist(); render();
   }
+  function openCell(gi,dir,sup,ti){ var s=getSess()[gi], pts=(s&&s.points)||[], t=tabsFor(pts)[ti]; if(!t) return;
+    var best=cellOf(pts,t,dir,sup); if(!best) return; var p=pts[best.pi], qy=(t.q==='ph')?'vel':t.q;
+    var chans=((p.data&&p.data.channels)||[]).map(function(c){ return vchan(c,qy); }).filter(Boolean);
+    var payload={ title:'Точка '+p.dir+' · Опора №'+(p.sup||''), sub:(s.agg||'')+' · '+(s.date||'')+' · '+(s.operator||''), qty:qy, channels:chans, back:'journal.html' };
+    try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
+    persist(); location.href='spectrum.html?mode=view';
+  }
+
+  function tableHTML(gi){ var s=getSess()[gi], pts=(s&&s.points)||[], TABS=tabsFor(pts);
+    if(!TABS.length) return '<div class="pts" style="color:var(--hint);font-size:12.5px">Нет данных по точкам.</div>';
+    var at=tabBy[gi]||0; if(at>=TABS.length) at=0; var t=TABS[at], sups=supsFor(pts), dirs=dirsFor(pts);
+    var h='<div class="pts"><div class="jtabs">'+TABS.map(function(tb,i){return '<button class="'+(i===at?'on':'')+'" onclick="event.stopPropagation();setTab('+gi+','+i+')">'+tb.l+'</button>';}).join('')+'</div>';
+    h+='<div class="uline">'+(t.q==='ph'?'амплитуда/фаза 1×':'СКЗ по направлениям × опорам')+'</div>';
+    h+='<table class="jt"><tr><th></th>'+sups.map(function(x){return '<th>№'+x+'</th>';}).join('')+'</tr>';
+    dirs.forEach(function(dir){ h+='<tr><td class="dd">'+dir+'</td>';
+      sups.forEach(function(sup){ var cc=cellOf(pts,t,dir,sup);
+        if(!cc){ h+='<td class="cl empty">—</td>'; return; }
+        if(t.q==='ph'){ h+='<td class="cl" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+cc.c.amp1.toFixed(2)+'</span><span class="cu">∠'+cc.c.phase.toFixed(0)+'°</span></td>'; }
+        else { var v=cc.c.vals[t.q], z=(t.s==='a'&&t.q==='vel')?zoneVel(v.rms):null, bg=z?ZBG[z]:'var(--secondary)', bd=z?ZC[z]:'transparent';
+          h+='<td class="cl" style="background:'+bg+';border-color:'+bd+'" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+v.rms.toFixed(2)+'</span><span class="cu">'+v.unit+'</span></td>'; }
+      }); h+='</tr>';
+    });
+    return h+'</table><div style="font-size:10.5px;color:var(--hint);text-align:center;margin-top:8px">тап по ячейке — спектр/сигнал точки</div></div>';
+  }
+
   function render(){ var ss=getSess(), el=document.getElementById('list'), sw=document.getElementById('searchWrap');
-    document.getElementById('back').setAttribute('href', mode==='agg'?'javascript:void(0)':'measure.html');
-    document.getElementById('back').onclick=mode==='agg'?function(e){e.preventDefault();backAll();}:null;
+    var back=document.getElementById('back'); back.setAttribute('href', mode==='agg'?'javascript:void(0)':'measure.html'); back.onclick=mode==='agg'?function(e){e.preventDefault();backAll();}:null;
     if(!ss.length){ sw.style.display='none'; document.getElementById('ttl').textContent='Журнал сессий'; document.getElementById('sub').textContent='Кто · что · когда мерил';
       el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:32px"></i>Сессий пока нет.<br>Проведите измерение по программе агрегата.</div>'; return; }
-    if(mode==='all'){
-      document.getElementById('ttl').textContent='Журнал сессий'; document.getElementById('sub').textContent=ss.length+' сессий';
-      sw.style.display='flex';
-      var qq=(q||'').trim().toLowerCase(), h='';
-      ss.map(function(s,i){return {s:s,i:i};}).reverse().forEach(function(o){ if(qq&&(o.s.agg||'').toLowerCase().indexOf(qq)<0) return; h+=sessRow(o.s,o.i,false); });
+    var h='';
+    if(mode==='all'){ document.getElementById('ttl').textContent='Журнал сессий'; document.getElementById('sub').textContent=ss.length+' сессий'; sw.style.display='flex';
+      var qq=(q||'').trim().toLowerCase();
+      ss.map(function(s,i){return {s:s,i:i};}).reverse().forEach(function(o){ if(qq&&(o.s.agg||'').toLowerCase().indexOf(qq)<0) return; var s=o.s,gi=o.i,w=worst(s);
+        h+='<div class="sess"><div class="shead" onclick="enterAgg('+gi+')"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(s.agg||'Агрегат')+'</div><div class="ssub">'+(s.date||'')+' · '+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-trash tr" onclick="event.stopPropagation();delSess('+gi+')"></i><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div></div>';
+      });
       el.innerHTML=h||'<div style="padding:24px;text-align:center;color:var(--hint);font-size:13px">Ничего не найдено</div>';
     } else {
-      var mine=ss.map(function(s,i){return {s:s,i:i};}).filter(function(o){ return aggKeyOf(o.s)===curKey; });
-      document.getElementById('ttl').textContent=curName; document.getElementById('sub').textContent=mine.length+' сессий агрегата';
-      sw.style.display='none';
-      var h='<div class="crumb" onclick="backAll()"><i class="ti ti-arrow-left"></i> Все сессии</div>';
-      mine.reverse().forEach(function(o){ h+=sessRow(o.s,o.i,true); });
+      var mine=ss.map(function(s,i){return {s:s,i:i};}).filter(function(o){return aggKeyOf(o.s)===curKey;});
+      document.getElementById('ttl').textContent=curName; document.getElementById('sub').textContent=mine.length+' сессий агрегата'; sw.style.display='none';
+      h='<div class="crumb" onclick="backAll()"><i class="ti ti-arrow-left"></i> Все сессии</div>';
+      mine.reverse().forEach(function(o){ var s=o.s,gi=o.i,w=worst(s),exp=(open===gi);
+        h+='<div class="sess"><div class="shead" onclick="toggle('+gi+')"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(s.date||'')+'</div><div class="ssub">'+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-trash tr" onclick="event.stopPropagation();delSess('+gi+')"></i><i class="ti ti-chevron-'+(exp?'up':'down')+'" style="color:var(--hint)"></i></div>';
+        if(exp) h+=tableHTML(gi);
+        h+='</div>';
+      });
       el.innerHTML=h;
     }
   }
-  render();
+  (function(){ try{ var st=JSON.parse(localStorage.getItem('nova_jrnl')); if(st){ mode=st.mode||'all'; curKey=st.curKey||''; curName=st.curName||''; open=(st.open!=null?st.open:-1); tabBy=st.tabBy||{}; } }catch(e){} render(); })();
 </script>
 </body>
 </html>

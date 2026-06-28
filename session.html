@@ -44,7 +44,7 @@
 <body>
 <div class="screen">
   <div class="hd">
-    <a href="measure.html"><i class="ti ti-chevron-left"></i></a>
+    <a href="javascript:void(0)" onclick="tryLeave()"><i class="ti ti-chevron-left"></i></a>
     <div style="flex:1;"><div class="ttl" id="aggName">Сессия</div><div class="sttl">Обход по программе · карта точек</div></div>
     <i class="ti ti-bolt" style="color:var(--info);"></i>
   </div>
@@ -57,6 +57,21 @@
   <div class="foot"><button class="fin" onclick="finish()">Завершить сессию</button></div>
 </div>
 
+<div id="leave" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;justify-content:center;z-index:20;">
+  <div style="background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;width:100%;max-width:480px;padding:18px 16px 24px;border-top:0.5px solid var(--border)">
+    <div style="font-size:15px;font-weight:500;margin-bottom:6px">Сессия не сохранена</div>
+    <div style="font-size:13px;color:var(--hint);margin-bottom:16px">Есть незаписанные замеры. Завершите сессию, чтобы они попали в журнал.</div>
+    <button onclick="finish()" style="width:100%;height:46px;border-radius:11px;border:none;background:#2f7d4f;color:#fff;font-size:15px;font-weight:500;font-family:inherit;margin-bottom:9px">Завершить и сохранить</button>
+    <button onclick="leaveNoSave()" style="width:100%;height:44px;border-radius:11px;border:0.5px solid var(--border2);background:transparent;color:var(--danger);font-size:14px;font-family:inherit;margin-bottom:9px">Выйти без сохранения</button>
+    <button onclick="closeLeave()" style="width:100%;height:44px;border-radius:11px;border:0.5px solid var(--border2);background:transparent;color:var(--text);font-size:14px;font-family:inherit">Остаться</button>
+  </div>
+</div>
+
+<script>
+  function tryLeave(){ if(typeof sess==='undefined'||!Object.keys(sess).length){ location.href='measure.html'; return; } document.getElementById('leave').style.display='flex'; }
+  function leaveNoSave(){ location.href='measure.html'; }
+  function closeLeave(){ document.getElementById('leave').style.display='none'; }
+</script>
 <script>
   var MT={ motor:{name:'Двигатель',color:'#4d8dff'}, pump:{name:'Насос',color:'#38e1d6'}, fan:{name:'Вентилятор',color:'#ff5db1'}, comp:{name:'Компрессор',color:'#ffb24d'}, gen:{name:'Генератор',color:'#9b6cff'} };
   var LINKS={ rigid:{off:false}, elastic:{off:false}, belt:{off:true}, gear:{off:true} };
