@@ -104,9 +104,10 @@
     dirs.forEach(function(dir){ h+='<tr><td class="dd">'+dir+'</td>';
       sups.forEach(function(sup){ var cc=cellOf(pts,t,dir,sup);
         if(!cc){ h+='<td class="cl empty">—</td>'; return; }
-        if(t.q==='ph'){ h+='<td class="cl" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+cc.c.amp1.toFixed(2)+'</span><span class="cu">∠'+cc.c.phase.toFixed(0)+'°</span></td>'; }
-        else { var v=cc.c.vals[t.q], z=(t.s==='a'&&t.q==='vel')?zoneVel(v.rms):null, bg=z?ZBG[z]:'var(--secondary)', bd=z?ZC[z]:'transparent';
-          h+='<td class="cl" style="background:'+bg+';border-color:'+bd+'" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+v.rms.toFixed(2)+'</span><span class="cu">'+v.unit+'</span></td>'; }
+        var ov=pts[cc.pi]&&pts[cc.pi].q==='overload';
+        if(t.q==='ph'){ h+='<td class="cl" style="'+(ov?'border-color:var(--warning)':'')+'" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+cc.c.amp1.toFixed(2)+'</span><span class="cu">'+(ov?'⚠ пер.':'∠'+cc.c.phase.toFixed(0)+'°')+'</span></td>'; }
+        else { var v=cc.c.vals[t.q], z=(t.s==='a'&&t.q==='vel')?zoneVel(v.rms):null, bg=ov?'rgba(239,159,39,0.10)':(z?ZBG[z]:'var(--secondary)'), bd=ov?'var(--warning)':(z?ZC[z]:'transparent');
+          h+='<td class="cl" style="background:'+bg+';border-color:'+bd+'" onclick="event.stopPropagation();openCell('+gi+',\''+dir+'\','+sup+','+at+')"><span class="cv">'+v.rms.toFixed(2)+'</span><span class="cu">'+(ov?'⚠ '+v.unit:v.unit)+'</span></td>'; }
       }); h+='</tr>';
     });
     return h+'</table><div style="font-size:10.5px;color:var(--hint);text-align:center;margin-top:8px">тап по ячейке — спектр/сигнал точки</div></div>';

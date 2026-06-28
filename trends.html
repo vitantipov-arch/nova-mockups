@@ -95,7 +95,7 @@
     var h='<div class="lbl">Метод</div><div class="chips">'+TABS.map(function(tb,i){return '<span class="chip'+(i===at?' on':'')+'" onclick="setTab('+i+')">'+tb.l+'</span>';}).join('')+'</div>';
     h+='<div class="lbl">Опора</div><div class="chips">'+SUPS.map(function(s){return '<span class="chip'+(s===sup?' on':'')+'" onclick="setSup('+s+')">№'+s+'</span>';}).join('')+'</div>';
     h+='<div class="lbl">Направление</div><div class="chips">'+DIRS.map(function(d){return '<span class="chip'+(d===dir?' on':'')+'" onclick="setDir(\''+d+'\')">'+d+'</span>';}).join('')+'</div>';
-    var series=sessions.map(function(s){ var best=cellOf(s.points||[],t,dir,sup), v=cellVal(t,best); if(v==null) return null; return {v:v, zone:(t.s==='a'&&t.q==='vel')?zoneVel(v):'g', date:s.date, unit:cellUnit(t,best), op:s.operator}; });
+    var series=sessions.map(function(s){ var best=cellOf(s.points||[],t,dir,sup); if(best&&s.points[best.pi]&&s.points[best.pi].q==='overload') return null; var v=cellVal(t,best); if(v==null) return null; return {v:v, zone:(t.s==='a'&&t.q==='vel')?zoneVel(v):'g', date:s.date, unit:cellUnit(t,best), op:s.operator}; });
     var present=series.filter(Boolean);
     if(!present.length){ h+='<div class="chart"><div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:13px">Нет замеров: '+t.l+' · '+dir+' · Оп.№'+sup+'</div></div>'; body.innerHTML=h; return; }
     h+='<div class="chart">'+chart(series,t)+'<div style="font-size:10.5px;color:var(--hint);text-align:center;margin-top:4px">'+t.l+' · '+dir+' · Опора №'+sup+(present[0].unit?' · '+present[0].unit:'')+' · ось X = № сессии</div></div>';
