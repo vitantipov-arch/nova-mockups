@@ -80,6 +80,8 @@
   function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; persist(); render(); }
   function backAll(){ mode='all'; open=-1; persist(); render(); }
   function goTrends(){ persist(); location.href='trends.html?key='+encodeURIComponent(curKey); }
+  function go3d(gi){ persist(); location.href='live3d.html?sid='+gi; }
+  function hasAG(pts){ var a=false,g=false; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s==='a')a=true; if(c.s==='g')g=true; }); }); return a&&g; }
   function toggle(gi){ open=(open===gi?-1:gi); persist(); render(); }
   function setTab(gi,i){ tabBy[gi]=i; persist(); render(); }
   function delSess(gi){ var arr=getSess(), s=arr[gi]; if(!s) return; if(!confirm('Удалить сессию «'+(s.agg||'')+' · '+(s.date||'')+'»? Действие необратимо.')) return;
@@ -98,7 +100,7 @@
   function tableHTML(gi){ var s=getSess()[gi], pts=(s&&s.points)||[], TABS=tabsFor(pts);
     if(!TABS.length) return '<div class="pts" style="color:var(--hint);font-size:12.5px">Нет данных по точкам.</div>';
     var at=tabBy[gi]||0; if(at>=TABS.length) at=0; var t=TABS[at], sups=supsFor(pts), dirs=dirsFor(pts);
-    var h='<div class="pts"><div class="jtabs">'+TABS.map(function(tb,i){return '<button class="'+(i===at?'on':'')+'" onclick="event.stopPropagation();setTab('+gi+','+i+')">'+tb.l+'</button>';}).join('')+'</div>';
+    var h='<div class="pts">'+(hasAG(pts)?'<button onclick="event.stopPropagation();go3d('+gi+')" style="width:100%;height:38px;border-radius:9px;border:0.5px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:13px;font-family:inherit;cursor:pointer;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:7px"><i class="ti ti-cube-3d-sphere"></i> 3D визуализация</button>':'')+'<div class="jtabs">'+TABS.map(function(tb,i){return '<button class="'+(i===at?'on':'')+'" onclick="event.stopPropagation();setTab('+gi+','+i+')">'+tb.l+'</button>';}).join('')+'</div>';
     h+='<div class="uline">'+(t.q==='ph'?'амплитуда/фаза 1×':'СКЗ по направлениям × опорам')+'</div>';
     h+='<table class="jt"><tr><th></th>'+sups.map(function(x){return '<th>№'+x+'</th>';}).join('')+'</tr>';
     dirs.forEach(function(dir){ h+='<tr><td class="dd">'+dir+'</td>';
