@@ -75,16 +75,22 @@
   var active=-1;
   var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
   var FR=(parseFloat((units[0]&&units[0].rpm))||2940)/60;
+  function axisMap(dir){ var rads=orient==='v'?['R1','R2']:['В','П'], ax='О'; if(dir===ax) return {Z:ax,X:rads[0],Y:rads[1]}; var other=rads[0]===dir?rads[1]:rads[0]; return {Z:dir,X:ax,Y:other}; }
   function sc(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
   function cmps(q,s,kind){ var k=sc(q,s);
     if(kind==='env'){ var bp=(7+Math.random())*FR; return [{n:'BPFO',f:bp,a:(0.5+Math.random()*0.6)*k},{n:'2·BPFO',f:2*bp,a:(0.25+Math.random()*0.35)*k}]; }
     return [{n:'0.5×',f:0.5*FR,a:(0.04+Math.random()*0.16)*k},{n:'1×',f:FR,a:(0.4+Math.random()*0.6)*k},{n:'2×',f:2*FR,a:(0.15+Math.random()*0.45)*k},{n:'3×',f:3*FR,a:(0.05+Math.random()*0.25)*k}]; }
-  function chanData(s,ax,q){ var cm=cmps(q,s,'spec'), ecm=cmps(q,s,'env'), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
-    return {s:s,ax:ax,unit:UNIT[q][s],comps:cm,ecomps:ecm,rms:rms,peak:peak,pp:peak*1.9,amp1:cm[1].a,phase:Math.random()*360}; }
-  function genPoint(spot){ var qty=(spot.meas&&spot.meas[0]&&['vel','acc','disp'].indexOf(spot.meas[0].mid)>=0)?spot.meas[0].mid:'vel', seen={}, chans=[];
-    (spot.meas||[]).forEach(function(m){ (m.chans||[]).forEach(function(ch){ var kk=ch.s+ch.ax; if(seen[kk])return; seen[kk]=1; chans.push(chanData(ch.s,ch.ax,qty)); }); });
-    if(!chans.length) chans.push(chanData('a','Z',qty));
-    return {qty:qty,channels:chans}; }
+  function vals(q,s){ var cm=cmps(q,s,'spec'), ecm=cmps(q,s,'env'), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
+    return {rms:rms,unit:UNIT[q][s],comps:cm,ecomps:ecm,peak:peak,pp:peak*1.9}; }
+  function genPoint(spot){ var amap=axisMap(spot.dir), bykey={};
+    (spot.meas||[]).forEach(function(m){ var q=(['vel','disp','acc'].indexOf(m.mid)>=0)?m.mid:'vel';
+      (m.chans||[]).forEach(function(ch){ var kk=ch.s+'_'+ch.ax, c=bykey[kk]; if(!c) c=bykey[kk]={s:ch.s,ax:ch.ax,dir:amap[ch.ax],vals:{},amp1:0,phase:Math.random()*360};
+        if(!c.vals[q]) c.vals[q]=vals(q,ch.s); }); });
+    var chans=Object.keys(bykey).map(function(k){ var c=bykey[k], any=c.vals.vel||c.vals[Object.keys(c.vals)[0]]; c.amp1=any?any.comps[1].a:0; return c; });
+    if(!chans.length){ var cc={s:'a',ax:'Z',dir:amap.Z,vals:{vel:vals('vel','a')},amp1:0,phase:0}; cc.amp1=cc.vals.vel.comps[1].a; chans=[cc]; }
+    return {channels:chans}; }
+  function viewerChannels(channels,q){ return channels.map(function(c){ var vq=c.vals[q]?q:Object.keys(c.vals)[0], v=c.vals[vq]; if(!v) return null;
+    return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean); }
 
   function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(units[x].supports||[]).length; return n+k+1; }
 
@@ -193,13 +199,15 @@
     p.innerHTML=h; p.classList.remove('hidden');
   }
   function tapNode(idx){ active=idx; render(); }
-  function doMeasure(){ if(active<0) return; var n=nodes[active], rms=2+Math.random()*7, zone=rms<2.8?'g':rms<7.1?'y':'r';
-    sess[nkey(n)]={zone:zone,rms:rms,data:genPoint(n.spot)};
+  function doMeasure(){ if(active<0) return; var n=nodes[active], d=genPoint(n.spot);
+    var vch=d.channels.filter(function(c){return c.s==='a'&&c.vals.vel;})[0]||d.channels.filter(function(c){return c.vals.vel;})[0]||d.channels[0];
+    var rms=(vch&&vch.vals.vel)?vch.vals.vel.rms:(2+Math.random()*5), zone=rms<2.8?'g':rms<7.1?'y':'r';
+    sess[nkey(n)]={zone:zone,rms:rms,data:d};
     var nxt=nextPending(); if(nxt>=0) active=nxt;
     render();
   }
   function openData(){ if(active<0) return; var n=nodes[active], st=sess[nkey(n)]; if(!st||!st.data) return; var m=(n.label||'').match(/№(\d+)/);
-    var payload={ title:'Точка '+n.dir+' · Опора '+(m?'№'+m[1]:''), sub:((it&&it.name)||'')+' · '+((units[0]&&units[0].rpm)||'')+' об/мин', qty:st.data.qty, channels:st.data.channels, back:'session.html?id='+qid() };
+    var payload={ title:'Точка '+n.dir+' · Опора '+(m?'№'+m[1]:''), sub:((it&&it.name)||'')+' · '+((units[0]&&units[0].rpm)||'')+' об/мин', qty:'vel', channels:viewerChannels(st.data.channels,'vel'), back:'session.html?id='+qid() };
     try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
     location.href='spectrum.html?mode=view';
   }

@@ -57,17 +57,11 @@
   function onSearch(v){ q=v; render(); }
   function enterAgg(gi){ var s=getSess()[gi]; if(!s) return; mode='agg'; curKey=aggKeyOf(s); curName=s.agg||'Агрегат'; open=gi; render(); }
   function backAll(){ mode='all'; open=-1; render(); }
-  function tg(gi){ open=(open===gi?-1:gi); render(); }
-  function openPoint(gi,pi){ var s=getSess()[gi], p=s&&s.points[pi]; if(!p||!p.data) return;
-    var payload={ title:'Точка '+p.dir+' · Опора №'+(p.sup||''), sub:s.agg+' · '+s.date+' · '+s.operator, qty:p.data.qty, channels:p.data.channels, back:'journal.html' };
-    try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
-    location.href='spectrum.html?mode=view';
-  }
-  function sessRow(s,gi,withPts){ var w=worst(s), exp=(open===gi);
-    var h='<div class="sess"><div class="shead" onclick="'+(withPts?'tg('+gi+')':'enterAgg('+gi+')')+'"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+(withPts?(s.date||''):(s.agg||'Агрегат'))+'</div><div class="ssub">'+(withPts?'':(s.date||'')+' · ')+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0)+'</div></div><i class="ti ti-chevron-'+(withPts?(exp?'up':'down'):'right')+'" style="color:var(--hint)"></i></div>';
-    if(withPts&&exp){ h+='<div class="pts">'; (s.points||[]).forEach(function(p,pi){ h+='<div class="pt" onclick="openPoint('+gi+','+pi+')"><span class="zdot" style="background:'+ZC[p.zone]+'"></span><span class="ptn">Точка '+p.dir+' · Опора №'+(p.sup||'')+'</span><span class="pta">'+(p.rms!=null?p.rms.toFixed(1)+' мм/с':'')+'</span><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div>'; });
-      if(!(s.points||[]).length) h+='<div style="color:var(--hint);font-size:12.5px;padding:8px">Нет точек.</div>'; h+='</div>'; }
-    return h+'</div>';
+  function openReport(gi){ location.href='report.html?sid='+gi; }
+  function sessRow(s,gi,agg){ var w=worst(s);
+    var name=agg?(s.date||''):(s.agg||'Агрегат');
+    var sub=(agg?'':(s.date||'')+' · ')+(s.operator||'—')+' · снято '+(s.count||0)+'/'+(s.total||0);
+    return '<div class="sess"><div class="shead" onclick="'+(agg?'openReport('+gi+')':'enterAgg('+gi+')')+'"><span class="zdot" style="background:'+ZC[w]+'"></span><div style="flex:1"><div class="sname">'+name+'</div><div class="ssub">'+sub+'</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i></div></div>';
   }
   function render(){ var ss=getSess(), el=document.getElementById('list'), sw=document.getElementById('searchWrap');
     document.getElementById('back').setAttribute('href', mode==='agg'?'javascript:void(0)':'measure.html');

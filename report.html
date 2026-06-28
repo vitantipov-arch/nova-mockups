@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — сводка замеров</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:14px 12px;flex:1;}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;}
+  .tabs button{flex:0 0 auto;height:32px;padding:0 13px;border:0.5px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted);font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap;}
+  .tabs button.on{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+  table{width:100%;border-collapse:separate;border-spacing:5px;}
+  th{font-size:11px;color:var(--hint);font-weight:500;padding:4px;}
+  th.dir{text-align:left;width:34px;}
+  td.dir{font-size:13px;font-weight:600;color:var(--muted);}
+  td.cell{background:var(--secondary);border-radius:9px;height:48px;text-align:center;cursor:pointer;font-size:12.5px;border:1px solid transparent;}
+  td.cell.empty{background:transparent;color:var(--hint);cursor:default;}
+  td.cell .v{font-weight:600;font-size:13px;}
+  td.cell .u{font-size:9.5px;color:var(--hint);display:block;margin-top:1px;}
+  .unitline{font-size:11px;color:var(--hint);margin-bottom:8px;}
+  .leg{display:flex;gap:12px;justify-content:center;padding:12px 0 2px;font-size:11px;color:var(--hint);}
+  .leg span{display:inline-flex;align-items:center;gap:5px;}
+  .ld{width:9px;height:9px;border-radius:50%;}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 16px;border:0.5px dashed var(--border2);border-radius:12px;color:var(--hint);font-size:13px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a href="journal.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl" id="ttl">Сводка замеров</div><div class="sttl" id="sub"></div></div>
+  </div>
+  <div class="body" id="body"></div>
+</div>
+<script>
+  var ZC={g:'var(--success)',y:'var(--warning)',r:'var(--danger)'}, ZBG={g:'rgba(151,196,89,0.16)',y:'rgba(239,159,39,0.16)',r:'rgba(226,75,74,0.18)'};
+  function zoneVel(v){ return v<2.8?'g':v<7.1?'y':'r'; }
+  function qid(){ var m=location.search.match(/sid=(\d+)/); return m?parseInt(m[1]):-1; }
+  var ss=[]; try{ ss=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
+  var S=ss[qid()]||null, points=(S&&S.points)||[];
+  var TABDEF=[{s:'a',q:'vel',l:'Вибро · скорость'},{s:'a',q:'disp',l:'Вибро · перемещ.'},{s:'a',q:'acc',l:'Вибро · ускор.'},
+              {s:'g',q:'vel',l:'Гиро · скорость'},{s:'g',q:'disp',l:'Гиро · перемещ.'},{s:'g',q:'acc',l:'Гиро · ускор.'},{s:'a',q:'ph',l:'Ампл/фаза'}];
+  function hasTab(t){ var f=false; points.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s) return; if(t.q==='ph') f=true; else if(c.vals&&c.vals[t.q]) f=true; }); }); return f; }
+  var TABS=TABDEF.filter(hasTab), at=0;
+  var sups=[]; points.forEach(function(p){ if(sups.indexOf(p.sup)<0) sups.push(p.sup); }); sups.sort(function(a,b){return a-b;});
+  var allDirs={}; points.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ allDirs[c.dir]=1; }); });
+  var ORD=(allDirs.R1||allDirs.R2)?['R1','R2','О']:['В','П','О'];
+  var dirs=ORD.filter(function(d){return allDirs[d];}); if(!dirs.length) dirs=['В'];
+
+  function cellOf(t,dir,sup){ var best=null;
+    points.forEach(function(p,pi){ if(p.sup!==sup) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==t.s||c.dir!==dir) return; if(t.q!=='ph'&&!(c.vals&&c.vals[t.q])) return;
+      var cand={pi:pi,c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); });
+    return best;
+  }
+  function openCell(pi,q){ var p=points[pi]; if(!p) return;
+    var qy=(q==='ph')?'vel':q, chans=((p.data&&p.data.channels)||[]).map(function(c){ var vq=(c.vals&&c.vals[qy])?qy:(c.vals?Object.keys(c.vals)[0]:null), v=vq&&c.vals[vq]; if(!v) return null;
+      return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean);
+    var payload={ title:'Точка '+p.dir+' · Опора №'+(p.sup||''), sub:(S.agg||'')+' · '+(S.date||''), qty:qy, channels:chans, back:'report.html?sid='+qid() };
+    try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
+    location.href='spectrum.html?mode=view';
+  }
+
+  function render(){
+    document.getElementById('ttl').textContent='Сводка · '+((S&&S.agg)||'');
+    document.getElementById('sub').textContent=S?((S.date||'')+' · '+(S.operator||'')):'';
+    var body=document.getElementById('body');
+    if(!S||!points.length){ body.innerHTML='<div class="empty"><i class="ti ti-table-off" style="font-size:32px"></i>Нет данных сессии.</div>'; return; }
+    if(!TABS.length){ body.innerHTML='<div class="empty">Нет распознанных методов.</div>'; return; }
+    var t=TABS[at];
+    var h='<div class="tabs">'+TABS.map(function(tb,i){ return '<button class="'+(i===at?'on':'')+'" onclick="setTab('+i+')">'+tb.l+'</button>'; }).join('')+'</div>';
+    // единица
+    var unit='', sample=null; for(var di=0;di<dirs.length&&!sample;di++) for(var si=0;si<sups.length&&!sample;si++){ var cc=cellOf(t,dirs[di],sups[si]); if(cc) sample=cc; }
+    if(sample) unit = t.q==='ph' ? 'амплитуда (1×), '+(sample.c.vals.vel?sample.c.vals.vel.unit:'мм/с')+' ∠ °' : sample.c.vals[t.q].unit;
+    h+='<div class="unitline">Значение: '+(t.q==='ph'?'амплитуда/фаза 1×':'СКЗ, '+unit)+'</div>';
+    h+='<table><tr><th class="dir"></th>'+sups.map(function(s){return '<th>Оп.№'+s+'</th>';}).join('')+'</tr>';
+    dirs.forEach(function(dir){ h+='<tr><td class="dir">'+dir+'</td>';
+      sups.forEach(function(sup){ var cc=cellOf(t,dir,sup);
+        if(!cc){ h+='<td class="cell empty">—</td>'; return; }
+        if(t.q==='ph'){ h+='<td class="cell" onclick="openCell('+cc.pi+',\'ph\')"><span class="v">'+cc.c.amp1.toFixed(2)+'</span><span class="u">∠ '+cc.c.phase.toFixed(0)+'°</span></td>'; }
+        else { var v=cc.c.vals[t.q], z=(t.s==='a'&&t.q==='vel')?zoneVel(v.rms):null, bg=z?ZBG[z]:'var(--secondary)', bd=z?ZC[z]:'transparent';
+          h+='<td class="cell" style="background:'+bg+';border-color:'+bd+'" onclick="openCell('+cc.pi+',\''+t.q+'\')"><span class="v">'+v.rms.toFixed(2)+'</span><span class="u">'+v.unit+'</span></td>'; }
+      });
+      h+='</tr>';
+    });
+    h+='</table>';
+    if(t.s==='a'&&t.q==='vel') h+='<div class="leg"><span><span class="ld" style="background:var(--success)"></span>≤2.8</span><span><span class="ld" style="background:var(--warning)"></span>2.8–7.1</span><span><span class="ld" style="background:var(--danger)"></span>&gt;7.1</span></div>';
+    h+='<div style="font-size:11px;color:var(--hint);text-align:center;margin-top:10px">Тап по ячейке — спектр/сигнал точки</div>';
+    body.innerHTML=h;
+  }
+  function setTab(i){ at=i; render(); }
+  render();
+</script>
+</body>
+</html>
