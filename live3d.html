@@ -28,13 +28,13 @@
 <body>
 <div class="top">
   <a href="journal.html"><i class="ti ti-chevron-left"></i></a>
-  <div style="flex:1"><div class="ttl" id="ttl">3D визуализация</div><div class="sttl" id="sttl">по измеренным данным · перетаскивай — вращение</div></div>
+  <div style="flex:1"><div class="ttl" id="ttl">3D визуализация</div><div class="sttl" id="sttl">движение корпусов по замеру · перетаскивай — вращение</div></div>
 </div>
 <div class="msg" id="msg"></div>
 <div class="panel" id="panel" style="display:none">
   <div class="leg" id="leg"></div>
   <div class="sliders">
-    <div class="sl"><label>Усиление амплитуд: <span id="vGain">40×</span></label><input id="gain" type="range" min="5" max="120" value="40"></div>
+    <div class="sl"><label>Усиление: <span id="vGain">6×</span></label><input id="gain" type="range" min="1" max="20" value="6"></div>
     <div class="sl"><label>Скорость: <span id="vSlow">медл.</span></label><input id="slow" type="range" min="6" max="100" value="26"></div>
   </div>
 </div>
@@ -43,33 +43,29 @@
 (function(){
   function fail(t){ var m=document.getElementById('msg'); m.style.display='flex'; m.innerHTML='<i class="ti ti-cube-off"></i>'+t; }
   if(!window.THREE){ fail('Не удалось загрузить 3D-движок (нужен интернет).'); return; }
-  // ---- данные ----
   var sid=(location.search.match(/sid=(\d+)/)||[])[1];
   var sessions=[]; try{ sessions=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
-  var S=sessions[sid!=null?+sid:-1];
-  if(!S){ fail('Сессия не найдена.'); return; }
+  var S=sessions[sid!=null?+sid:-1]; if(!S){ fail('Сессия не найдена.'); return; }
   var pts=S.points||[];
-  var hasA=false,hasG=false; pts.forEach(function(p){ ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s==='a')hasA=true; if(c.s==='g')hasG=true; }); });
-  if(!(hasA&&hasG)){ fail('Нужны и акселерометр, и гироскоп в точках измерения. В этой сессии есть не оба.'); return; }
+  function ptHasAG(p){ var a=false,g=false; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s==='a')a=true; if(c.s==='g')g=true; }); return a&&g; }
+  if(!pts.some(ptHasAG)){ fail('Нужны точки с акселерометром И гироскопом. В этой сессии таких нет.'); return; }
   var AGG=null; try{ var list=JSON.parse(localStorage.getItem('nova_list'))||[]; if(S.aggId!=null&&list[S.aggId]) AGG=JSON.parse(list[S.aggId].agg); }catch(e){}
-  if(!AGG||!AGG.units||!AGG.units.length){ fail('Нет структуры агрегата для этой сессии.'); return; }
+  if(!AGG||!AGG.units||!AGG.units.length){ fail('Нет структуры агрегата.'); return; }
   var units=AGG.units, trans=AGG.trans||[], orient=AGG.orient==='v'?'v':'h';
   document.getElementById('ttl').textContent='3D · '+(S.agg||AGG.name||'');
   document.getElementById('sttl').textContent=(S.date||'')+' · '+(S.operator||'');
 
-  // ---- порт раскладки структуры (из session/create) ----
+  // раскладка структуры (порт из session)
   var RH=92,GAPC=30,SW=50,CW=44,LINKS={rigid:{off:false},elastic:{off:false},belt:{off:true},gear:{off:true}};
   function locLayout(u){ var Lf=u.machines.filter(function(m){return (m.pos||'center')==='left';}),C=u.machines.filter(function(m){return (m.pos||'center')==='center';}),Rf=u.machines.filter(function(m){return (m.pos||'center')==='right';});
     var x=6,b1,b2; Lf.forEach(function(){x+=CW+4;}); b1=x+4; x+=(C.length?12:34); C.forEach(function(){x+=SW+4;}); b2=x+4; x+=12; Rf.forEach(function(){x+=CW+4;}); return {W:x+2,supStart:b1,supEnd:b2}; }
-  function shaftW(u){ return locLayout(u).W; }
-  function layout(){ var P=[]; units.forEach(function(u,i){ var W=shaftW(u),p={W:W};
+  function layout(){ var P=[]; units.forEach(function(u,i){ var W=locLayout(u).W,p={W:W};
     if(i===0){ p.aMin=0;p.aMax=W;p.c=0;p.dir=1;p.outA=W; }
     else { var T=trans[i-1]||{type:'elastic'},pr=P[i-1];
-      if(!LINKS[T.type].off){ p.dir=pr.dir;p.c=pr.c; if(p.dir>0){p.aMin=pr.outA+GAPC;p.aMax=p.aMin+W;}else{p.aMax=pr.outA-GAPC;p.aMin=p.aMax-W;} p.outA=(p.dir>0?p.aMax:p.aMin);p.coup=true;p.ca=(pr.outA+(p.dir>0?p.aMin:p.aMax))/2; }
-      else { var bs=(T.beltDir==='up')?-1:1; p.c=pr.c+bs*RH;p.beltA=pr.outA;p.c1=pr.c;p.c2=p.c;p.dir=(T.nextDir==='left')?-1:1; if(p.dir>0){p.aMin=pr.outA;p.aMax=pr.outA+W;}else{p.aMax=pr.outA;p.aMin=pr.outA-W;} p.outA=(p.dir>0?p.aMax:p.aMin);p.belt=true; } }
+      if(!LINKS[T.type].off){ p.dir=pr.dir;p.c=pr.c; if(p.dir>0){p.aMin=pr.outA+GAPC;p.aMax=p.aMin+W;}else{p.aMax=pr.outA-GAPC;p.aMin=p.aMax-W;} p.outA=(p.dir>0?p.aMax:p.aMin);p.coup=true; }
+      else { var bs=(T.beltDir==='up')?-1:1; p.c=pr.c+bs*RH;p.dir=(T.nextDir==='left')?-1:1; if(p.dir>0){p.aMin=pr.outA;p.aMax=pr.outA+W;}else{p.aMax=pr.outA;p.aMin=pr.outA-W;} p.outA=(p.dir>0?p.aMax:p.aMin);p.belt=true; } }
     P.push(p); }); return P; }
   var P=layout();
-  // центрирование
   var aLo=1e9,aHi=-1e9,cLo=1e9,cHi=-1e9; P.forEach(function(p){aLo=Math.min(aLo,p.aMin);aHi=Math.max(aHi,p.aMax);cLo=Math.min(cLo,p.c);cHi=Math.max(cHi,p.c);});
   var SC=0.016, aMidC=(aLo+aHi)/2, cMidC=(cLo+cHi)/2;
   function PX(a){ return (a-aMidC)*SC; } function PZ(c){ return (c-cMidC)*SC; }
@@ -77,80 +73,80 @@
   var MT={motor:0x4d8dff,pump:0x38e1d6,fan:0xff5db1,comp:0xffb24d,gen:0x9b6cff};
   function unitColor(u){ var m=(u.machines||[])[0]; return (m&&MT[m.type])||0x5a6b86; }
 
-  // ---- замеренное движение опоры (амп/фаза) ----
+  // замеренные амп/фаза по опоре/направлению
   var D1=(orient==='v')?'R1':'В', D2=(orient==='v')?'R2':'П';
-  function accelAt(snum,dir){ var best=null; pts.forEach(function(p){ if(p.sup!==snum) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!=='a'||c.dir!==dir) return; var cand={c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best?{a:best.c.amp1||0, ph:(best.c.phase||0)*Math.PI/180}:{a:0,ph:0}; }
-  function supMotion(snum){ return { y:accelAt(snum,D1), z:accelAt(snum,D2), x:accelAt(snum,'О') }; }
+  function pick(snum,sensor,dir){ var best=null; pts.forEach(function(p){ if(p.sup!==snum) return; ((p.data&&p.data.channels)||[]).forEach(function(c){ if(c.s!==sensor||c.dir!==dir) return; var cand={c:c,prefer:(p.dir===dir)}; if(!best||(cand.prefer&&!best.prefer)) best=cand; }); }); return best?{a:best.c.amp1||0,ph:(best.c.phase||0)*Math.PI/180}:{a:0,ph:0}; }
+  function supHasAG(snum){ return pts.some(function(p){ return p.sup===snum && ptHasAG(p); }); }
 
-  // ---- сцена ----
-  var scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0e16); scene.fog=new THREE.Fog(0x0a0e16,18,40);
+  // сцена
+  var scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0e16); scene.fog=new THREE.Fog(0x0a0e16,18,42);
   var camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,200);
   var renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); document.body.appendChild(renderer.domElement);
   scene.add(new THREE.AmbientLight(0xb9c7dc,0.78));
-  var d1=new THREE.DirectionalLight(0xffffff,0.8); d1.position.set(8,14,9); scene.add(d1);
-  var d2=new THREE.DirectionalLight(0x6a86b8,0.4); d2.position.set(-8,5,-6); scene.add(d2);
+  var l1=new THREE.DirectionalLight(0xffffff,0.8); l1.position.set(8,14,9); scene.add(l1);
+  var l2=new THREE.DirectionalLight(0x6a86b8,0.4); l2.position.set(-8,5,-6); scene.add(l2);
   scene.add(new THREE.GridHelper(30,60,0x223048,0x141d2c));
   var matShaft=new THREE.MeshStandardMaterial({color:0xc2cede,roughness:0.3,metalness:0.85});
   var matFlange=new THREE.MeshStandardMaterial({color:0xf07a2a,roughness:0.5,metalness:0.5});
-  var BY=0.9, BH=1.0, BD=0.8;
+  var BY=0.95, BH=0.9, BD=0.8, STUB=0.26;
 
-  var boxes=[], spheres=[], flanges=[], rotorByUnit={};
-  units.forEach(function(u,i){ var p=P[i], x0=PX(p.aMin), x1=PX(p.aMax), z=PZ(p.c), cx=(x0+x1)/2, len=Math.max(0.5,x1-x0);
-    var box=new THREE.Mesh(new THREE.BoxGeometry(len,BH,BD), new THREE.MeshStandardMaterial({color:unitColor(u),roughness:0.55,metalness:0.4}));
-    box.position.set(cx,BY,z); scene.add(box); boxes.push({m:box,nx:cx,ny:BY,nz:z,unit:i});
-    // опоры + точки на торцевых гранях (сверху)
-    var LL=locLayout(u), ns=(u.supports||[]).length, uSph=[];
-    for(var k=0;k<ns;k++){ var abL=(ns===1?(LL.supStart+LL.supEnd)/2:LL.supStart+(LL.supEnd-LL.supStart)*k/(ns-1)); var sx=PX(p.aMin+abL), sy=BY+BH/2+0.05, sz=z, snum=supNum(i,k);
-      var col=0x9fd0ff; var sph=new THREE.Mesh(new THREE.SphereGeometry(0.075,16,16), new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.55}));
-      sph.position.set(sx,sy,sz); scene.add(sph);
-      var geo=new THREE.BufferGeometry(),pos=new Float32Array(120*3); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-      var trail=new THREE.Line(geo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.8})); trail.frustumCulled=false; scene.add(trail);
-      var rec={m:sph,nx:sx,ny:sy,nz:sz,snum:snum,mot:supMotion(snum),pos:pos,trail:trail}; spheres.push(rec); uSph.push(rec);
+  // строим жёсткую группу на каждый вал (коробку-корпус)
+  var groups=[]; var tmp=new THREE.Vector3();
+  units.forEach(function(u,i){ var p=P[i], x0=PX(p.aMin), x1=PX(p.aMax), z=PZ(p.c), cx=(x0+x1)/2, len=Math.max(0.6,x1-x0);
+    var g=new THREE.Group(); g.position.set(cx,BY,z); scene.add(g);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(len,BH,BD), new THREE.MeshStandardMaterial({color:unitColor(u),roughness:0.55,metalness:0.4})));
+    // валы чуть торчат из торцов, жёстко в группе
+    [[-1,(i>0&&p.coup)],[1,(i<units.length-1&&P[i+1]&&P[i+1].coup)]].forEach(function(e){ var dir=e[0];
+      var st=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,STUB,14),matShaft); st.rotation.z=Math.PI/2; st.position.set(dir*(len/2+STUB/2),0,0); g.add(st);
+      if(e[1]){ var fl=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.09,18),matFlange); fl.rotation.z=Math.PI/2; fl.position.set(dir*(len/2+STUB),0,0); g.add(fl); }
+    });
+    // точки измерения — на верх корпуса, только опоры с accel+гиро
+    var LL=locLayout(u), ns=(u.supports||[]).length, sups=[], spheres=[];
+    for(var k=0;k<ns;k++){ var snum=supNum(i,k); sups.push(snum);
+      if(!supHasAG(snum)) continue;
+      var abL=(ns===1?(LL.supStart+LL.supEnd)/2:LL.supStart+(LL.supEnd-LL.supStart)*k/(ns-1)); var lx=PX(p.aMin+abL)-cx;
+      var sph=new THREE.Mesh(new THREE.SphereGeometry(0.08,16,16), new THREE.MeshStandardMaterial({color:0x9fd0ff,emissive:0x9fd0ff,emissiveIntensity:0.55}));
+      sph.position.set(lx,BH/2+0.07,0); g.add(sph);
+      var geo=new THREE.BufferGeometry(),pos=new Float32Array(90*3); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+      var tr=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0.75})); tr.frustumCulled=false; scene.add(tr);
+      spheres.push({m:sph,pos:pos,trail:tr});
     }
-    rotorByUnit[i]=uSph;
-    // полумуфта у внутреннего торца (если впереди соосная связь)
-    if(i>0 && P[i].coup){ var fx=PX(p.aMin)+(p.dir>0?0.04:-0.04); var fl=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.1,18),matFlange); fl.rotation.z=Math.PI/2; fl.position.set(PX(p.aMin),BY,z); scene.add(fl); flanges.push({m:fl,nx:PX(p.aMin),ny:BY,nz:z,unit:i}); }
-    if(i<units.length-1 && P[i+1] && P[i+1].coup){ var fl2=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.1,18),matFlange); fl2.rotation.z=Math.PI/2; fl2.position.set(PX(p.aMax),BY,z); scene.add(fl2); flanges.push({m:fl2,nx:PX(p.aMax),ny:BY,nz:z,unit:i}); }
+    groups.push({g:g,nx:cx,ny:BY,nz:z,sups:sups,spheres:spheres});
   });
+  if(!groups.some(function(G){return G.spheres.length;})){ fail('Нет опор с accel+гиро в этой сессии.'); return; }
 
-  // легенда
-  document.getElementById('leg').innerHTML='<span><span class="ld" style="background:#9fd0ff"></span>точки опор (двигаются по замеру)</span><span><span class="ld" style="background:#c2cede"></span>вал (гнётся)</span><span><span class="ld" style="background:#f07a2a"></span>полумуфты (зазор)</span>';
+  document.getElementById('leg').innerHTML='<span><span class="ld" style="background:#9fd0ff"></span>точки на корпусе (accel+гиро)</span><span><span class="ld" style="background:#c2cede"></span>вал (жёстко в корпусе)</span><span><span class="ld" style="background:#f07a2a"></span>полумуфты · зазор</span>';
   document.getElementById('panel').style.display='block';
 
-  // ---- рендер-цикл ----
-  var GAIN=40, slow=26, theta=0, BASE=0.05, last=performance.now();
-  function off(rec,th){ var m=rec.mot; return { x:GAIN*BASE*m.x.a*Math.sin(th+m.x.ph), y:GAIN*BASE*m.y.a*Math.sin(th+m.y.ph), z:GAIN*BASE*m.z.a*Math.sin(th+m.z.ph) }; }
-  var rotorMesh={};
-  function rebuildRotor(i,recs){ if(recs.length<2){ return; } var v=recs.map(function(r){return new THREE.Vector3(r.m.position.x,r.m.position.y-0.05,r.m.position.z);});
-    if(rotorMesh[i]){ scene.remove(rotorMesh[i]); rotorMesh[i].geometry.dispose(); }
-    var curve=new THREE.CatmullRomCurve3(v); rotorMesh[i]=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,recs.length*6),0.07,8,false),matShaft); scene.add(rotorMesh[i]); }
+  // движение корпуса по замеру (мало, ограничено)
+  var GAIN=6, slow=26, theta=0, last=performance.now();
+  var BT=0.010, BR=0.006, CT=0.22, CR=0.05;
+  function clamp(v,c){ return v<-c?-c:(v>c?c:v); }
+  function transOf(G,th){ var n=0,y=0,z=0,x=0; G.sups.forEach(function(s){ var B=pick(s,'a',D1),Pp=pick(s,'a',D2),O=pick(s,'a','О'); if(B.a||Pp.a||O.a){ n++; y+=B.a*Math.sin(th+B.ph); z+=Pp.a*Math.sin(th+Pp.ph); x+=O.a*Math.sin(th+O.ph); } });
+    if(!n) return {x:0,y:0,z:0}; var g=GAIN*BT; return {x:clamp(g*x/n,CT),y:clamp(g*y/n,CT),z:clamp(g*z/n,CT)}; }
+  function rotOf(G,th){ var n=0,rx=0,ry=0,rz=0; G.sups.forEach(function(s){ var B=pick(s,'g',D1),Pp=pick(s,'g',D2),O=pick(s,'g','О'); if(B.a||Pp.a||O.a){ n++; ry+=B.a*Math.sin(th+B.ph); rz+=Pp.a*Math.sin(th+Pp.ph); rx+=O.a*Math.sin(th+O.ph); } });
+    if(!n) return {x:0,y:0,z:0}; var g=GAIN*BR; return {x:clamp(g*rx/n,CR),y:clamp(g*ry/n,CR),z:clamp(g*rz/n,CR)}; }
   function frame(now){ requestAnimationFrame(frame); var dt=Math.min((now-last)/1000,0.05); last=now;
-    theta += 2*Math.PI*0.5*dt*(slow/100*4);
-    // опоры
-    spheres.forEach(function(r){ var o=off(r,theta); r.m.position.set(r.nx+o.x,r.ny+o.y,r.nz+o.z);
-      r.pos.copyWithin(0,3); r.pos[357]=r.m.position.x; r.pos[358]=r.m.position.y; r.pos[359]=r.m.position.z; r.trail.geometry.attributes.position.needsUpdate=true; });
-    // блоки — средний сдвиг своих опор
-    boxes.forEach(function(b){ var rs=rotorByUnit[b.unit]||[],ox=0,oy=0,oz=0; rs.forEach(function(r){ var o=off(r,theta); ox+=o.x;oy+=o.y;oz+=o.z; }); var n=rs.length||1; b.m.position.set(b.nx+ox/n,b.ny+oy/n,b.nz+oz/n); });
-    flanges.forEach(function(f){ var b=boxes[f.unit]; f.m.position.set(f.nx+(b.m.position.x-b.nx),f.ny+(b.m.position.y-b.ny),f.nz+(b.m.position.z-b.nz)); });
-    units.forEach(function(u,i){ rebuildRotor(i,rotorByUnit[i]||[]); });
+    theta += 2*Math.PI*dt*(slow/100*2.4);
+    groups.forEach(function(G){ var t=transOf(G,theta), r=rotOf(G,theta); G.g.position.set(G.nx+t.x,G.ny+t.y,G.nz+t.z); G.g.rotation.set(r.x,r.y,r.z); });
+    scene.updateMatrixWorld(true);
+    groups.forEach(function(G){ G.spheres.forEach(function(s){ s.m.getWorldPosition(tmp); s.pos.copyWithin(0,3); s.pos[267]=tmp.x; s.pos[268]=tmp.y; s.pos[269]=tmp.z; s.trail.geometry.attributes.position.needsUpdate=true; }); });
     updateCam(); renderer.render(scene,camera);
   }
-  // первичная инициализация хвостов
-  spheres.forEach(function(r){ for(var i=0;i<120;i++){ r.pos[i*3]=r.nx;r.pos[i*3+1]=r.ny;r.pos[i*3+2]=r.nz; } });
+  groups.forEach(function(G){ G.spheres.forEach(function(s){ G.g.updateMatrixWorld(true); s.m.getWorldPosition(tmp); for(var i=0;i<90;i++){ s.pos[i*3]=tmp.x;s.pos[i*3+1]=tmp.y;s.pos[i*3+2]=tmp.z; } }); });
 
-  var target=new THREE.Vector3(0,BY,0), cth=0.9, cph=1.05, crad=Math.max(7, (aHi-aLo)*SC*1.4);
+  var target=new THREE.Vector3(0,BY,0), cth=0.9, cph=1.0, crad=Math.max(6,(aHi-aLo)*SC*1.5);
   function updateCam(){ camera.position.set(target.x+crad*Math.sin(cph)*Math.cos(cth), target.y+crad*Math.cos(cph), target.z+crad*Math.sin(cph)*Math.sin(cth)); camera.lookAt(target); }
   var el=renderer.domElement, drag=false, lx=0, ly=0, pinch=0, tmode=0;
   el.addEventListener('mousedown',function(e){drag=true;lx=e.clientX;ly=e.clientY;});
   window.addEventListener('mouseup',function(){drag=false;});
   window.addEventListener('mousemove',function(e){ if(!drag)return; cth-=(e.clientX-lx)*0.008; cph=Math.max(0.2,Math.min(Math.PI-0.2,cph-(e.clientY-ly)*0.008)); lx=e.clientX; ly=e.clientY; });
-  el.addEventListener('wheel',function(e){e.preventDefault(); crad=Math.max(4,Math.min(28,crad+e.deltaY*0.012));},{passive:false});
+  el.addEventListener('wheel',function(e){e.preventDefault(); crad=Math.max(3.5,Math.min(30,crad+e.deltaY*0.012));},{passive:false});
   el.addEventListener('touchstart',function(e){ if(e.touches.length===1){tmode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;} else if(e.touches.length===2){tmode=2;pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);} },{passive:false});
   el.addEventListener('touchmove',function(e){ e.preventDefault();
     if(tmode===1&&e.touches.length===1){ cth-=(e.touches[0].clientX-lx)*0.008; cph=Math.max(0.2,Math.min(Math.PI-0.2,cph-(e.touches[0].clientY-ly)*0.008)); lx=e.touches[0].clientX; ly=e.touches[0].clientY; }
-    else if(tmode===2&&e.touches.length===2){ var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(pinch) crad=Math.max(4,Math.min(28,crad-(d-pinch)*0.02)); pinch=d; } },{passive:false});
+    else if(tmode===2&&e.touches.length===2){ var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); if(pinch) crad=Math.max(3.5,Math.min(30,crad-(d-pinch)*0.02)); pinch=d; } },{passive:false});
   el.addEventListener('touchend',function(e){ if(!e.touches.length)tmode=0; else if(e.touches.length===1){tmode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;} });
-
   var $=function(id){return document.getElementById(id);};
   $('gain').oninput=function(e){GAIN=+e.target.value;$('vGain').textContent=GAIN+'×';};
   $('slow').oninput=function(e){slow=+e.target.value;$('vSlow').textContent=slow<15?'оч. медл.':slow<50?'медл.':'быстро';};
