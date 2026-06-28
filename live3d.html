@@ -96,9 +96,13 @@
     var g=new THREE.Group(); g.position.set(cx,BY,z); scene.add(g);
     g.add(new THREE.Mesh(new THREE.BoxGeometry(len,BH,BD), new THREE.MeshStandardMaterial({color:unitColor(u),roughness:0.55,metalness:0.4})));
     // валы чуть торчат из торцов, жёстко в группе
-    [[-1,(i>0&&p.coup)],[1,(i<units.length-1&&P[i+1]&&P[i+1].coup)]].forEach(function(e){ var dir=e[0];
-      var st=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,STUB,14),matShaft); st.rotation.z=Math.PI/2; st.position.set(dir*(len/2+STUB/2),0,0); g.add(st);
-      if(e[1]){ var fl=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.09,18),matFlange); fl.rotation.z=Math.PI/2; fl.position.set(dir*(len/2+STUB),0,0); g.add(fl); }
+    [-1,1].forEach(function(dir){
+      var coupled, gap=0;
+      if(dir>0){ coupled=(i<units.length-1&&P[i+1]&&P[i+1].coup); if(coupled) gap=PX(P[i+1].aMin)-PX(p.aMax); }
+      else { coupled=(i>0&&p.coup); if(coupled) gap=PX(p.aMin)-PX(P[i-1].aMax); }
+      var ext=coupled?Math.max(0.08,Math.min(0.5,gap*0.30)):0.16;  // муфта: фланец на 30% в зазор → центр.просвет ~40%
+      var st=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,ext,14),matShaft); st.rotation.z=Math.PI/2; st.position.set(dir*(len/2+ext/2),0,0); g.add(st);
+      if(coupled){ var fl=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.06,18),matFlange); fl.rotation.z=Math.PI/2; fl.position.set(dir*(len/2+ext),0,0); g.add(fl); }
     });
     // точки измерения — на верх корпуса, только опоры с accel+гиро
     var LL=locLayout(u), ns=(u.supports||[]).length, sups=[], spheres=[];
@@ -120,7 +124,7 @@
 
   // движение корпуса по замеру (мало, ограничено)
   var GAIN=6, slow=26, theta=0, last=performance.now();
-  var BT=0.010, BR=0.006, CT=0.22, CR=0.05;
+  var BT=0.012, BR=0.05, CT=0.22, CR=0.18;
   function clamp(v,c){ return v<-c?-c:(v>c?c:v); }
   function transOf(G,th){ var n=0,y=0,z=0,x=0; G.sups.forEach(function(s){ var B=pick(s,'a',D1),Pp=pick(s,'a',D2),O=pick(s,'a','О'); if(B.a||Pp.a||O.a){ n++; y+=B.a*Math.sin(th+B.ph); z+=Pp.a*Math.sin(th+Pp.ph); x+=O.a*Math.sin(th+O.ph); } });
     if(!n) return {x:0,y:0,z:0}; var g=GAIN*BT; return {x:clamp(g*x/n,CT),y:clamp(g*y/n,CT),z:clamp(g*z/n,CT)}; }
