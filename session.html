@@ -20,23 +20,38 @@
   .sttl{font-size:12px;color:var(--hint);}
   .stbar{display:flex;flex-wrap:wrap;gap:7px;padding:11px 16px;border-bottom:0.5px solid var(--border);}
   .schip{font-size:11.5px;color:var(--muted);background:var(--secondary);border-radius:7px;padding:5px 9px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
-  .body{flex:1;padding:8px 10px;}
-  .canvas{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;overflow:auto;padding:8px;}
-  .canvas svg{display:block;}
-  .leg{display:flex;gap:12px;justify-content:center;padding:9px 0 2px;font-size:11px;color:var(--hint);}
+  .body{flex:1;padding:8px 12px;}
+  .canvas{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;overflow:auto;padding:10px 8px 4px;}
+  .canvas svg{display:block;margin:0 auto;}
+  .leg{display:flex;gap:12px;justify-content:center;padding:8px 0 2px;font-size:11px;color:var(--hint);}
   .leg span{display:inline-flex;align-items:center;gap:5px;}
   .ld{width:9px;height:9px;border-radius:50%;}
-  .panel{margin:6px 12px 0;background:var(--primary);border:1px solid var(--info-bd);border-radius:12px;padding:13px;}
+  .twrap{margin-top:10px;overflow-x:auto;}
+  .tgrid{display:grid;gap:6px;min-width:100%;}
+  .thead{font-size:11.5px;color:var(--hint);text-align:center;padding:2px 0;align-self:end;}
+  .thead.hl{color:var(--info);}
+  .trow{font-size:12.5px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+  .cell{height:46px;background:var(--secondary);border:1px solid transparent;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-width:56px;}
+  .cell:active{transform:scale(0.97);}
+  .cell.act{border-color:var(--info-bd);background:var(--info-bg);}
+  .cell.dis{opacity:0.35;cursor:default;}
+  .cell .v{font-size:14.5px;font-weight:600;line-height:1.1;}
+  .cell .ti{font-size:18px;color:var(--hint);}
+  .cell.act .ti{color:var(--info);}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .cell .spin{animation:sp .8s linear infinite;color:var(--info);}
+  .panel{margin:10px 12px 0;background:var(--primary);border:1px solid var(--info-bd);border-radius:12px;padding:13px;}
   .panel.hidden{display:none;}
-  .ptitle{display:flex;align-items:center;gap:8px;}
-  .pname{font-size:15px;font-weight:500;flex:1;}
-  .pmap{font-size:11px;color:var(--hint);margin-top:3px;}
-  .presult{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13px;}
-  .zdot{width:12px;height:12px;border-radius:50%;}
-  .pbtns{display:flex;gap:9px;margin-top:12px;}
+  .pname{font-size:15px;font-weight:500;}
+  .pprog{font-size:12px;color:var(--hint);margin-top:4px;line-height:1.5;}
+  .pprog .chg{color:var(--info);cursor:pointer;}
+  .presult{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:13px;}
+  .zdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+  .pbtns{display:flex;gap:9px;margin-top:11px;}
   .pb{flex:1;height:44px;border-radius:10px;border:none;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
   .pb.go{background:#2f7d4f;color:#fff;}
   .pb.alt{background:transparent;border:0.5px solid var(--border2);color:var(--info);}
+  .pb.mut{background:transparent;border:0.5px solid var(--border2);color:var(--muted);flex:0 0 auto;padding:0 16px;}
   .foot{padding:13px 16px;border-top:0.5px solid var(--border);}
   .fin{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
 </style>
@@ -45,13 +60,14 @@
 <div class="screen">
   <div class="hd">
     <a href="javascript:void(0)" onclick="tryLeave()"><i class="ti ti-chevron-left"></i></a>
-    <div style="flex:1;"><div class="ttl" id="aggName">Сессия</div><div class="sttl">Обход по программе · карта точек</div></div>
+    <div style="flex:1;"><div class="ttl" id="aggName">Сессия</div><div class="sttl">Обход по программе · схема и таблица</div></div>
     <i class="ti ti-bolt" style="color:var(--info);"></i>
   </div>
   <div class="stbar" id="stbar"></div>
   <div class="body">
     <div class="canvas" id="canvas"></div>
     <div class="leg"><span><span class="ld" style="background:var(--secondary);border:1px solid var(--border2)"></span>не снято</span><span><span class="ld" style="background:var(--success)"></span>норма</span><span><span class="ld" style="background:var(--warning)"></span>повышено</span><span><span class="ld" style="background:var(--danger)"></span>недопустимо</span></div>
+    <div class="twrap"><div class="tgrid" id="tgrid"></div></div>
   </div>
   <div class="panel hidden" id="panel"></div>
   <div class="foot"><button class="fin" onclick="finish()">Завершить сессию</button></div>
@@ -67,16 +83,15 @@
   </div>
 </div>
 
+<script src="scheme.js"></script>
 <script>
-  function tryLeave(){ if(typeof sess==='undefined'||!Object.keys(sess).length){ location.href='measure.html'; return; } document.getElementById('leave').style.display='flex'; }
+  function tryLeave(){ if(!Object.keys(sess).length){ location.href='measure.html'; return; } document.getElementById('leave').style.display='flex'; }
   function leaveNoSave(){ location.href='measure.html'; }
   function closeLeave(){ document.getElementById('leave').style.display='none'; }
 </script>
 <script>
-  var MT={ motor:{name:'Двигатель',color:'#4d8dff'}, pump:{name:'Насос',color:'#38e1d6'}, fan:{name:'Вентилятор',color:'#ff5db1'}, comp:{name:'Компрессор',color:'#ffb24d'}, gen:{name:'Генератор',color:'#9b6cff'} };
-  var LINKS={ rigid:{off:false}, elastic:{off:false}, belt:{off:true}, gear:{off:true} };
-  var RH=92, GAPC=30, SW=50, CW=44;
   var ZC={g:'#97c459',y:'#ef9f27',r:'#e24b4a'}, ZN={g:'норма',y:'повышено',r:'недопустимо'};
+  var MIDN={vel:'Скорость',acc:'Ускорение',disp:'Перемещение'};
 
   function qid(){ var m=location.search.match(/id=(\d+)/); return m?parseInt(m[1]):-1; }
   var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
@@ -86,10 +101,12 @@
   var units=(AGG&&AGG.units)||[], trans=(AGG&&AGG.trans)||[], orient=(AGG&&AGG.orient==='v')?'v':'h';
   document.getElementById('aggName').textContent=(it&&it.name)||'Сессия';
   var operator=localStorage.getItem('nova_operator')||'';
-  var sess={}; // ключ pi_dir -> {zone,rms,data}
-  var active=-1;
+  var sess={};        // ключ pi_dir -> {zone,rms,data,q}
+  var active=-1, measuring=-1;
   var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
-  var FR=(parseFloat((units[0]&&units[0].rpm))||2940)/60;
+  function srcIdx(){ for(var i=0;i<units.length;i++) if((units[i].machines||[]).some(function(m){return m.type==='motor';})) return i; return 0; }
+  var driveRpm=(units[srcIdx()]&&parseFloat(units[srcIdx()].rpm))||2940;
+  var FR=driveRpm/60;
   function axisMap(dir){ var rads=orient==='v'?['R1','R2']:['В','П'], ax='О'; if(dir===ax) return {Z:ax,X:rads[0],Y:rads[1]}; var other=rads[0]===dir?rads[1]:rads[0]; return {Z:dir,X:ax,Y:other}; }
   function sc(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
   function cmps(q,s,kind){ var k=sc(q,s);
@@ -107,133 +124,111 @@
   function viewerChannels(channels,q){ return channels.map(function(c){ var vq=c.vals[q]?q:Object.keys(c.vals)[0], v=c.vals[vq]; if(!v) return null;
     return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean); }
 
-  function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(units[x].supports||[]).length; return n+k+1; }
-
-  // ---- движок схемы (порт из create.html) ----
-  function locLayout(u){
-    var L=u.machines.filter(function(m){return (m.pos||'center')==='left';});
-    var C=u.machines.filter(function(m){return (m.pos||'center')==='center';});
-    var R=u.machines.filter(function(m){return (m.pos||'center')==='right';});
-    var x=6, mids=[], b1,b2;
-    L.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
-    b1=x+4; x+=(C.length?12:34);
-    C.forEach(function(m){ mids.push({m:m,a:x+SW/2,w:SW,oh:0}); x+=SW+4; });
-    b2=x+4; x+=12;
-    R.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
-    return {W:x+2, mids:mids, supStart:b1, supEnd:b2};
-  }
-  function shaftW(u){ return locLayout(u).W; }
-  function layout(){ var P=[];
-    units.forEach(function(u,i){ var W=shaftW(u), p={W:W};
-      if(i===0){ p.aMin=0; p.aMax=W; p.c=0; p.dir=1; p.outA=W; }
-      else { var T=trans[i-1]||{type:'elastic'}, pr=P[i-1];
-        if(!LINKS[T.type].off){ p.dir=pr.dir; p.c=pr.c; if(p.dir>0){p.aMin=pr.outA+GAPC; p.aMax=p.aMin+W;} else {p.aMax=pr.outA-GAPC; p.aMin=p.aMax-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.coup=true; p.ca=(pr.outA+(p.dir>0?p.aMin:p.aMax))/2; }
-        else { var bs=(T.beltDir==='up')?-1:1; p.c=pr.c+bs*RH; p.beltA=pr.outA; p.c1=pr.c; p.c2=p.c; p.dir=(T.nextDir==='left')?-1:1; if(p.dir>0){p.aMin=pr.outA; p.aMax=pr.outA+W;} else {p.aMax=pr.outA; p.aMin=pr.outA-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.belt=true; }
-      }
-      P.push(p);
-    });
-    return P;
-  }
-  function PT(a,c){ return orient==='h'?[a,c]:[c,a]; }
-  function ln(a0,c0,a1,c1,st,w){ var p=PT(a0,c0),q=PT(a1,c1); return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="'+st+'" stroke-width="'+w+'" stroke-linecap="round"/>'; }
-  function rc(a0,a1,c0,c1,at){ var p=PT(a0,c0),q=PT(a1,c1); var x=Math.min(p[0],q[0]),y=Math.min(p[1],q[1]); return '<rect x="'+x+'" y="'+y+'" width="'+Math.abs(q[0]-p[0])+'" height="'+Math.abs(q[1]-p[1])+'" '+at+'/>'; }
-  function tx(a,c,s,fill,sz){ var p=PT(a,c); return '<text x="'+p[0]+'" y="'+p[1]+'" font-size="'+(sz||10.5)+'" fill="'+fill+'" text-anchor="middle" dominant-baseline="middle">'+s+'</text>'; }
-  function cir(a,c,r,at){ var p=PT(a,c); return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+r+'" '+at+'/>'; }
-  function drawUnit(u,p,i){ var LL=locLayout(u), a0=p.aMin, c=p.c, a1=p.aMax, s='';
-    s+=ln(a0,c,a1,c,'#9a988f',2.4);
-    LL.mids.forEach(function(it2){ var am=a0+it2.a,col=MT[it2.m.type].color,h=it2.oh?22:30;
-      s+=rc(am-it2.w/2,am+it2.w/2,c-h/2,c+h/2,'rx="4" fill="'+col+'" fill-opacity="0.2" stroke="'+col+'" stroke-width="1.5"');
-      if(orient==='h') s+=tx(am, c+h/2+12, MT[it2.m.type].name, '#86857e', 9.5);
-      else s+='<text x="'+(c+h/2+8)+'" y="'+am+'" font-size="9.5" fill="#86857e" text-anchor="start" dominant-baseline="middle">'+MT[it2.m.type].name+'</text>';
-    });
-    var ns=u.supports.length, s0=LL.supStart, s1=LL.supEnd;
-    for(var k=0;k<ns;k++){ var ab=a0+(ns===1?(s0+s1)/2:s0+(s1-s0)*k/(ns-1));
-      s+=ln(ab,c-12,ab,c-3,'#cfcdc4',2.4)+ln(ab,c+3,ab,c+12,'#cfcdc4',2.4);
-    }
-    return s;
-  }
-  function drawConn(p,i){ var T=trans[i-1]||{type:'elastic'}, c=p.c, g='#86857e';
-    if(p.coup){ var ca=p.ca,s=ln(ca-13,c,ca+13,c,g,2.4)+rc(ca-3,ca-0.8,c-7,c+7,'fill="'+g+'"')+rc(ca+1,ca+3.2,c-7,c+7,'fill="'+g+'"'); return s; }
-    if(p.belt){ var ba=p.beltA,c1=p.c1,c2=p.c2,s=cir(ba,c1,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"')+cir(ba,c2,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"')+ln(ba,c1,ba,c2,g,2.2); return s; }
-    return '';
-  }
-
-  // ---- узлы-точки ----
-  var LP=[], sup2ik={}, nodes=[];
-  units.forEach(function(u,i){ (u.supports||[]).forEach(function(sp,k){ sup2ik[supNum(i,k)]=[i,k]; }); });
-  (prog.points||[]).forEach(function(pt,pi){ var m=(pt.label||'').match(/№(\d+)/); if(!m) return; var ik=sup2ik[+m[1]]; if(!ik) return;
-    (pt.spots||[]).forEach(function(sp){ nodes.push({pi:pi,dir:sp.dir,i:ik[0],k:ik[1],spot:sp,label:pt.label}); });
+  // ---- точки программы: узел = опора × направление ----
+  var sup2ik={}, nodes=[];
+  units.forEach(function(u,i){ (u.supports||[]).forEach(function(sp,k){ sup2ik[NovaScheme.supNum(units,i,k)]=[i,k]; }); });
+  (prog.points||[]).forEach(function(pt,pi){ var m=(pt.label||'').match(/№(\d+)/); if(!m) return; var num=+m[1]; if(!sup2ik[num]) return;
+    (pt.spots||[]).forEach(function(sp){ nodes.push({pi:pi,dir:sp.dir,sup:num,spot:sp,label:pt.label}); });
   });
-  function supScreen(i,k){ var p=LP[i], u=units[i], LL=locLayout(u), ns=u.supports.length;
-    var ab=p.aMin+(ns===1?(LL.supStart+LL.supEnd)/2:LL.supStart+(LL.supEnd-LL.supStart)*k/(ns-1)); var pt=PT(ab,p.c); return {x:pt[0],y:pt[1]}; }
-  function nodePos(n){ var sp=supScreen(n.i,n.k), rad,axi;
-    if(orient==='h'){ rad={x:0,y:-1}; axi={x:1,y:0}; } else { rad={x:-1,y:0}; axi={x:0,y:1}; }
-    var R=26,A=24;
-    if(n.dir==='О') return {x:sp.x+axi.x*A, y:sp.y+axi.y*A};
-    if(n.dir==='В'||n.dir==='R1') return {x:sp.x+rad.x*R, y:sp.y+rad.y*R};
-    return {x:sp.x-rad.x*R, y:sp.y-rad.y*R};
-  }
+  var SUPS=[]; nodes.forEach(function(n){ if(SUPS.indexOf(n.sup)<0) SUPS.push(n.sup); }); SUPS.sort(function(a,b){return a-b;});
+  var DIRORD=orient==='v'?['R1','R2','О']:['В','П','О'];
+  var DIRS=DIRORD.filter(function(d){ return nodes.some(function(n){return n.dir===d;}); });
+  var cellIdx={}; nodes.forEach(function(n,idx){ cellIdx[n.sup+'_'+n.dir]=idx; });
   function nkey(n){ return n.pi+'_'+n.dir; }
   function chanCount(sp){ var c=0; (sp.meas||[]).forEach(function(m){ c+=(m.chans||[]).length; }); return c; }
+  function progLine(sp){ var names=[], nm=(sp.meas||[]).length;
+    (sp.meas||[]).forEach(function(m){ var n=MIDN[m.mid]||'Метод'; if(names.indexOf(n)<0) names.push(n); });
+    if(!names.length) names.push('Скорость');
+    return names.join(' + ')+' · '+chanCount(sp)+' кан · ≈'+(4*Math.max(1,nm))+' с'; }
 
-  function render(){
-    var P=layout(); LP=P;
-    if(!units.length){ document.getElementById('canvas').innerHTML='<div style="padding:30px;text-align:center;color:var(--hint)">Нет структуры агрегата</div>'; renderBar(); return; }
-    var aLo=1e9,aHi=-1e9,cLo=1e9,cHi=-1e9;
-    P.forEach(function(p){ aLo=Math.min(aLo,p.aMin); aHi=Math.max(aHi,p.aMax); cLo=Math.min(cLo,p.c); cHi=Math.max(cHi,p.c); });
-    var minX,minY,W,H, pad=34;
-    if(orient==='h'){ minX=aLo-pad; minY=cLo-46-pad; W=(aHi+pad)-minX; H=(cHi+46+pad)-minY; }
-    else { minX=cLo-50-pad; minY=aLo-pad; W=(cHi+95+pad)-minX; H=(aHi+pad)-minY; }
-    var s='';
-    P.forEach(function(p,i){ if(i>0) s+=drawConn(p,i); s+=drawUnit(units[i],p,i); });
-    nodes.forEach(function(n,idx){ var pos=nodePos(n), st=sess[nkey(n)], isA=(idx===active), ovl=!!(st&&st.q==='overload');
-      var fill=ovl?'#2a2a27':(st?ZC[st.zone]:'#2a2a27'), stroke=isA?'#ffffff':(st?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.32)'), sw=isA?2.4:1, tcol=(st&&!ovl)?'#141413':'#b4b2a9';
-      s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="10" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'" style="cursor:pointer" onclick="tapNode('+idx+')"/>';
-      s+='<text x="'+pos.x+'" y="'+(pos.y+0.5)+'" font-size="8.5" fill="'+tcol+'" text-anchor="middle" dominant-baseline="central" style="pointer-events:none">'+n.dir+'</text>';
-      if(isA&&!st) s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="15" fill="none" stroke="#85b7eb" stroke-width="1" opacity="0.6"/>';
-      if(ovl) s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="15" fill="none" stroke="#ef9f27" stroke-width="1.3" stroke-dasharray="3 2"/><text x="'+pos.x+'" y="'+(pos.y+21)+'" font-size="8" fill="#ef9f27" text-anchor="middle" style="pointer-events:none">⚠ пер.</text>';
-      else if(st) s+='<text x="'+pos.x+'" y="'+(pos.y+21)+'" font-size="8" fill="'+ZC[st.zone]+'" text-anchor="middle" style="pointer-events:none">'+st.rms.toFixed(1)+'</text>';
+  // ---- отрисовка ----
+  function worstOf(sup){ var w=null;
+    nodes.forEach(function(n){ if(n.sup!==sup) return; var st=sess[nkey(n)]; if(!st||st.q==='overload') return;
+      if(st.zone==='r') w='r'; else if(st.zone==='y'&&w!=='r') w='y'; else if(!w) w='g'; });
+    return w; }
+  function renderScheme(){
+    var total=0; units.forEach(function(u){ total+=(u.supports||[]).length; });
+    var states=[]; for(var s=1;s<=total;s++) states.push(worstOf(s));
+    var activeSup=(active>=0&&nodes[active])?nodes[active].sup:-1;
+    NovaScheme.render(document.getElementById('canvas'), {orient:orient,units:units,trans:trans},
+      {fit:true, supStates:states, activeSup:activeSup, onSup:'supTap'});
+  }
+  function supTap(i,k){ var num=NovaScheme.supNum(units,i,k);
+    var idx=-1; DIRS.some(function(d){ var ci=cellIdx[num+'_'+d]; if(ci!=null&&!sess[nkey(nodes[ci])]){ idx=ci; return true; } return false; });
+    if(idx<0) DIRS.some(function(d){ var ci=cellIdx[num+'_'+d]; if(ci!=null){ idx=ci; return true; } return false; });
+    if(idx>=0){ active=idx; renderAll(); } }
+  function renderTable(){ var g=document.getElementById('tgrid');
+    if(!nodes.length){ g.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--hint);font-size:13px">В программе нет точек измерений.</div>'; g.style.gridTemplateColumns='1fr'; return; }
+    g.style.gridTemplateColumns='30px repeat('+SUPS.length+', minmax(56px,1fr))';
+    var activeSup=(active>=0&&nodes[active])?nodes[active].sup:-1;
+    var h='<div></div>';
+    SUPS.forEach(function(s){ h+='<div class="thead'+(s===activeSup?' hl':'')+'">№'+s+'</div>'; });
+    DIRS.forEach(function(d){
+      h+='<div class="trow">'+d+'</div>';
+      SUPS.forEach(function(s){ var ci=cellIdx[s+'_'+d];
+        if(ci==null){ h+='<div class="cell dis">—</div>'; return; }
+        var n=nodes[ci], st=sess[nkey(n)], isA=(ci===active);
+        var inner;
+        if(measuring===ci) inner='<i class="ti ti-loader-2 spin"></i>';
+        else if(st&&st.q==='overload') inner='<i class="ti ti-alert-triangle" style="color:var(--warning)"></i>';
+        else if(st) inner='<span class="v" style="color:'+ZC[st.zone]+'">'+st.rms.toFixed(1)+'</span>';
+        else inner='<i class="ti ti-player-play"></i>';
+        h+='<div class="cell'+(isA?' act':'')+'" onclick="tapCell('+ci+')">'+inner+'</div>';
+      });
     });
-    document.getElementById('canvas').innerHTML='<svg width="'+Math.max(W,300)+'" height="'+H+'" viewBox="'+minX+' '+minY+' '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
-    renderBar(); renderPanel();
+    g.innerHTML=h;
   }
   function renderBar(){ var done=nodes.filter(function(n){return sess[nkey(n)];}).length;
     document.getElementById('stbar').innerHTML=
-      '<span class="schip"><i class="ti ti-gauge"></i> '+((units[0]&&units[0].rpm)||'—')+' об/мин</span>'
+      '<span class="schip"><i class="ti ti-gauge"></i> '+driveRpm+' об/мин (привод)</span>'
       +'<span class="schip" onclick="setOp()"><i class="ti ti-user"></i> '+(operator||'оператор?')+'</span>'
       +'<span class="schip"><i class="ti ti-checklist"></i> снято '+done+'/'+nodes.length+'</span>';
   }
   function renderPanel(){ var p=document.getElementById('panel');
     if(active<0||!nodes[active]){ p.classList.add('hidden'); return; }
-    var n=nodes[active], st=sess[nkey(n)], m=(n.label||'').match(/№(\d+)/);
-    var h='<div class="ptitle"><span class="pname">Точка '+n.dir+' · Опора '+(m?'№'+m[1]:'')+'</span></div>'
-      +'<div class="pmap">'+(n.label||'')+' · '+chanCount(n.spot)+' каналов · '+( (n.spot.meas||[]).length )+' изм. (база)</div>';
-    if(st&&st.q==='overload') h+='<div class="presult"><span class="zdot" style="background:var(--warning)"></span><b>⚠ Перегруз датчика</b> — повторите замер (в тренды не идёт)</div>';
-    else if(st) h+='<div class="presult"><span class="zdot" style="background:'+ZC[st.zone]+'"></span><b>'+st.rms.toFixed(2)+' мм/с</b> · '+ZN[st.zone]+' · СКЗ</div>';
-    h+='<div class="pbtns"><button class="pb go" onclick="doMeasure()"><i class="ti ti-player-play"></i> '+(st?'Повторить':'Измерить')+'</button>'
-      +(st?'<button class="pb alt" onclick="openData()"><i class="ti ti-chart-histogram"></i> Данные</button>':'')
-      +'<button class="pb alt" onclick="location.href=\'spectrum.html?free=1\'"><i class="ti ti-wave-sine"></i> Диагн.</button></div>';
+    var n=nodes[active], st=sess[nkey(n)];
+    var h='<div class="pname">Опора №'+n.sup+' · точка '+n.dir+'</div>'
+      +'<div class="pprog"><i class="ti ti-checklist" style="font-size:13px"></i> По программе: '+progLine(n.spot)+' · <span class="chg" onclick="chgCfg()">изменить</span></div>';
+    if(measuring===active) h+='<div class="presult"><i class="ti ti-loader-2 spin" style="color:var(--info);font-size:16px"></i> идёт замер…</div>';
+    else if(st&&st.q==='overload') h+='<div class="presult"><span class="zdot" style="background:var(--warning)"></span><b>⚠ Перегруз датчика</b>&nbsp;— проверьте крепление и повторите (в тренды не идёт)</div>';
+    else if(st) h+='<div class="presult"><span class="zdot" style="background:'+ZC[st.zone]+'"></span><b>'+st.rms.toFixed(2)+' мм/с</b>&nbsp;· '+ZN[st.zone]+' · СКЗ</div>';
+    if(measuring!==active){
+      if(st) h+='<div class="pbtns"><button class="pb go" onclick="doMeasure()"><i class="ti ti-refresh"></i> Повторить</button><button class="pb alt" onclick="openData()"><i class="ti ti-chart-histogram"></i> Данные</button></div>';
+      else h+='<div class="pbtns"><button class="pb go" onclick="doMeasure()"><i class="ti ti-player-play"></i> Измерить</button><button class="pb mut" onclick="skipCell()">Пропустить</button></div>';
+    }
     p.innerHTML=h; p.classList.remove('hidden');
   }
-  function tapNode(idx){ active=idx; render(); }
-  function doMeasure(){ if(active<0) return; var n=nodes[active], d=genPoint(n.spot);
-    var vch=d.channels.filter(function(c){return c.s==='a'&&c.vals.vel;})[0]||d.channels.filter(function(c){return c.vals.vel;})[0]||d.channels[0];
-    var rms=(vch&&vch.vals.vel)?vch.vals.vel.rms:(2+Math.random()*5), zone=rms<2.8?'g':rms<7.1?'y':'r';
-    var q=(Math.random()<0.16)?'overload':null;  // мок качества захвата (перегруз)
-    sess[nkey(n)]={zone:zone,rms:rms,data:d,q:q};
-    var nxt=nextPending(); if(nxt>=0) active=nxt;
-    render();
+  function renderAll(){ renderScheme(); renderTable(); renderBar(); renderPanel(); }
+
+  function tapCell(idx){ if(measuring>=0) return;
+    active=idx;
+    if(!sess[nkey(nodes[idx])]) doMeasure(); else renderAll(); }
+  function skipCell(){ var nxt=nextPending(); if(nxt>=0) active=nxt; renderAll(); }
+  function chgCfg(){ alert('Разовое отклонение от программы (метод/каналы для этой точки) — появится вместе с настройкой методики. Сейчас замер идёт строго по программе.'); }
+  function doMeasure(){ if(active<0||measuring>=0) return;
+    measuring=active; renderAll();
+    setTimeout(function(){
+      var n=nodes[measuring], d=genPoint(n.spot);
+      var vch=d.channels.filter(function(c){return c.s==='a'&&c.vals.vel;})[0]||d.channels.filter(function(c){return c.vals.vel;})[0]||d.channels[0];
+      var rms=(vch&&vch.vals.vel)?vch.vals.vel.rms:(2+Math.random()*5), zone=rms<2.8?'g':rms<7.1?'y':'r';
+      var q=(Math.random()<0.16)?'overload':null;  // мок качества захвата (перегруз)
+      sess[nkey(n)]={zone:zone,rms:rms,data:d,q:q};
+      measuring=-1;
+      if(!q){ var nxt=nextPending(); if(nxt>=0) active=nxt; }
+      renderAll();
+    }, 700);
   }
-  function openData(){ if(active<0) return; var n=nodes[active], st=sess[nkey(n)]; if(!st||!st.data) return; var m=(n.label||'').match(/№(\d+)/);
-    var payload={ title:'Точка '+n.dir+' · Опора '+(m?'№'+m[1]:''), sub:((it&&it.name)||'')+' · '+((units[0]&&units[0].rpm)||'')+' об/мин', qty:'vel', channels:viewerChannels(st.data.channels,'vel'), back:'session.html?id='+qid() };
+  function openData(){ if(active<0) return; var n=nodes[active], st=sess[nkey(n)]; if(!st||!st.data) return;
+    var payload={ title:'Точка '+n.dir+' · Опора №'+n.sup, sub:((it&&it.name)||'')+' · '+driveRpm+' об/мин', qty:'vel', channels:viewerChannels(st.data.channels,'vel'), back:'session.html?id='+qid() };
     try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
     location.href='spectrum.html?mode=view';
   }
-  function nextPending(){ for(var d=1;d<=nodes.length;d++){ var idx=(active+d)%nodes.length; if(!sess[nkey(nodes[idx])]) return idx; } return active; }
-  function setOp(){ var v=prompt('Оператор:', operator||''); if(v!==null){ operator=v; try{ localStorage.setItem('nova_operator',v); }catch(e){} render(); } }
+  function nextPending(){ if(!nodes.length) return -1;
+    for(var d=1;d<=nodes.length;d++){ var idx=(active+d)%nodes.length; if(!sess[nkey(nodes[idx])]) return idx; } return active; }
+  function setOp(){ var v=prompt('Оператор:', operator||''); if(v!==null){ operator=v; try{ localStorage.setItem('nova_operator',v); }catch(e){} renderBar(); } }
   function finish(){ var meas=nodes.filter(function(n){return sess[nkey(n)];});
     if(!meas.length){ alert('Нет ни одного замера.'); return; }
-    var pts=meas.map(function(n){ var st=sess[nkey(n)], m=(n.label||'').match(/№(\d+)/); return {dir:n.dir, label:n.label, sup:m?+m[1]:0, rms:st.rms, zone:st.zone, q:st.q, data:st.data}; });
+    var pts=meas.map(function(n){ var st=sess[nkey(n)]; return {dir:n.dir, label:n.label, sup:n.sup, rms:st.rms, zone:st.zone, q:st.q, data:st.data}; });
     var arr=[]; try{ arr=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){}
     arr.push({agg:(it&&it.name)||'Агрегат', aggId:qid(), date:new Date().toLocaleString('ru'), operator:operator||'—', count:meas.length, total:nodes.length, points:pts});
     try{ localStorage.setItem('nova_sessions', JSON.stringify(arr)); }catch(e){}
@@ -241,7 +236,8 @@
   }
   // авто-фокус на первую точку
   if(nodes.length) active=0;
-  render();
+  if(!units.length){ document.getElementById('canvas').innerHTML='<div style="padding:26px;text-align:center;color:var(--hint);font-size:13px">Нет структуры агрегата</div>'; renderTable(); renderBar(); renderPanel(); }
+  else renderAll();
 </script>
 </body>
 </html>

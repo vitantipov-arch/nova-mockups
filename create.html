@@ -103,6 +103,7 @@
 <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div>
 
+<script src="scheme.js"></script>
 <script>
   const MT = {
     motor:{name:'Двигатель', color:'#4d8dff', icon:'ti-bolt'},
@@ -134,7 +135,6 @@
   ];
   function brgName(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].n; return ''; }
   function brgType(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].t; return ''; }
-  const RH=92, GAPC=30, SW=50, CW=44;
   let units=[], trans=[], sel=null, curLink=null, addSide='r', orient='h';
 
   function ratio(T){ if(T.type==='belt'){var a=parseFloat(T.d1),b=parseFloat(T.d2); return (a&&b)?a/b:null;} if(T.type==='gear'){var a=parseFloat(T.z1),b=parseFloat(T.z2); return (a&&b)?a/b:null;} return 1; }
@@ -152,33 +152,6 @@
     groups.forEach(function(g,gi){ g.forEach(function(idx){ units[idx].rpm=String(base[gi]); units[idx].man=man[gi]; }); });
   }
 
-  function locLayout(u){
-    var L=u.machines.filter(function(m){return m.pos==='left';});
-    var C=u.machines.filter(function(m){return m.pos==='center';});
-    var R=u.machines.filter(function(m){return m.pos==='right';});
-    var x=6, mids=[], b1, b2;
-    L.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
-    b1=x+4; x+=(C.length?12:34);
-    C.forEach(function(m){ mids.push({m:m,a:x+SW/2,w:SW,oh:0}); x+=SW+4; });
-    b2=x+4; x+=12;
-    R.forEach(function(m){ mids.push({m:m,a:x+CW/2,w:CW,oh:1}); x+=CW+4; });
-    return {W:x+2, mids:mids, supStart:b1, supEnd:b2};
-  }
-  function shaftW(u){ return locLayout(u).W; }
-
-  function layout(){
-    var P=[];
-    units.forEach(function(u,i){ var W=shaftW(u), p={W:W};
-      if(i===0){ p.aMin=0; p.aMax=W; p.c=0; p.dir=1; p.outA=W; }
-      else { var T=trans[i-1], pr=P[i-1];
-        if(!LINKS[T.type].off){ p.dir=pr.dir; p.c=pr.c; if(p.dir>0){p.aMin=pr.outA+GAPC; p.aMax=p.aMin+W;} else {p.aMax=pr.outA-GAPC; p.aMin=p.aMax-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.coup=true; p.ca=(pr.outA+(p.dir>0?p.aMin:p.aMax))/2; }
-        else { var bs=(T.beltDir==='up')?-1:1; p.c=pr.c+bs*RH; p.beltA=pr.outA; p.c1=pr.c; p.c2=p.c; p.dir=(T.nextDir==='left')?-1:1; if(p.dir>0){p.aMin=pr.outA; p.aMax=pr.outA+W;} else {p.aMax=pr.outA; p.aMin=pr.outA-W;} p.outA=(p.dir>0?p.aMax:p.aMin); p.belt=true; }
-      }
-      P.push(p);
-    });
-    return P;
-  }
-
   function render(){
     compute();
     document.getElementById('next').disabled=units.length===0;
@@ -190,56 +163,8 @@
       ? '<button onclick="addUnit(\'l\')">'+lA+'</button><button onclick="addUnit(\'r\')">'+rA+'</button>'
       : '<button onclick="addUnit(\'r\')"><i class="ti ti-plus"></i> Добавить вал</button>';
     var c=document.getElementById('canvas');
-    if(!units.length){ c.innerHTML='<svg width="100%" height="110"></svg>'; renderPanel(); return; }
-    var P=layout();
-    var aLo=1e9,aHi=-1e9,cLo=1e9,cHi=-1e9;
-    P.forEach(function(p){ aLo=Math.min(aLo,p.aMin); aHi=Math.max(aHi,p.aMax); cLo=Math.min(cLo,p.c); cHi=Math.max(cHi,p.c); });
-    var minX,minY,W,H;
-    if(orient==='h'){ minX=aLo-10; minY=cLo-46; W=(aHi+10)-minX; H=(cHi+46)-minY; }
-    else { minX=cLo-50; minY=aLo-10; W=(cHi+95)-minX; H=(aHi+10)-minY; }
-    var conns='',sh='';
-    P.forEach(function(p,i){ if(i>0) conns+=drawConn(p,i); sh+=drawUnit(units[i],p,i); });
-    c.innerHTML='<svg width="'+Math.max(W,300)+'" height="'+H+'" viewBox="'+minX+' '+minY+' '+W+' '+H+'">'+conns+sh+'</svg>';
-  }
-
-  function PT(a,c){ return orient==='h'?[a,c]:[c,a]; }
-  function ln(a0,c0,a1,c1,st,w,ex){ var p=PT(a0,c0),q=PT(a1,c1); return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="'+st+'" stroke-width="'+w+'" stroke-linecap="round" '+(ex||'')+'/>'; }
-  function rc(a0,a1,c0,c1,at){ var p=PT(a0,c0),q=PT(a1,c1); var x=Math.min(p[0],q[0]),y=Math.min(p[1],q[1]); return '<rect x="'+x+'" y="'+y+'" width="'+Math.abs(q[0]-p[0])+'" height="'+Math.abs(q[1]-p[1])+'" '+at+'/>'; }
-  function tx(a,c,s,fill,sz){ var p=PT(a,c); return '<text x="'+p[0]+'" y="'+p[1]+'" font-size="'+(sz||10.5)+'" fill="'+fill+'" text-anchor="middle" dominant-baseline="middle">'+s+'</text>'; }
-  function cir(a,c,r,at){ var p=PT(a,c); return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+r+'" '+at+'/>'; }
-
-  function drawUnit(u,p,i){
-    var LL=locLayout(u), a0=p.aMin, c=p.c, a1=p.aMax, s='';
-    s+=ln(a0,c,a1,c,'#9a988f',2.4);
-    LL.mids.forEach(function(it){ var am=a0+it.a,col=MT[it.m.type].color,h=it.oh?22:30;
-      s+=rc(am-it.w/2,am+it.w/2,c-h/2,c+h/2,'rx="4" fill="'+col+'" fill-opacity="0.2" stroke="'+col+'" stroke-width="1.5"');
-      if(orient==='h') s+=tx(am, c+h/2+12, MT[it.m.type].name, '#b4b2a9', 10.5);
-      else s+='<text x="'+(c+h/2+8)+'" y="'+am+'" font-size="10.5" fill="#b4b2a9" text-anchor="start" dominant-baseline="middle">'+MT[it.m.type].name+'</text>';
-    });
-    s+=rc(a0-5,a1+5,c-42,c+42,'rx="9" fill="transparent" stroke="'+(i===sel?'#85b7eb':'transparent')+'" stroke-width="1.3" style="cursor:pointer" onclick="selUnit('+i+')"');
-    var ns=u.supports.length, s0=LL.supStart, s1=LL.supEnd;
-    for(var k=0;k<ns;k++){
-      var ab=a0+(ns===1?(s0+s1)/2:s0+(s1-s0)*k/(ns-1));
-      var sup=u.supports[k], picked=sup.brgs.some(function(b){return b;}), bc=picked?'#cfcdc4':'#ef9f27';
-      s+=ln(ab,c-12,ab,c-3,bc,2.4)+ln(ab,c+3,ab,c+12,bc,2.4);
-      var num=supNum(i,k), lbl='№'+num;
-      if(orient==='h') s+=tx(ab,c-16,lbl,'#86857e',7.5);
-      else s+='<text x="'+(c-14)+'" y="'+ab+'" font-size="7.5" fill="#86857e" text-anchor="end" dominant-baseline="middle">'+lbl+'</text>';
-      s+=rc(ab-8,ab+8,c-13,c+13,'fill="transparent" style="cursor:pointer" onclick="openSupport('+i+','+k+')"');
-    }
-    return s;
-  }
-  function drawConn(p,i){ var T=trans[i-1], c=p.c, g='#86857e';
-    if(p.coup){ var ca=p.ca,s=ln(ca-13,c,ca+13,c,g,2.4);
-      if(T.type==='elastic'){ s+=rc(ca-3,ca-0.8,c-7,c+7,'fill="'+g+'"')+rc(ca+1,ca+3.2,c-7,c+7,'fill="'+g+'"'); }
-      else { s+=rc(ca-4,ca-1.6,c-7,c+7,'fill="'+g+'"')+rc(ca+1.6,ca+4,c-7,c+7,'fill="'+g+'"'); }
-      s+=rc(ca-14,ca+14,c-9,c+9,'fill="transparent" style="cursor:pointer" onclick="openLink('+(i-1)+')"'); return s;
-    }
-    if(p.belt){ var ba=p.beltA,c1=p.c1,c2=p.c2,s=cir(ba,c1,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"')+cir(ba,c2,6,'fill="#1f1f1d" stroke="'+g+'" stroke-width="2"');
-      if(T.type==='belt'){ s+=ln(ba-5,c1,ba-5,c2,g,1.8)+ln(ba+5,c1,ba+5,c2,g,1.8); } else { s+=ln(ba,c1,ba,c2,g,2.6); }
-      s+=rc(ba-9,ba+9,Math.min(c1,c2),Math.max(c1,c2),'fill="transparent" style="cursor:pointer" onclick="openLink('+(i-1)+')"'); return s;
-    }
-    return '';
+    NovaScheme.render(c, {orient:orient, units:units, trans:trans},
+      {sel:sel, onUnit:'selUnit', onSup:'openSupport', onLink:'openLink', brgWarn:true});
   }
 
   function setOrient(o){ orient=o; document.getElementById('bh').classList.toggle('on',o==='h'); document.getElementById('bv').classList.toggle('on',o==='v'); render(); }

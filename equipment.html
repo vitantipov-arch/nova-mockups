@@ -36,7 +36,7 @@
     <i class="ti ti-dots-vertical" style="color:var(--muted);"></i>
   </div>
   <div class="body" id="body"></div>
-  <div class="foot"><button class="meas" onclick="alert('Переход к синхронному измерению по точкам программы')"><i class="ti ti-player-play"></i> Измерить</button></div>
+  <div class="foot"><button class="meas" id="measBtn"><i class="ti ti-player-play"></i> Измерить</button></div>
 </div>
 <script>
   function qid(){ var m=location.search.match(/id=(\d+)/); return m?parseInt(m[1]):-1; }
@@ -45,13 +45,17 @@
   function cnt(json,fn){ try{ return fn(JSON.parse(json)); }catch(e){ return 0; } }
   if(!it){ document.getElementById('body').innerHTML='<div style="color:var(--hint);text-align:center;padding:40px">Оборудование не найдено.</div>'; }
   else{
+    document.getElementById('measBtn').onclick=function(){ location.href='session.html?id='+id; };
     document.getElementById('nm').textContent=it.name||'Оборудование';
     var nv=cnt(it.agg,function(a){return a.units.length;});
     var nm=cnt(it.agg,function(a){var c=0;a.units.forEach(function(u){c+=u.machines.length;});return c;});
     var ns=cnt(it.agg,function(a){var c=0;a.units.forEach(function(u){c+=(u.supports||[]).length;});return c;});
     var nd=cnt(it.defects,function(d){var c=0;d.forEach(function(b){c+=(b.sel||[]).length+(b.custom||[]).length;});return c;});
     var pp=cnt(it.program,function(p){return p.points.length;});
-    var pm=cnt(it.program,function(p){var c=0;p.points.forEach(function(x){c+=x.meas.length;});return c;});
+    var pm=cnt(it.program,function(p){var c=0;p.points.forEach(function(x){
+      if(x.spots) x.spots.forEach(function(sp){ c+=(sp.meas||[]).length; });
+      else c+=(x.meas||[]).length;
+    });return c;});
     function go(layer){ try{ localStorage.setItem('nova_agg',it.agg); localStorage.setItem('nova_defects',it.defects||'[]'); localStorage.setItem('nova_program',it.program||'{"points":[]}'); localStorage.setItem('nova_editId',String(id)); }catch(e){}
       if(layer==='s') location.href='create.html?load=1'; else if(layer==='d') location.href='defects.html'; else location.href='program.html'; }
     document.getElementById('body').innerHTML=

@@ -62,6 +62,13 @@
   .mrh{font-size:12.5px;color:var(--muted);display:flex;align-items:center;cursor:pointer;}
   .cell{height:40px;border-radius:8px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--info);}
   .cell.on{background:var(--info-bg);border-color:var(--info-bd);} .cell .ti{font-size:18px;}
+  .pre{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1.5px solid var(--border2);border-radius:11px;margin-bottom:8px;cursor:pointer;}
+  .pre.on{border-color:var(--info-bd);background:var(--info-bg);}
+  .pre .pic{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .pre .pic .ti{font-size:19px;color:var(--info);}
+  .pre .pn{font-size:14px;font-weight:500;}
+  .pre .pd{font-size:11.5px;color:var(--hint);margin-top:2px;}
+  .manual-t{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);padding:10px 2px;cursor:pointer;}
   .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px;}
   .pf input,.pf select{width:100%;height:38px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;}
@@ -92,7 +99,17 @@
 
 <script>
   var fr=49;
-  var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', fmin:'2', fmax:'1000', lines:'6400', window:'Hann' };
+  var PRESETS=[
+    { id:'iso',  n:'Общий уровень (ISO)',      d:'виброскорость · оценка по зонам норма/повышено/недопустимо', icon:'ti-gauge',
+      cfg:{qty:'vel', fmin:'10', fmax:'1000', lines:'1600', window:'Hann'} },
+    { id:'brg',  n:'Подшипники (огибающая)',   d:'ускорение · спектр огибающей · дефекты качения', icon:'ti-circle-dot',
+      cfg:{qty:'acc', fmin:'500', fmax:'10000', lines:'6400', window:'Hann'}, view:'envelope' },
+    { id:'fine', n:'Точный спектр',            d:'виброскорость · 25600 линий · разнесение близких частот', icon:'ti-wave-sine',
+      cfg:{qty:'vel', fmin:'2', fmax:'1000', lines:'25600', window:'Hann'} }
+  ];
+  function presetName(){ for(var i=0;i<PRESETS.length;i++) if(PRESETS[i].id===cfg.preset) return PRESETS[i].n; return 'Вручную'; }
+  var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', fmin:'10', fmax:'1000', lines:'1600', window:'Hann', preset:'iso' };
+  var manualOpen=false;
   var data=null, view='spectrum', viewChans={}, detector='rms', VIEWMODE=false;
   var QTY={vel:'Скорость',acc:'Ускорение',disp:'Перемещение'};
   var VIEW=[['spectrum','Спектр'],['wave','Сигнал'],['envelope','Огибающая'],['phase','Ампл-фаза'],['level','Уровень']];
@@ -183,7 +200,7 @@
 
   function renderCfgBar(){ var sel=selChans(), va=sel.filter(function(c){return c.s==='a';}).map(function(c){return c.ax;}), gy=sel.filter(function(c){return c.s==='g';}).map(function(c){return c.ax;}), ch=[];
     if(va.length) ch.push('Вибро '+va.join('/')); if(gy.length) ch.push('Гиро '+gy.join('/'));
-    document.getElementById('cfgbar').innerHTML='<span class="cchip act"><i class="ti ti-adjustments"></i> '+(ch.join(' · ')||'нет каналов')+'</span><span class="cchip">'+QTY[cfg.qty]+'</span><span class="cchip">'+cfg.fmin+'–'+cfg.fmax+' Гц · '+cfg.lines+' лин · '+cfg.window+'</span>';
+    document.getElementById('cfgbar').innerHTML='<span class="cchip act"><i class="ti ti-adjustments"></i> '+presetName()+'</span><span class="cchip">'+(ch.join(' · ')||'нет каналов')+'</span><span class="cchip">'+QTY[cfg.qty]+' · '+cfg.fmin+'–'+cfg.fmax+' Гц · '+cfg.lines+' лин</span>';
   }
   function render(){ renderCfgBar();
     var vt=document.getElementById('vtabs'), vc=document.getElementById('vchips'), vw=document.getElementById('view'), rd=document.getElementById('read');
@@ -216,20 +233,32 @@
   // ---- настройки захвата ----
   function openCfg(){ if(VIEWMODE) return; buildCfg(); document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function buildCfg(){ var h='<h3>Настройка захвата</h3><div class="slbl">Каналы (Вибро/Гиро × оси) — совместно или раздельно</div><div class="matrix">';
+  function buildCfg(){ var h='<h3>Что измеряем?</h3>';
+    PRESETS.forEach(function(p){ h+='<div class="pre'+(cfg.preset===p.id?' on':'')+'" onclick="pickPreset(\''+p.id+'\')"><div class="pic"><i class="ti '+p.icon+'"></i></div><div><div class="pn">'+p.n+'</div><div class="pd">'+p.d+'</div></div></div>'; });
+    h+='<div class="manual-t" onclick="toggleManual()"><i class="ti ti-chevron-'+(manualOpen?'down':'right')+'"></i> Настроить вручную'+(cfg.preset==='manual'?' <span style="color:var(--info)">· активно</span>':'')+'</div>';
+    h+='<div id="manual" style="display:'+(manualOpen?'block':'none')+'">';
+    h+='<div class="slbl">Каналы (Вибро/Гиро × оси) — совместно или раздельно</div><div class="matrix">';
     h+='<div class="mh"></div>'+['Z','X','Y'].map(function(ax){return '<div class="mh" onclick="cfgCol(\''+ax+'\')">'+ax+'</div>';}).join('');
     [['a','Вибро'],['g','Гиро']].forEach(function(r){ h+='<div class="mrh" onclick="cfgRow(\''+r[0]+'\')">'+r[1]+'</div>'+['Z','X','Y'].map(function(ax){ var on=cfg.chans[r[0]+'_'+ax]; return '<div class="cell'+(on?' on':'')+'" onclick="cfgCell(\''+r[0]+'\',\''+ax+'\')">'+(on?'<i class="ti ti-check"></i>':'')+'</div>'; }).join(''); });
     h+='</div><div class="slbl">Величина</div><div class="chips">'+['vel','acc','disp'].map(function(q){return '<span class="chip'+(cfg.qty===q?' on':'')+'" onclick="cfg.qty=\''+q+'\';buildCfg()">'+QTY[q]+'</span>';}).join('')+'</div>';
     h+='<div class="slbl">Частотный диапазон, Гц</div><div class="g2"><div class="pf"><input id="fmin" value="'+cfg.fmin+'" placeholder="от"/></div><div class="pf"><input id="fmax" value="'+cfg.fmax+'" placeholder="до"/></div></div>';
     h+='<div class="slbl">Разрешение и окно</div><div class="g2"><div class="pf"><label>Линий</label><select id="lines">'+['400','800','1600','3200','6400','12800','25600'].map(function(l){return '<option'+(cfg.lines===l?' selected':'')+'>'+l+'</option>';}).join('')+'</select></div><div class="pf"><label>Окно</label><select id="win">'+['Hann','Hamming','Flat-top','Прямоугольное'].map(function(w){return '<option'+(cfg.window===w?' selected':'')+'>'+w+'</option>';}).join('')+'</select></div></div>';
     h+='<button class="sbtn" onclick="applyCfg()">Применить</button>';
+    h+='</div>';
     document.getElementById('sheet').innerHTML=h;
   }
+  function pickPreset(id){ var p=null; PRESETS.forEach(function(x){ if(x.id===id) p=x; }); if(!p) return;
+    cfg.qty=p.cfg.qty; cfg.fmin=p.cfg.fmin; cfg.fmax=p.cfg.fmax; cfg.lines=p.cfg.lines; cfg.window=p.cfg.window; cfg.preset=id;
+    if(p.view) view=p.view; else if(view==='envelope') view='spectrum';
+    closeSheet(); if(data&&data.per.length) data=genData(); render();
+  }
+  function toggleManual(){ manualOpen=!manualOpen; buildCfg(); }
   function cfgCell(s,ax){ var k=s+'_'+ax; cfg.chans[k]=!cfg.chans[k]; buildCfg(); }
   function cfgRow(s){ var all=['Z','X','Y'].every(function(ax){return cfg.chans[s+'_'+ax];}); ['Z','X','Y'].forEach(function(ax){ cfg.chans[s+'_'+ax]=!all; }); buildCfg(); }
   function cfgCol(ax){ var all=['a','g'].every(function(s){return cfg.chans[s+'_'+ax];}); ['a','g'].forEach(function(s){ cfg.chans[s+'_'+ax]=!all; }); buildCfg(); }
   function applyCfg(){ var g=function(id){var e=document.getElementById(id);return e?e.value:null;};
     if(g('fmin')!==null) cfg.fmin=g('fmin'); if(g('fmax')!==null) cfg.fmax=g('fmax'); if(g('lines')!==null) cfg.lines=g('lines'); if(g('win')!==null) cfg.window=g('win');
+    cfg.preset='manual';
     closeSheet(); if(data&&data.per.length) data=genData(); render();
   }
   function fromComps(c){ var fmax=parseFloat(cfg.fmax)||1000, cm=c.comps||[], ecm=c.ecomps||cm, rms=c.rms||0;
