@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — схема агрегата v2 (предложение)</title>
+<style>
+  :root{ --bg:#141413; --card:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb;
+         --success:#97c459; --warning:#ef9f27; --danger:#e24b4a; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:480px;margin:0 auto;padding:18px 14px 50px;}
+  h1{font-size:18px;font-weight:500;margin:0 0 4px;}
+  .sub{font-size:13px;color:var(--hint);margin:0 0 18px;line-height:1.5;}
+  .card{background:var(--card);border:0.5px solid var(--border);border-radius:14px;padding:14px 12px;margin-bottom:14px;}
+  .ttl{font-size:15px;font-weight:500;margin-bottom:3px;padding:0 3px;}
+  .meta{font-size:12.5px;color:var(--hint);margin-bottom:10px;line-height:1.45;padding:0 3px;}
+  .meta b{color:var(--info);font-weight:500;}
+  .tag{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:6px;margin-left:6px;vertical-align:2px;}
+  .tag.old{background:rgba(226,75,74,0.14);color:#e88a89;}
+  .tag.new{background:rgba(151,196,89,0.14);color:var(--success);}
+  svg{width:100%;height:auto;display:block;}
+  .leg{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:8px 0 2px;font-size:11px;color:var(--hint);}
+  .leg span{display:inline-flex;align-items:center;gap:5px;}
+  .ld{width:9px;height:9px;border-radius:50%;}
+  ul.notes{margin:6px 0 2px;padding-left:20px;font-size:13px;color:var(--muted);line-height:1.6;}
+  ul.notes li{margin-bottom:7px;}
+  ul.notes b{color:var(--text);font-weight:500;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Схема агрегата — предложение v2</h1>
+  <p class="sub">Тот же движок координат (вал = ось, машины и опоры на валу), но другой визуальный
+     язык: узнаваемые силуэты машин, опоры-подшипниковые стойки, значения замеров вынесены
+     с оси схемы. Все картинки ниже собраны из одних и тех же функций-глифов — их можно
+     перенести в create.html / session.html без смены модели данных.</p>
+
+  <div class="card">
+    <div class="ttl">1. Как сейчас <span class="tag old">create / session</span></div>
+    <div class="meta">Машины — одинаковые прямоугольники (различие только цветом), опоры — засечки,
+      точки В/П/О — кружки прямо на схеме. На телефоне значения и подписи наезжают друг на друга.</div>
+    <div id="sceneOld"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">2. Новый стиль — конструктор <span class="tag new">план</span></div>
+    <div class="meta">Двигатель с рёбрами охлаждения и клеммной коробкой, насос-улитка с патрубком,
+      муфта с фланцами и упругим элементом, опоры — стойки на фундаменте с номерами. Схему
+      «читаешь» без легенды.</div>
+    <div id="sceneNewPlan"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">3. Сессия — вариант A: бейджи над опорой <span class="tag new">компактный</span></div>
+    <div class="meta">Точки В/П/О собраны в компактный кластер над каждой опорой и связаны выноской.
+      Статус — заливка бейджа, значений на схеме нет (они в панели точки). Ничего не пересекается.</div>
+    <div id="sceneNewBadges"></div>
+    <div class="leg"><span><span class="ld" style="background:var(--secondary);border:1px solid var(--border2)"></span>не снято</span><span><span class="ld" style="background:var(--success)"></span>норма</span><span><span class="ld" style="background:var(--warning)"></span>повышено</span><span><span class="ld" style="background:var(--danger)"></span>недопустимо</span></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">4. Сессия — вариант B: карточки значений <span class="tag new">рекомендую</span></div>
+    <div class="meta">Над каждой опорой — карточка с тремя строками В/П/О: точка-светофор + СКЗ.
+      Кольцо подшипника подкрашено по худшей зоне опоры. Вся строка — цель нажатия
+      (<b>44 px</b> против нынешних 20 px у кружков).</div>
+    <div id="sceneNewCards"></div>
+    <div class="leg"><span><span class="ld" style="background:var(--secondary);border:1px solid var(--border2)"></span>не снято</span><span><span class="ld" style="background:var(--success)"></span>норма</span><span><span class="ld" style="background:var(--warning)"></span>повышено</span><span><span class="ld" style="background:var(--danger)"></span>недопустимо</span></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">5. Библиотека машин</div>
+    <div class="meta">Пять типов из create.html — каждый со своим силуэтом. Цвета прежние.</div>
+    <div id="sceneLib"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">6. Передачи</div>
+    <div class="meta">Жёсткая и упругая муфты (у упругой — оранжевый элемент), ремень со шкивами
+      разного диаметра, зубчатая пара.</div>
+    <div id="sceneConn"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">7. Вертикальное исполнение</div>
+    <div class="meta">Те же глифы, повёрнутые на 90°: рама слева, двигатель сверху, насос снизу.
+      Подписи и номера опор остаются горизонтальными.</div>
+    <div id="sceneVert"></div>
+  </div>
+
+  <div class="card">
+    <div class="ttl">8. Что ещё меняется</div>
+    <ul class="notes">
+      <li><b>Значения — не на оси схемы.</b> СКЗ и «⚠ перегруз» живут в карточках/панели, схема не замусоривается при 12+ точках.</li>
+      <li><b>Светофор опоры.</b> Кольцо подшипника = худшая зона её точек: состояние агрегата видно с одного взгляда, без чтения кружков.</li>
+      <li><b>Крупные цели нажатия.</b> Карточка опоры или строка точки — 44 px и больше; попасть пальцем легко даже в перчатке.</li>
+      <li><b>Автомасштаб.</b> viewBox подгоняется под ширину экрана (fit), длинный агрегат — прокрутка с сохранением масштаба текста.</li>
+      <li><b>Один рендерер.</b> create, session и «паспорт» рисуют одной функцией с флагами (план / точки / карточки) — сейчас движок скопирован в два файла и уже разошёлся мелочами.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ---------- палитра ----------
+var MT={ motor:{name:'Двигатель',color:'#4d8dff'}, pump:{name:'Насос',color:'#38e1d6'}, fan:{name:'Вентилятор',color:'#ff5db1'},
+         comp:{name:'Компрессор',color:'#ffb24d'}, gen:{name:'Генератор',color:'#9b6cff'} };
+var ZC={g:'#97c459',y:'#ef9f27',r:'#e24b4a'};
+var IDLE='#8f8d84', PED_F='#33322e', PED_S='#6e6c64', BASE='#45443f', GND='#4a4944', HUB='#55534c', FLG='#6e6c64';
+
+// ---------- глифы (локальные координаты: вал вдоль X через (0,0)) ----------
+function gMachine(t){ var col=MT[t].color, s='';
+  if(t==='motor'){ s+='<rect x="-40" y="-23" width="80" height="46" rx="7" fill="'+col+'" fill-opacity="0.13" stroke="'+col+'" stroke-width="1.7"/>';
+    [-27,-18,-9,0,9,18,27].forEach(function(x){ s+='<line x1="'+x+'" y1="-15" x2="'+x+'" y2="15" stroke="'+col+'" stroke-width="1.1" opacity="0.4"/>'; });
+    s+='<rect x="-11" y="-33" width="22" height="10" rx="2.5" fill="'+col+'" fill-opacity="0.25" stroke="'+col+'" stroke-width="1.2"/>'; return s; }
+  if(t==='pump'){ s+='<circle r="21" fill="'+col+'" fill-opacity="0.12" stroke="'+col+'" stroke-width="1.7"/>'
+    +'<rect x="-7" y="-39" width="14" height="19" rx="2" fill="'+col+'" fill-opacity="0.12" stroke="'+col+'" stroke-width="1.4"/>'
+    +'<line x1="-11" y1="-39" x2="11" y2="-39" stroke="'+col+'" stroke-width="2.2"/>'
+    +'<circle r="6" fill="none" stroke="'+col+'" stroke-width="1.3"/>'
+    +'<path d="M 5.5 -2.4 Q 12 -1 13.5 6" fill="none" stroke="'+col+'" stroke-width="1.3"/>'; return s; }
+  if(t==='fan'){ s+='<circle r="21" fill="'+col+'" fill-opacity="0.10" stroke="'+col+'" stroke-width="1.7"/>';
+    [0,120,240].forEach(function(r){ s+='<path d="M0,-4 Q5,-13 1,-18 Q-6,-11 0,-4" fill="'+col+'" fill-opacity="0.45" stroke="'+col+'" stroke-width="1" transform="rotate('+r+')"/>'; });
+    s+='<circle r="4" fill="'+col+'" fill-opacity="0.8"/>'; return s; }
+  if(t==='comp'){ s+='<rect x="-27" y="-19" width="54" height="38" rx="5" fill="'+col+'" fill-opacity="0.13" stroke="'+col+'" stroke-width="1.7"/>'
+    +'<rect x="-21" y="-29" width="15" height="11" rx="2" fill="'+col+'" fill-opacity="0.22" stroke="'+col+'" stroke-width="1.2"/>'
+    +'<rect x="6" y="-29" width="15" height="11" rx="2" fill="'+col+'" fill-opacity="0.22" stroke="'+col+'" stroke-width="1.2"/>'
+    +'<line x1="-27" y1="9" x2="27" y2="9" stroke="'+col+'" stroke-width="1" opacity="0.4"/>'; return s; }
+  // генератор
+  s+='<rect x="-38" y="-21" width="76" height="42" rx="20" fill="'+col+'" fill-opacity="0.13" stroke="'+col+'" stroke-width="1.7"/>'
+    +'<line x1="-24" y1="-20" x2="-24" y2="20" stroke="'+col+'" stroke-width="1.1" opacity="0.45"/>'
+    +'<line x1="24" y1="-20" x2="24" y2="20" stroke="'+col+'" stroke-width="1.1" opacity="0.45"/>'
+    +'<path d="M3,-9 L-5,1 L0.5,1 L-2.5,9 L6.5,-2 L1.5,-2 Z" fill="'+col+'" fill-opacity="0.65"/>'; return s;
+}
+function gPedestal(zone){ var zc=zone?ZC[zone]:IDLE, s='';
+  s+='<polygon points="-6,7 6,7 15,30 -15,30" fill="'+PED_F+'" stroke="'+PED_S+'" stroke-width="1.2"/>'
+    +'<rect x="-20" y="30" width="40" height="5" rx="1.5" fill="'+BASE+'"/>';
+  [-14,-5,4,13].forEach(function(x){ s+='<line x1="'+x+'" y1="36" x2="'+(x-5)+'" y2="42" stroke="'+GND+'" stroke-width="1.4"/>'; });
+  s+='<circle r="8.5" fill="#232320" stroke="'+zc+'" stroke-width="2.1"/><circle r="3.2" fill="'+HUB+'"/>';
+  return s;
+}
+function gCoupling(elastic){ var s='';
+  s+='<rect x="-14" y="-8" width="6" height="16" rx="1" fill="'+HUB+'"/><rect x="8" y="-8" width="6" height="16" rx="1" fill="'+HUB+'"/>'
+    +'<rect x="-8" y="-13" width="5.5" height="26" rx="1.5" fill="'+FLG+'"/><rect x="2.5" y="-13" width="5.5" height="26" rx="1.5" fill="'+FLG+'"/>';
+  if(elastic) s+='<rect x="-1.4" y="-10" width="2.8" height="20" rx="1.2" fill="#ef9f27" opacity="0.85"/>';
+  return s;
+}
+function shaftSeg(a0,a1,c,vert){ var s;
+  if(!vert){ s='<line x1="'+a0+'" y1="'+c+'" x2="'+a1+'" y2="'+c+'" stroke="'+HUB+'" stroke-width="6" stroke-linecap="round"/>'
+    +'<line x1="'+(a0+3)+'" y1="'+(c-1.6)+'" x2="'+(a1-3)+'" y2="'+(c-1.6)+'" stroke="rgba(255,255,255,0.25)" stroke-width="1.1" stroke-linecap="round"/>'; }
+  else{ s='<line x1="'+c+'" y1="'+a0+'" x2="'+c+'" y2="'+a1+'" stroke="'+HUB+'" stroke-width="6" stroke-linecap="round"/>'
+    +'<line x1="'+(c-1.6)+'" y1="'+(a0+3)+'" x2="'+(c-1.6)+'" y2="'+(a1-3)+'" stroke="rgba(255,255,255,0.25)" stroke-width="1.1" stroke-linecap="round"/>'; }
+  return s;
+}
+function place(inner,x,y,rot){ return '<g transform="translate('+x+','+y+')'+(rot?' rotate('+rot+')':'')+'">'+inner+'</g>'; }
+function label(x,y,t,sz,col,anchor){ return '<text x="'+x+'" y="'+y+'" font-size="'+(sz||10.5)+'" fill="'+(col||'#b4b2a9')+'" text-anchor="'+(anchor||'middle')+'" dominant-baseline="middle" font-family="inherit">'+t+'</text>'; }
+function numBadge(x,y,n){ return '<rect x="'+(x-13)+'" y="'+y+'" width="26" height="15" rx="4.5" fill="#2a2a27" stroke="rgba(255,255,255,0.14)"/>'+label(x,y+8,'№'+n,9.5,'#b4b2a9'); }
+
+// ---------- Тест1: геометрия (двигатель — упругая муфта — насос) ----------
+var T1={
+  sh:[ {a0:10,a1:168,sup:[38,142],mach:[{t:'motor',am:90}]},
+       {a0:198,a1:340,sup:[224,314],mach:[{t:'pump',am:269}]} ],
+  coup:{a:183,elastic:true}
+};
+// статусы сессии: опора → {В,П,О}
+var ST=[ {В:{v:2.5,z:'g'},П:{v:2.8,z:'y'},О:{v:2.1,z:'g'}},
+         {В:{v:1.6,z:'g'},П:{v:2.4,z:'g'},О:{v:2.6,z:'g'}},
+         {В:{v:7.4,z:'r'},П:{v:3.1,z:'y'},О:{v:2.2,z:'g'}},
+         {В:{v:1.9,z:'g'},П:null,О:{v:2.2,z:'g'}} ];
+function worst(st){ if(!st) return null; var w=null; ['В','П','О'].forEach(function(d){ var p=st[d]; if(!p) return;
+  if(p.z==='r') w='r'; else if(p.z==='y'&&w!=='r') w='y'; else if(!w) w='g'; }); return w; }
+
+// ---------- сцена: старый стиль ----------
+function sceneOld(){
+  var s='', c=0, sup=[], n=1;
+  T1.sh.forEach(function(u){ s+='<line x1="'+u.a0+'" y1="0" x2="'+u.a1+'" y2="0" stroke="#9a988f" stroke-width="2.4" stroke-linecap="round"/>';
+    u.sup.forEach(function(x){ sup.push(x); }); });
+  // муфта
+  s+='<line x1="170" y1="0" x2="196" y2="0" stroke="#86857e" stroke-width="2.4"/>'
+    +'<rect x="180" y="-7" width="2.2" height="14" fill="#86857e"/><rect x="184" y="-7" width="2.2" height="14" fill="#86857e"/>';
+  // машины-прямоугольники
+  s+='<rect x="65" y="-15" width="50" height="30" rx="4" fill="#4d8dff" fill-opacity="0.2" stroke="#4d8dff" stroke-width="1.5"/>'+label(90,27,'Двигатель',9.5,'#86857e')
+    +'<rect x="244" y="-15" width="50" height="30" rx="4" fill="#38e1d6" fill-opacity="0.2" stroke="#38e1d6" stroke-width="1.5"/>'+label(269,27,'Насос',9.5,'#86857e');
+  // опоры-засечки
+  sup.forEach(function(x){ s+='<line x1="'+x+'" y1="-12" x2="'+x+'" y2="-3" stroke="#cfcdc4" stroke-width="2.4" stroke-linecap="round"/><line x1="'+x+'" y1="3" x2="'+x+'" y2="12" stroke="#cfcdc4" stroke-width="2.4" stroke-linecap="round"/>'; });
+  // точки как в session: В сверху, П снизу, О на валу правее — с наездами
+  sup.forEach(function(x,i){ var st=ST[i];
+    function dot(px,py,d,p){ var f=p?ZC[p.z]:'#2a2a27', tc=p?'#141413':'#b4b2a9';
+      var g='<circle cx="'+px+'" cy="'+py+'" r="10" fill="'+f+'" stroke="'+(p?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.32)')+'"/>'+label(px,py+0.5,d,8.5,tc);
+      if(p) g+=label(px,py+21,p.v.toFixed(1),8,ZC[p.z]); return g; }
+    s+=dot(x,-26,'В',st.В)+dot(x,26,'П',st.П)+dot(x+24,0,'О',st.О);
+  });
+  // честный артефакт: «⚠ пер.» поверх подписи
+  s+='<circle cx="38" cy="26" r="15" fill="none" stroke="#ef9f27" stroke-width="1.3" stroke-dasharray="3 2"/>'+label(38,47,'⚠ пер.',8,'#ef9f27');
+  return '<svg viewBox="0 -46 360 106" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+// ---------- сцена: новый стиль ----------
+function sceneNew(mode){
+  var s='', n=1, supX=[];
+  // валы
+  T1.sh.forEach(function(u){ s+=shaftSeg(u.a0,u.a1,0,false); });
+  // муфта
+  s+=place(gCoupling(T1.coup.elastic),T1.coup.a,0);
+  // опоры (под машинами), затем машины поверх вала
+  T1.sh.forEach(function(u){ u.sup.forEach(function(x){ var i=supX.length; supX.push(x);
+      var z=(mode!=='plan')?worst(ST[i]):null; s+=place(gPedestal(z),x,0); s+=numBadge(x,46,i+1); }); });
+  T1.sh.forEach(function(u){ u.mach.forEach(function(m){ s+=place(gMachine(m.t),m.am,0); s+=label(m.am,48,MT[m.t].name,10.5,'#b4b2a9'); }); });
+  var minY=-52, h=118;
+  if(mode==='badges'){
+    supX.forEach(function(x,i){ var st=ST[i];
+      s+='<line x1="'+x+'" y1="-46" x2="'+x+'" y2="-12" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="2 3"/>';
+      function bd(px,py,d){ var p=st[d], f=p?ZC[p.z]:'#2a2a27', tc=p?'#141413':'#b4b2a9';
+        return '<circle cx="'+px+'" cy="'+py+'" r="11" fill="'+f+'" stroke="'+(p?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.32)')+'" stroke-width="1"/>'+label(px,py+0.5,d,9.5,tc); }
+      s+=bd(x,-57,'О')+bd(x-14,-80,'В')+bd(x+14,-80,'П');
+    });
+    // активная точка — белое кольцо (В на опоре №3)
+    s+='<circle cx="'+(supX[2]-14)+'" cy="-80" r="14.5" fill="none" stroke="#ffffff" stroke-width="1.6"/>';
+    minY=-98; h=164;
+  }
+  if(mode==='cards'){
+    supX.forEach(function(x,i){ var st=ST[i], cy=-134;
+      s+='<line x1="'+x+'" y1="'+(cy+66)+'" x2="'+x+'" y2="-12" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="2 3"/>';
+      var act=(i===2); // опора №3 активна
+      s+='<rect x="'+(x-31)+'" y="'+cy+'" width="62" height="64" rx="8" fill="#232320" stroke="'+(act?'#85b7eb':'rgba(255,255,255,0.14)')+'" stroke-width="'+(act?1.4:0.8)+'"/>';
+      ['В','П','О'].forEach(function(d,j){ var p=st[d], y=cy+13+j*19;
+        s+='<circle cx="'+(x-21)+'" cy="'+y+'" r="4" fill="'+(p?ZC[p.z]:'#2a2a27')+'" stroke="'+(p?'none':'rgba(255,255,255,0.32)')+'"/>'
+          +label(x-9,y+0.5,d,9.5,'#b4b2a9')
+          +label(x+25,y+0.5,p?p.v.toFixed(1):'—',10,p?'#ececea':'#5a5952','end');
+      });
+    });
+    minY=-142; h=208;
+  }
+  return '<svg viewBox="0 '+minY+' 360 '+h+'" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+// ---------- библиотека машин ----------
+function sceneLib(){
+  var s='', row1=[['motor',62],['pump',180],['fan',288]], row2=[['comp',96],['gen',250]];
+  row1.forEach(function(it){ var t=it[0],x=it[1]; s+=shaftSeg(x-52,x+52,0,false)+place(gMachine(t),x,0)+label(x,44,MT[t].name,10.5); });
+  row2.forEach(function(it){ var t=it[0],x=it[1]; s+=shaftSeg(x-52,x+52,110,false)+place(gMachine(t),x,110)+label(x,154,MT[t].name,10.5); });
+  return '<svg viewBox="0 -46 350 216" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+// ---------- передачи ----------
+function sceneConn(){
+  var s='';
+  // жёсткая муфта
+  s+=shaftSeg(14,74,0,false)+shaftSeg(102,162,0,false)+place(gCoupling(false),88,0)+label(88,34,'жёсткая',9.5,'#86857e');
+  // упругая
+  s+=shaftSeg(196,256,0,false)+shaftSeg(284,344,0,false)+place(gCoupling(true),270,0)+label(270,34,'упругая',9.5,'#86857e');
+  // ремень: два вала со смещением
+  var bx=88, y1=150, y2=86;
+  s+=shaftSeg(14,96,y1,false)+shaftSeg(80,162,y2,false);
+  s+='<line x1="'+(bx-15)+'" y1="'+y1+'" x2="'+(bx-10.5)+'" y2="'+y2+'" stroke="#86857e" stroke-width="2"/>'
+    +'<line x1="'+(bx+15)+'" y1="'+y1+'" x2="'+(bx+10.5)+'" y2="'+y2+'" stroke="#86857e" stroke-width="2"/>'
+    +'<circle cx="'+bx+'" cy="'+y1+'" r="15" fill="#232320" stroke="'+IDLE+'" stroke-width="2.2"/><circle cx="'+bx+'" cy="'+y1+'" r="3" fill="'+HUB+'"/>'
+    +'<circle cx="'+bx+'" cy="'+y2+'" r="10.5" fill="#232320" stroke="'+IDLE+'" stroke-width="2.2"/><circle cx="'+bx+'" cy="'+y2+'" r="3" fill="'+HUB+'"/>'
+    +label(bx+44,(y1+y2)/2,'ремень',9.5,'#86857e','start');
+  // зубчатая
+  var gx=270, gy1=150, gy2=113;
+  s+=shaftSeg(196,278,gy1,false)+shaftSeg(262,344,gy2,false);
+  s+='<circle cx="'+gx+'" cy="'+gy1+'" r="22" fill="#232320" stroke="'+IDLE+'" stroke-width="2" stroke-dasharray="3.5 2.6"/><circle cx="'+gx+'" cy="'+gy1+'" r="3" fill="'+HUB+'"/>'
+    +'<circle cx="'+gx+'" cy="'+gy2+'" r="14" fill="#232320" stroke="'+IDLE+'" stroke-width="2" stroke-dasharray="3.5 2.6"/><circle cx="'+gx+'" cy="'+gy2+'" r="3" fill="'+HUB+'"/>'
+    +label(gx+34,(gy1+gy2)/2+4,'зубчатая',9.5,'#86857e','start');
+  return '<svg viewBox="0 -26 360 214" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+// ---------- вертикальный агрегат ----------
+function sceneVert(){
+  var s='', cx=120;
+  // рама слева
+  s+='<line x1="83" y1="6" x2="83" y2="238" stroke="'+GND+'" stroke-width="2"/>';
+  for(var y=14;y<236;y+=16) s+='<line x1="83" y1="'+y+'" x2="75" y2="'+(y+8)+'" stroke="'+GND+'" stroke-width="1.3"/>';
+  // валы: двигатель сверху (20..120), насос снизу (146..238)
+  s+=shaftSeg(18,118,cx,true)+shaftSeg(146,240,cx,true);
+  s+=place(gCoupling(true),cx,132,90);
+  // опоры (повёрнутые стойки «в раму»)
+  var supY=[30,106,158,228];
+  supY.forEach(function(y,i){ s+=place(gPedestal(null),cx,y,90); s+=numBadge(cx+62,y-8,i+1); });
+  // машины
+  s+=place(gMachine('motor'),cx,64,90)+label(cx+62,64,'Двигатель',10.5,'#b4b2a9','start');
+  s+=place(gMachine('pump'),cx,196,90)+label(cx+62,196,'Насос',10.5,'#b4b2a9','start');
+  return '<svg viewBox="0 -4 360 252" xmlns="http://www.w3.org/2000/svg">'+s+'</svg>';
+}
+
+document.getElementById('sceneOld').innerHTML=sceneOld();
+document.getElementById('sceneNewPlan').innerHTML=sceneNew('plan');
+document.getElementById('sceneNewBadges').innerHTML=sceneNew('badges');
+document.getElementById('sceneNewCards').innerHTML=sceneNew('cards');
+document.getElementById('sceneLib').innerHTML=sceneLib();
+document.getElementById('sceneConn').innerHTML=sceneConn();
+document.getElementById('sceneVert').innerHTML=sceneVert();
+</script>
+</body>
+</html>
