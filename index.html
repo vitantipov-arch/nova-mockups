@@ -194,6 +194,9 @@ function parseDate(s){
 function dateShort(s){ var m=/(\d{2}\.\d{2}\.\d{4})/.exec(s||''); return m?m[1]:(s||''); }
 
 /* ---------- AssetHealth: свёртка здоровья на агрегат (D2: худшая точка) ---------- */
+function ptKey(p){ return (p.sup==null?'?':p.sup)+'|'+(p.dir||''); }   // идентификатор точки: опора+направление
+function findPt(points, key){ for(var k=0;k<points.length;k++){ if(ptKey(points[k])===key) return points[k]; } return null; }
+
 function healthOf(i, agg, sessions){
   var z = resolveZones(agg);
   var mine = sessions
@@ -201,13 +204,18 @@ function healthOf(i, agg, sessions){
     .filter(function(o){ return o.s.aggId===i && o.s.points && o.s.points.length; })
     .sort(function(a,b){ var da=parseDate(a.s.date), db=parseDate(b.s.date); return da!==db ? da-db : a.idx-b.idx; });
   if(!mine.length) return null;
-  var spark = mine.map(function(o){
-    return o.s.points.reduce(function(mx,p){ var v=+p.rms||0; return v>mx?v:mx; }, 0);   // worst-RMS точки
-  });
-  var val = spark[spark.length-1];
+  // Худшая точка ПОСЛЕДНЕЙ сессии задаёт и число, и по какой точке честно строить тренд (D2).
   var last = mine[mine.length-1].s;
+  var worstP = last.points.reduce(function(a,b){ return (+b.rms||0) > (+a.rms||0) ? b : a; });
+  var key = ptKey(worstP);
+  // История ИМЕННО этой точки по сессиям (где она измерялась) — один физический тренд, не «франкенштейн».
+  var spark = [];
+  mine.forEach(function(o){ var p=findPt(o.s.points, key); if(p) spark.push(+p.rms||0); });
+  if(!spark.length) spark=[+worstP.rms||0];
+  var val = +worstP.rms||0;   // = spark[last]: число и линия — одна история
   return { val:val, status:zoneOf(val, z), zones:z, spark:spark, date:dateShort(last.date),
-           trend:deltaPrev(spark), sessions:mine.length };
+           trend:deltaPrev(spark), sessions:mine.length,
+           worst:(worstP.label||('Опора '+worstP.sup+' · '+worstP.dir)) };
 }
 function deltaPrev(arr){
   if(arr.length<2) return 0;
