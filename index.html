@@ -3,177 +3,483 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nova — макеты</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<title>Nova — Агрегаты</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
+  /* Токены дизайна Designer (light по умолчанию, dark по системной теме) */
   :root{
-    --bg-page:#141413; --bg-primary:#1f1f1d; --bg-secondary:#2a2a27;
-    --text-primary:#ececea; --text-secondary:#b4b2a9; --text-tertiary:#86857e;
-    --border:rgba(255,255,255,0.12); --border-strong:rgba(255,255,255,0.22);
-    --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-border:rgba(55,138,221,0.55);
-    --success:#97c459; --warning:#ef9f27; --danger:#e24b4a;
-    --r-md:8px; --r-lg:12px; --r-xl:16px;
+    --bg:#F4F3F0; --surface:#FFFFFF; --surface-2:#E7E5E0; --border:#E4E2DD;
+    --text:#1B1D21; --text-2:#55585E; --text-3:#9A9DA3;
+    --accent:#1B1D21; --accent-fg:#FFFFFF;
+    --st-red:#C6483A; --st-amber:#D19A21; --st-green:#33A05F; --st-neu:#9A9DA3;
+    --spark-line:#1B1D21;
+    --z-red:#F6D9D4; --z-amber:#F6E6BE; --z-green:#D8ECDD;
+    --tint-red-bg:#FBEAE8; --tint-red-bd:#E5B7B1; --tint-red-fg:#A33529;
+    --tint-amber-bg:#F9F0DC; --tint-amber-bd:#E4CD9C; --tint-amber-fg:#8F6A12;
+    --tint-green-bg:#E9F3EC; --tint-green-bd:#BFDCC9; --tint-green-fg:#256B43;
+    --tint-neu-bg:#EFEDE8; --tint-neu-bd:#E2E0DB; --tint-neu-fg:#55585E;
+    --tabbar:rgba(255,255,255,.92); --edit-bg:#E7E5E0; --edit-fg:#3A3D42;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171B; --surface:#20232A; --surface-2:#2A2E36; --border:#31353D;
+      --text:#ECEEF1; --text-2:#A9AEB6; --text-3:#6E747E;
+      --accent:#ECEEF1; --accent-fg:#15171B;
+      --st-red:#E5675A; --st-amber:#E0B24A; --st-green:#4CB877; --st-neu:#6E747E;
+      --spark-line:#ECEEF1;
+      --z-red:rgba(229,103,90,.22); --z-amber:rgba(224,178,74,.22); --z-green:rgba(76,184,119,.18);
+      --tint-red-bg:rgba(229,103,90,.20); --tint-red-bd:rgba(229,103,90,.45); --tint-red-fg:#F0A79D;
+      --tint-amber-bg:rgba(224,178,74,.18); --tint-amber-bd:rgba(224,178,74,.45); --tint-amber-fg:#E7C578;
+      --tint-green-bg:rgba(76,184,119,.16); --tint-green-bd:rgba(76,184,119,.42); --tint-green-fg:#7FD3A1;
+      --tint-neu-bg:#2A2E36; --tint-neu-bd:#3A3F48; --tint-neu-fg:#A9AEB6;
+      --tabbar:rgba(32,35,42,.92); --edit-bg:#2A2E36; --edit-fg:#C7CBD2;
+    }
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;background:var(--bg-page);}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text-primary);
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;color:var(--text);
        display:flex;justify-content:center;min-height:100vh;}
-  .screen{width:100%;max-width:480px;background:var(--bg-page);display:flex;flex-direction:column;min-height:100vh;}
-  button{font-family:inherit;color:var(--text-primary);background:transparent;border:0.5px solid var(--border-strong);
-         border-radius:var(--r-md);cursor:pointer;}
-  button:active{transform:scale(0.98);}
-  .row{display:flex;align-items:center;}
-  .ti{line-height:1;}
-  .field-search{display:flex;align-items:center;gap:8px;background:var(--bg-secondary);border:0.5px solid var(--border);border-radius:var(--r-md);padding:0 12px;margin-bottom:12px;}
-  .field-search input{flex:1;height:40px;background:transparent;border:none;outline:none;color:var(--text-primary);font-size:14px;font-family:inherit;}
-  .rowmenu{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-right:6px;border:none;background:transparent;color:var(--text-tertiary);border-radius:8px;}
-  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
+  input{font-family:inherit;} input:focus{outline:none;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .screen{width:100%;max-width:440px;background:var(--bg);display:flex;flex-direction:column;
+          height:100vh;height:100dvh;overflow:hidden;position:relative;}
+  /* Шапка */
+  .hdr{padding:12px 20px 4px;display:flex;justify-content:space-between;align-items:center;}
+  .logo{font-size:21px;font-weight:700;letter-spacing:1.5px;}
+  .sensors{display:flex;align-items:center;gap:1px;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:4px 5px;}
+  .sensor{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:99px;}
+  .sensor .dot{width:7px;height:7px;border-radius:99px;flex:none;}
+  .sensor .lbl{font-size:11px;font-weight:600;}
+  .addbtn{width:34px;height:34px;border-radius:99px;background:var(--accent);color:var(--accent-fg);
+          display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;line-height:0;padding-bottom:2px;border:none;}
+  /* Сводка-фильтры */
+  .summary{padding:8px 14px 10px;display:flex;gap:2px;align-items:center;font-size:12.5px;color:var(--text-2);}
+  .sum{display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 9px;border-radius:99px;transition:opacity .15s,background .15s;}
+  .sum .d{width:8px;height:8px;border-radius:99px;} .sum b{color:var(--text);}
+  /* Поиск + сортировка */
+  .searchwrap{padding:0 20px 10px;}
+  .search{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;}
+  .search input{border:none;background:transparent;font-size:14.5px;flex:1;color:var(--text);}
+  .sortwrap{padding:0 20px 12px;}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:11px;padding:3px;font-size:13px;text-align:center;}
+  .seg > div{padding:7px 0;border-radius:9px;cursor:pointer;}
+  .seg .on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14);}
+  .seg .off{color:var(--text-2);font-weight:500;}
+  /* Список */
+  .list{flex:1;overflow-y:auto;padding:0 20px;display:flex;flex-direction:column;gap:9px;}
+  .list::-webkit-scrollbar{width:0;}
+  .rowwrap{position:relative;border-radius:14px;overflow:hidden;flex:none;}
+  .actions{position:absolute;inset:0;display:flex;justify-content:flex-end;}
+  .act{width:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:600;cursor:pointer;}
+  .act.edit{background:var(--edit-bg);color:var(--edit-fg);}
+  .act.del{background:var(--st-red);color:#fff;}
+  .slide{position:relative;transform:translateX(0);touch-action:pan-y;transition:transform .22s cubic-bezier(.2,.8,.2,1);}
+  .slide.drag{transition:none;}
+  .card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;
+        padding:14px 14px 14px 17px;display:grid;grid-template-columns:1fr 84px;gap:12px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;}
+  .cbar{position:absolute;left:0;top:0;bottom:0;width:5px;}
+  .cl{min-width:0;}
+  .crow1{display:flex;align-items:center;gap:8px;}
+  .crow1 .d{width:9px;height:9px;border-radius:99px;flex:none;}
+  .cname{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .crow2{margin-top:3px;font-size:12.5px;color:var(--text-2);display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .cval{font-weight:600;color:var(--text);}
+  .ctrend{font-weight:500;white-space:nowrap;}
+  .badges{display:flex;gap:4px;margin-left:2px;}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;border-radius:5px;padding:1px 6px;line-height:1.5;border:1px solid;}
+  .crow3{margin-top:5px;font-size:11px;line-height:1.2;color:var(--text-3);display:flex;align-items:center;gap:5px;}
+  .empty{padding:44px 20px;text-align:center;}
+  .empty .t{font-size:15px;font-weight:600;color:var(--text-2);}
+  .empty .s{font-size:13px;margin-top:6px;color:var(--text-3);}
+  /* Тост */
+  .toast{position:absolute;left:16px;right:16px;bottom:70px;background:var(--accent);color:var(--accent-fg);
+         border-radius:12px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:5;}
+  .toast .undo{font-weight:700;color:var(--st-red);cursor:pointer;padding:2px 4px;}
+  /* Таб-бар */
+  .tabs{flex:none;display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border);background:var(--tabbar);padding:9px 0 6px;text-align:center;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+  .tab .lbl{font-size:10.5px;}
+  .tab.active .lbl{font-weight:600;color:var(--text);}
+  .tab.idle .lbl{font-weight:500;color:var(--text-3);}
+  /* Лист (Ещё / БД) */
+  .backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
   .backdrop.on{opacity:1;pointer-events:auto;}
-  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--bg-primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:10px 12px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top-left-radius:18px;border-top-right-radius:18px;
+         border-top:1px solid var(--border);padding:10px 12px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;}
   .sheet.on{transform:translateY(0);}
-  .sheet h3{font-size:13px;font-weight:500;color:var(--text-tertiary);margin:6px 8px 6px;}
-  .mitem{display:flex;align-items:center;gap:13px;padding:14px 12px;border-radius:10px;cursor:pointer;font-size:15px;color:var(--text-primary);}
-  .mitem:active{background:var(--bg-secondary);}
-  .mitem .ti{font-size:21px;color:var(--text-secondary);}
-  .mitem.danger{color:var(--danger);} .mitem.danger .ti{color:var(--danger);}
+  .sheet h3{font-size:13px;font-weight:500;color:var(--text-3);margin:6px 8px 8px;}
+  .mitem{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:10px;cursor:pointer;font-size:15px;color:var(--text);}
+  .mitem:active{background:var(--surface-2);}
 </style>
 </head>
 <body>
 <div class="screen">
 
-  <div class="row" style="justify-content:space-between;padding:22px 18px 18px;">
-    <div class="row" style="gap:13px;">
-      <svg width="40" height="40" viewBox="0 0 56 56" aria-label="Логотип Nova">
-        <g stroke-width="1.7" stroke-linecap="round">
-          <line x1="28" y1="28" x2="28" y2="10" stroke="#ffb24d"/>
-          <line x1="28" y1="28" x2="46" y2="22" stroke="#ff5db1"/>
-          <line x1="28" y1="28" x2="40" y2="44" stroke="#8a5cff"/>
-          <line x1="28" y1="28" x2="16" y2="44" stroke="#4d8dff"/>
-          <line x1="28" y1="28" x2="10" y2="22" stroke="#38e1d6"/>
-        </g>
-        <circle cx="28" cy="10" r="3" fill="#ffb24d"/>
-        <circle cx="46" cy="22" r="3" fill="#ff5db1"/>
-        <circle cx="40" cy="44" r="3" fill="#8a5cff"/>
-        <circle cx="16" cy="44" r="3" fill="#4d8dff"/>
-        <circle cx="10" cy="22" r="3" fill="#38e1d6"/>
-        <circle cx="28" cy="28" r="5" fill="#ff3b3b"/>
-      </svg>
-      <div>
-        <div style="font-size:24px;font-weight:500;line-height:1.1;letter-spacing:0.3px;">Nova</div>
-        <div style="font-size:12px;color:var(--text-tertiary);">Революция в вибродиагностике</div>
-      </div>
-    </div>
-    <i class="ti ti-settings" onclick="openSettings()" style="font-size:24px;color:var(--text-secondary);cursor:pointer;"></i>
-  </div>
-
-  <div class="row" style="justify-content:space-between;margin:0 16px;padding:14px;background:var(--bg-secondary);border-radius:var(--r-md);">
-    <div class="row" style="gap:10px;">
-      <i class="ti ti-bluetooth" style="font-size:21px;color:var(--text-tertiary);"></i>
-      <span style="font-size:14px;color:var(--text-secondary);">Датчики не подключены</span>
-    </div>
-    <span style="font-size:14px;color:var(--info);">Подключить</span>
-  </div>
-
-  <div style="padding:18px 16px 8px;">
-    <button onclick="newAgg()" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px;text-align:left;border:2px solid var(--info-border);background:var(--info-bg);border-radius:var(--r-lg);cursor:pointer;">
-      <i class="ti ti-plus" style="font-size:27px;color:var(--info);"></i>
-      <span style="display:flex;flex-direction:column;">
-        <span style="font-weight:500;color:var(--info);font-size:16px;">Создать агрегат</span>
-        <span style="font-size:13px;color:var(--info);opacity:0.85;">Собрать агрегат из блоков</span>
-      </span>
-    </button>
-  </div>
-
-  <div style="padding:16px 16px 8px;">
-    <div class="field-search" id="searchWrap" style="display:none;"><i class="ti ti-search" style="font-size:18px;color:var(--text-tertiary);"></i><input id="search" placeholder="Поиск по названию" oninput="render(this.value)"/></div>
-    <div id="recent"></div>
-  </div>
-
-  <div style="flex:1;"></div>
-
-  <div style="text-align:center;padding:6px 0 4px;font-size:11px;color:var(--text-tertiary);">v0.1</div>
-
-  <div class="row" style="justify-content:space-around;padding:12px 6px 18px;border-top:0.5px solid var(--border);">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--info);">
-      <i class="ti ti-box" style="font-size:24px;"></i><span style="font-size:11px;">Агрегаты</span>
-    </div>
-    <div onclick="location.href='measure.html'" style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);cursor:pointer;">
-      <i class="ti ti-activity" style="font-size:24px;"></i><span style="font-size:11px;">Измерение</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
-      <i class="ti ti-scale" style="font-size:24px;"></i><span style="font-size:11px;">Баланс.</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
-      <i class="ti ti-chart-bar" style="font-size:24px;"></i><span style="font-size:11px;">Диагност.</span>
-    </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-tertiary);">
-      <i class="ti ti-settings" style="font-size:24px;"></i><span style="font-size:11px;">Настройки</span>
+  <!-- Шапка -->
+  <div class="hdr">
+    <div class="logo">NOVA</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="sensors" id="sensors"></div>
+      <button class="addbtn" title="Добавить агрегат" onclick="newAgg()">+</button>
     </div>
   </div>
 
+  <!-- Сводка = фильтры -->
+  <div class="summary" id="summary"></div>
+
+  <!-- Поиск -->
+  <div class="searchwrap" id="searchwrap">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 15 15" style="flex:none;"><circle cx="6.5" cy="6.5" r="5" fill="none" stroke="var(--text-3)" stroke-width="1.6"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="var(--text-3)" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input id="q" placeholder="Поиск по агрегатам" oninput="onQuery(this.value)">
+    </div>
+  </div>
+
+  <!-- Сортировка -->
+  <div class="sortwrap" id="sortwrap">
+    <div class="seg">
+      <div id="segLevel" onclick="setSort('level')">По уровню</div>
+      <div id="segTrend" onclick="setSort('trend')">По тренду</div>
+    </div>
+  </div>
+
+  <!-- Список -->
+  <div class="list" id="list"></div>
+
+  <!-- Таб-бар -->
+  <div class="tabs">
+    <div class="tab active">
+      <svg width="20" height="20" viewBox="0 0 20 20"><g fill="var(--text)"><rect x="2" y="2" width="7" height="7" rx="2"/><rect x="11" y="2" width="7" height="7" rx="2"/><rect x="2" y="11" width="7" height="7" rx="2"/><rect x="11" y="11" width="7" height="7" rx="2"/></g></svg>
+      <span class="lbl">Агрегаты</span>
+    </div>
+    <div class="tab idle" onclick="location.href='measure.html'">
+      <svg width="20" height="20" viewBox="0 0 20 20"><g fill="var(--text-3)"><rect x="2" y="9" width="3.2" height="9" rx="1.5"/><rect x="7" y="3" width="3.2" height="15" rx="1.5"/><rect x="12" y="6" width="3.2" height="12" rx="1.5"/></g></svg>
+      <span class="lbl">Измерение</span>
+    </div>
+    <div class="tab idle" onclick="openMore()">
+      <svg width="20" height="20" viewBox="0 0 20 20"><g fill="var(--text-3)"><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="16" cy="10" r="1.8"/></g></svg>
+      <span class="lbl">Ещё</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" style="display:none;"></div>
+  <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet"></div>
 </div>
-<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
-<div class="sheet" id="sheet"></div>
+
 <script>
-  function newAgg(){ ['nova_agg','nova_defects','nova_program','nova_editId'].forEach(function(k){ localStorage.removeItem(k); }); location.href='create.html'; }
-  function loadTestDb(auto){ var cur=[]; try{ cur=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
-    if(cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
-    fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
-      var aggs = Array.isArray(data) ? data : ((data&&data.aggregates)||[]);
-      var list=aggs.map(function(e){ return { name:e.name||'Агрегат',
-        agg: typeof e.agg==='string'?e.agg:JSON.stringify(e.agg||{}),
-        defects: typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]),
-        program: typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
-      localStorage.setItem('nova_list', JSON.stringify(list));
-      if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); if(data.sessions) localStorage.setItem('nova_sessions', JSON.stringify(data.sessions)); }
-      location.reload();
-    }).catch(function(err){ if(auto){ render(''); } else { alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); } });
+/* ---------- модель данных (реальный localStorage) ---------- */
+function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+function saveList(l){ try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
+function getSessions(){ try{ return JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){ return []; } }
+function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
+function pj(s,d){ try{ return typeof s==='string'?JSON.parse(s):(s||d); }catch(e){ return d; } }
+
+/* ---------- пороги зон (D1: по классу + override; пока дефолт) ---------- */
+var ZONE_DEFAULT = { warn:4.5, alarm:7.1 };   // ISO 10816 общий дефолт (класс-каталог позже)
+function resolveZones(agg){
+  var z = agg && agg.zone;                     // override на агрегат, если задан
+  if(z && typeof z.warn==='number' && typeof z.alarm==='number') return z;
+  return ZONE_DEFAULT;
+}
+function zoneOf(rms, z){ return rms < z.warn ? 'green' : (rms < z.alarm ? 'amber' : 'red'); }
+
+/* ---------- разбор ru-даты "28.06.2026, 16:28:29" ---------- */
+function parseDate(s){
+  var m = /(\d{2})\.(\d{2})\.(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s||'');
+  if(!m) return 0;
+  return new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0)).getTime();
+}
+function dateShort(s){ var m=/(\d{2}\.\d{2}\.\d{4})/.exec(s||''); return m?m[1]:(s||''); }
+
+/* ---------- AssetHealth: свёртка здоровья на агрегат (D2: худшая точка) ---------- */
+function healthOf(i, agg, sessions){
+  var z = resolveZones(agg);
+  var mine = sessions
+    .map(function(s,idx){ return {s:s, idx:idx}; })
+    .filter(function(o){ return o.s.aggId===i && o.s.points && o.s.points.length; })
+    .sort(function(a,b){ var da=parseDate(a.s.date), db=parseDate(b.s.date); return da!==db ? da-db : a.idx-b.idx; });
+  if(!mine.length) return null;
+  var spark = mine.map(function(o){
+    return o.s.points.reduce(function(mx,p){ var v=+p.rms||0; return v>mx?v:mx; }, 0);   // worst-RMS точки
+  });
+  var val = spark[spark.length-1];
+  var last = mine[mine.length-1].s;
+  return { val:val, status:zoneOf(val, z), zones:z, spark:spark, date:dateShort(last.date),
+           trend:deltaPrev(spark), sessions:mine.length };
+}
+function deltaPrev(arr){
+  if(arr.length<2) return 0;
+  var prev=arr[arr.length-2], last=arr[arr.length-1];
+  if(!prev) return 0;
+  return Math.round(((last-prev)/prev)*100);
+}
+
+/* ---------- геометрия мини-графика (автомасштаб + зоны по порогам агрегата) ---------- */
+function sparkGeom(arr, z){
+  var W=84, H=50, WARN=z.warn, ALARM=z.alarm;
+  var dmin=Math.min.apply(null,arr), dmax=Math.max.apply(null,arr);
+  var top=dmax*1.1, bottom=Math.max(0, dmin-(dmax-dmin)*0.15);
+  if(top-bottom<0.5){ top=dmax+0.4; bottom=Math.max(0,dmax-0.4); }
+  var yv=function(v){ return H - Math.max(0,Math.min(1,(v-bottom)/(top-bottom)))*H; };
+  var pts = arr.length>1
+    ? arr.map(function(v,i){ return (i*(W/(arr.length-1))).toFixed(1)+','+yv(v).toFixed(1); }).join(' ')
+    : ('0,'+yv(arr[0]).toFixed(1)+' '+W+','+yv(arr[0]).toFixed(1));
+  var alarmY=yv(ALARM), warnY=yv(WARN);
+  return { spark:pts, zRedH:alarmY.toFixed(1), zAmberY:alarmY.toFixed(1),
+           zAmberH:Math.max(0,warnY-alarmY).toFixed(1), zGreenY:warnY.toFixed(1), zGreenH:Math.max(0,H-warnY).toFixed(1) };
+}
+
+/* ---------- состояние экрана ---------- */
+var COLORS={ red:'var(--st-red)', amber:'var(--st-amber)', green:'var(--st-green)', neu:'var(--st-neu)' };
+var TINT={ red:['var(--tint-red-bg)','var(--tint-red-bd)','var(--tint-red-fg)','недопустимо'],
+           amber:['var(--tint-amber-bg)','var(--tint-amber-bd)','var(--tint-amber-fg)','внимание'],
+           green:['var(--tint-green-bg)','var(--tint-green-bd)','var(--tint-green-fg)','норма'] };
+var WORD={ red:'недопустимо', amber:'внимание', green:'норма' };
+var state={ sort:'level', query:'', statusFilter:null, openId:null, deleted:{}, toastIdx:null, toastTimer:null, drag:null };
+
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ---------- построение строк ---------- */
+function computeRows(){
+  var list=getList(), sess=getSessions();
+  return list.map(function(it,i){
+    var agg=pj(it.agg,{units:[]});
+    var h=healthOf(i, agg, sess);
+    return { i:i, name:it.name||'Агрегат', h:h,
+             status:h?h.status:'neu', val:h?h.val:null };
+  });
+}
+
+function render(){
+  var rows=computeRows();
+  var hasAny=rows.length>0;
+
+  // сводка-счётчики (только агрегаты с данными)
+  var cnt={red:0,amber:0,green:0};
+  rows.forEach(function(r){ if(!state.deleted[r.i] && r.h) cnt[r.status]++; });
+  renderSummary(cnt);
+  renderSensors();
+
+  // поиск/сортировка скрыты, если агрегатов нет
+  document.getElementById('searchwrap').style.display=hasAny?'':'none';
+  document.getElementById('sortwrap').style.display=hasAny?'':'none';
+  document.getElementById('segLevel').className=state.sort==='level'?'on':'off';
+  document.getElementById('segTrend').className=state.sort==='trend'?'on':'off';
+
+  // фильтрация
+  var q=state.query.trim().toLowerCase(), sf=state.statusFilter;
+  var items=rows.filter(function(r){
+    if(state.deleted[r.i]) return false;
+    if(q && r.name.toLowerCase().indexOf(q)<0) return false;
+    if(sf && r.status!==sf) return false;
+    return true;
+  });
+  // сортировка: по уровню (val desc, без данных вниз) или по тренду (delta desc)
+  items.sort(function(a,b){
+    if(state.sort==='trend'){
+      var ta=a.h?a.h.trend:-1e9, tb=b.h?b.h.trend:-1e9; return tb-ta;
+    }
+    var va=a.val==null?-1:a.val, vb=b.val==null?-1:b.val; return vb-va;
+  });
+
+  var el=document.getElementById('list');
+  if(!hasAny){ el.innerHTML=emptyBlock('Пока нет агрегатов','Нажмите + чтобы добавить агрегат'); return; }
+  if(!items.length){ el.innerHTML=emptyBlock('Ничего не найдено','Измените фильтр или запрос'); return; }
+  el.innerHTML = items.map(rowHTML).join('') + '<div style="height:16px;flex:none;"></div>';
+  bindDrag();
+}
+
+function renderSummary(cnt){
+  var el=document.getElementById('summary');
+  function chip(st,label){
+    var active=state.statusFilter===st, dim=state.statusFilter&&!active;
+    var bg=active?('background:'+TINT[st][0]+';'):''; var op=dim?'opacity:.4;':'';
+    return '<div class="sum" style="'+bg+op+'" onclick="toggleFilter(\''+st+'\')">'
+      +'<span class="d" style="background:'+COLORS[st]+'"></span><b>'+cnt[st]+'</b>&nbsp;'+label+'</div>';
   }
-  function exportDb(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
-    function P(s,d){ try{ return JSON.parse(s); }catch(e){ return d; } }
-    var aggs=list.map(function(it){ return { name:it.name||'Агрегат', agg:P(it.agg,{}), defects:P(it.defects,[]), program:P(it.program,{points:[]}) }; });
-    var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets'), sess=getTpls('nova_sessions');
-    var out=(ops.length||sets.length||sess.length)?{aggregates:aggs, opTemplates:ops, methodSets:sets, sessions:sess}:aggs;
-    var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
-    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
+  el.innerHTML = chip('red','недопустимо')+chip('amber','внимание')+chip('green','норма');
+}
+
+function renderSensors(){
+  var s=null; try{ s=JSON.parse(localStorage.getItem('nova_sensors')); }catch(e){}
+  // D6: A1/A2 — вибро-IMU VibroGyro (accel+gyro), n — тахо. Модель хранит один vibro + флаг tacho.
+  var defs=[
+    { lbl:'A1', on:!!(s&&s.vibro), title:'Датчик вибрации 1 (VibroGyro)' },
+    { lbl:'A2', on:false,          title:'Датчик вибрации 2 (VibroGyro)' },
+    { lbl:'n',  on:!!(s&&s.tacho), title:'Тахометр · частота вращения' }
+  ];
+  document.getElementById('sensors').innerHTML = defs.map(function(d){
+    var dot = d.on ? 'background:var(--st-green);' : 'background:transparent;border:1.5px solid var(--text-3);';
+    var col = d.on ? 'var(--text)' : 'var(--text-3)';
+    return '<span class="sensor" title="'+d.title+' · '+(d.on?'подключён':'нет связи')+'">'
+      +'<span class="dot" style="'+dot+'"></span><span class="lbl mono" style="color:'+col+'">'+d.lbl+'</span></span>';
+  }).join('');
+}
+
+function rowHTML(r){
+  var open=state.openId===r.i;
+  var color=COLORS[r.status];
+  var left;
+  if(r.h){
+    var g=sparkGeom(r.h.spark, r.h.zones);
+    var dlt=r.h.trend;
+    var trendLabel = dlt>0 ? '↗ +'+dlt+'% к пред.' : dlt<0 ? '↘ '+dlt+'% к пред.' : '→ без изменений';
+    var trendColor = dlt>1 ? (r.status==='red'?'var(--tint-red-fg)':'var(--tint-amber-fg)') : 'var(--text-2)';
+    left = '<div class="crow2">'
+        +'<span class="cval mono">'+r.h.val.toFixed(1)+' мм/с</span>'
+        +'<span class="ctrend" style="color:'+trendColor+'">'+trendLabel+'</span>'
+      +'</div>'
+      +'<div class="crow3">'
+        +'<svg width="11" height="11" viewBox="0 0 12 12" style="flex:none;"><circle cx="6" cy="6.5" r="4.4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M6 4v2.6l1.6 1" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>'
+        +'Измерено '+r.h.date+'</div>';
+    var spark = '<svg width="84" height="50" viewBox="0 0 84 50" style="flex:none;border-radius:6px;overflow:hidden;">'
+        +'<rect x="0" y="0" width="84" height="'+g.zRedH+'" fill="var(--z-red)"/>'
+        +'<rect x="0" y="'+g.zAmberY+'" width="84" height="'+g.zAmberH+'" fill="var(--z-amber)"/>'
+        +'<rect x="0" y="'+g.zGreenY+'" width="84" height="'+g.zGreenH+'" fill="var(--z-green)"/>'
+        +'<polyline points="'+g.spark+'" fill="none" stroke="var(--spark-line)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else {
+    left = '<div class="crow2"><span style="color:var(--text-3);">Нет замеров</span></div>'
+        +'<div class="crow3"><svg width="11" height="11" viewBox="0 0 12 12" style="flex:none;"><circle cx="6" cy="6.5" r="4.4" fill="none" stroke="currentColor" stroke-width="1"/></svg>Ещё не измерялся</div>';
+    var spark = '<svg width="84" height="50" viewBox="0 0 84 50" style="flex:none;border-radius:6px;overflow:hidden;background:var(--surface-2);"><line x1="6" y1="25" x2="78" y2="25" stroke="var(--text-3)" stroke-width="1.4" stroke-dasharray="3 4" stroke-linecap="round"/></svg>';
   }
-  function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
-  function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
-  function sesW(n){ var a=n%100,b=n%10; if(a>10&&a<20) return 'сессий'; if(b===1) return 'сессия'; if(b>=2&&b<=4) return 'сессии'; return 'сессий'; }
-  function saveList(l){ try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
-  function curFilter(){ var s=document.getElementById('search'); return s?s.value:''; }
-  function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
-  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function openSettings(){ openSheet('<h3>База данных</h3><div class="mitem" onclick="loadTestDb()"><i class="ti ti-database-import"></i> Загрузить тестовую БД</div><div class="mitem" onclick="exportDb()"><i class="ti ti-database-export"></i> Экспорт БД (db.json)</div>'); }
-  function openRowMenu(i){ var list=getList(); var nm=(list[i]&&list[i].name)||'Агрегат';
-    openSheet('<h3>'+nm+'</h3><div class="mitem" onclick="duplicate('+i+')"><i class="ti ti-copy"></i> Дублировать</div><div class="mitem danger" onclick="delAgg('+i+')"><i class="ti ti-trash"></i> Удалить</div>');
-  }
-  function duplicate(i){ var list=getList(), src=list[i]; if(!src) return;
-    list.push({ name:(src.name||'Агрегат')+' (копия)', agg:src.agg, defects:src.defects, program:src.program });
-    saveList(list); closeSheet(); render(curFilter());
-  }
-  function delAgg(i){ var list=getList(), nm=(list[i]&&list[i].name)||'агрегат';
-    if(!confirm('Удалить «'+nm+'»? Действие необратимо.')) return;
-    list.splice(i,1); saveList(list); closeSheet(); render(curFilter());
-  }
-  function render(filter){ var list=getList(), sess=[]; try{ sess=JSON.parse(localStorage.getItem('nova_sessions'))||[]; }catch(e){} filter=(filter||'').trim().toLowerCase();
-    var wrap=document.getElementById('searchWrap'); if(wrap) wrap.style.display=list.length?'flex':'none';
-    var el=document.getElementById('recent'); if(!el) return;
-    if(!list.length){ el.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:34px 16px;border:0.5px dashed var(--border-strong);border-radius:var(--r-lg);"><i class="ti ti-box-off" style="font-size:34px;color:var(--text-tertiary);"></i><div style="font-size:14px;color:var(--text-tertiary);text-align:center;">Агрегатов пока нет.<br>Создайте первый или загрузите тестовую БД.</div><button onclick="loadTestDb()" style="margin-top:2px;padding:9px 16px;font-size:13px;color:var(--info);border:0.5px solid var(--info-border);border-radius:var(--r-md);"><i class="ti ti-database-import"></i> Загрузить тестовую БД</button></div>'; return; }
-    var h='', shown=0;
-    list.forEach(function(it,i){ var name=it.name||'Агрегат'; if(filter && name.toLowerCase().indexOf(filter)<0) return; shown++;
-      var nv=0,ns=0; try{ var a=JSON.parse(it.agg); nv=a.units.length; a.units.forEach(function(u){ ns+=(u.supports||[]).length; }); }catch(e){}
-      var nses=sess.filter(function(s){return s.aggId===i;}).length;
-      h+='<div style="display:flex;align-items:center;background:var(--bg-secondary);border-radius:var(--r-md);margin-bottom:8px;">'
-        +'<div onclick="location.href=\'equipment.html?id='+i+'\'" style="flex:1;display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;min-width:0;"><i class="ti ti-box" style="font-size:22px;color:var(--info);flex:0 0 auto;"></i><div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+name+'</div><div style="font-size:12px;color:var(--text-tertiary);">'+nv+' валов · '+ns+' опор'+(nses?' · '+nses+' '+sesW(nses):'')+'</div></div></div>'
-        +'<button class="rowmenu" onclick="event.stopPropagation();openRowMenu('+i+')"><i class="ti ti-dots-vertical" style="font-size:20px;"></i></button>'
-        +'</div>';
+  return '<div class="rowwrap">'
+    +'<div class="actions">'
+      +'<div class="act edit" onclick="editAgg('+r.i+')"><svg width="17" height="17" viewBox="0 0 16 16"><path d="M11 2l3 3-8 8-3.5.6.6-3.6 8-8z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Изменить</div>'
+      +'<div class="act del" onclick="delAgg('+r.i+')"><svg width="17" height="17" viewBox="0 0 16 16"><path d="M3 4.2h10M6 4.2V2.6h4v1.6M4.6 4.2l.6 9h5.6l.6-9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Удалить</div>'
+    +'</div>'
+    +'<div class="slide" data-i="'+r.i+'" style="transform:translateX('+(open?-150:0)+'px);" onclick="cardTap(event,'+r.i+')">'
+      +'<div class="card">'
+        +'<div class="cbar" style="background:'+color+'"></div>'
+        +'<div class="cl">'
+          +'<div class="crow1"><span class="d" style="background:'+color+'"></span><span class="cname">'+esc(r.name)+'</span></div>'
+          +left
+        +'</div>'
+        +spark
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
+
+function emptyBlock(t,s){ return '<div class="empty"><div class="t">'+t+'</div><div class="s">'+s+'</div></div>'; }
+
+/* ---------- свайп ---------- */
+function bindDrag(){
+  var slides=document.querySelectorAll('.slide');
+  slides.forEach(function(sl){
+    sl.addEventListener('pointerdown', function(e){
+      var i=+sl.dataset.i;
+      state.drag={ i:i, x0:e.clientX, base:(state.openId===i?-150:0), moved:false };
+      try{ sl.setPointerCapture(e.pointerId); }catch(_){}
+      sl.classList.add('drag');
     });
-    el.innerHTML = shown ? h : '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text-tertiary);">Ничего не найдено</div>';
-  }
-  // первый заход (пустой список) → автозагрузка публичной db.json
-  if(!getList().length){ loadTestDb(true); } else { render(''); }
+    sl.addEventListener('pointermove', function(e){
+      if(!state.drag || state.drag.i!==+sl.dataset.i) return;
+      var nx=state.drag.base+(e.clientX-state.drag.x0);
+      if(Math.abs(e.clientX-state.drag.x0)>4) state.drag.moved=true;
+      nx=Math.max(-150,Math.min(0,nx));
+      sl.style.transform='translateX('+nx+'px)';
+    });
+    var up=function(e){
+      if(!state.drag || state.drag.i!==+sl.dataset.i) return;
+      var nx=state.drag.base+(e.clientX-state.drag.x0); nx=Math.max(-150,Math.min(0,nx));
+      var open = nx < -75;
+      state.openId = open ? state.drag.i : (state.openId===state.drag.i?null:state.openId);
+      sl.classList.remove('drag');
+      sl.style.transform='translateX('+(open?-150:0)+'px)';
+      var wasMoved=state.drag.moved; state.drag=null;
+      // закрыть другие открытые
+      if(open) document.querySelectorAll('.slide').forEach(function(o){ if(+o.dataset.i!==state.openId){ o.style.transform='translateX(0)'; } });
+      sl._suppress = wasMoved;
+    };
+    sl.addEventListener('pointerup', up);
+    sl.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------- действия ---------- */
+function cardTap(e, i){
+  var sl=e.currentTarget;
+  if(sl._suppress){ sl._suppress=false; return; }        // это был свайп, не тап
+  if(state.openId===i){ state.openId=null; sl.style.transform='translateX(0)'; return; }
+  location.href='equipment.html?id='+i;                   // тап → карточка агрегата (паспорт)
+}
+function onQuery(v){ state.query=v; render(); }
+function setSort(s){ state.sort=s; render(); }
+function toggleFilter(st){ state.statusFilter = state.statusFilter===st?null:st; state.openId=null; render(); }
+
+function newAgg(){ ['nova_agg','nova_defects','nova_program','nova_editId'].forEach(function(k){ localStorage.removeItem(k); }); location.href='create.html'; }
+
+function editAgg(i){
+  // Изменить структуру: подложить агрегат как «текущий» и открыть редактор (create.html?load=1)
+  var it=getList()[i]; if(!it) return;
+  try{
+    localStorage.setItem('nova_agg', typeof it.agg==='string'?it.agg:JSON.stringify(it.agg||{}));
+    localStorage.setItem('nova_defects', typeof it.defects==='string'?it.defects:JSON.stringify(it.defects||[]));
+    localStorage.setItem('nova_program', typeof it.program==='string'?it.program:JSON.stringify(it.program||{points:[]}));
+    localStorage.setItem('nova_editId', String(i));
+  }catch(e){}
+  location.href='create.html?load=1';
+}
+
+function delAgg(i){
+  state.deleted[i]=true; state.openId=null;
+  state.toastIdx=i;
+  render(); showToast();
+  clearTimeout(state.toastTimer);
+  state.toastTimer=setTimeout(function(){ commitDelete(i); }, 4500);
+}
+function showToast(){
+  var t=document.getElementById('toast');
+  t.innerHTML='<span>Агрегат удалён</span><span class="undo" onclick="undoDelete()">Отменить</span>';
+  t.style.display='flex';
+}
+function hideToast(){ document.getElementById('toast').style.display='none'; state.toastIdx=null; }
+function undoDelete(){ clearTimeout(state.toastTimer); if(state.toastIdx!=null) delete state.deleted[state.toastIdx]; hideToast(); render(); }
+function commitDelete(i){
+  // фактическое удаление из nova_list; индексы сдвигаются → перестраиваем deleted/openId
+  var list=getList(); if(i<0||i>=list.length){ hideToast(); return; }
+  list.splice(i,1); saveList(list);
+  state.deleted={}; state.openId=null; hideToast(); render();
+}
+
+/* ---------- лист «Ещё» (тестовая БД) ---------- */
+function openMore(){
+  var s=document.getElementById('sheet');
+  s.innerHTML='<h3>База данных</h3>'
+    +'<div class="mitem" onclick="loadTestDb()">Загрузить тестовую БД</div>'
+    +'<div class="mitem" onclick="exportDb()">Экспорт БД (db.json)</div>';
+  s.classList.add('on'); document.getElementById('backdrop').classList.add('on');
+}
+function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+
+function loadTestDb(auto){
+  var cur=getList();
+  if(!auto && cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
+  fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
+    var aggs=Array.isArray(data)?data:((data&&data.aggregates)||[]);
+    var list=aggs.map(function(e){ return { name:e.name||'Агрегат',
+      agg: typeof e.agg==='string'?e.agg:JSON.stringify(e.agg||{}),
+      defects: typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]),
+      program: typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
+    localStorage.setItem('nova_list', JSON.stringify(list));
+    if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates', JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets', JSON.stringify(data.methodSets)); if(data.sessions) localStorage.setItem('nova_sessions', JSON.stringify(data.sessions)); }
+    closeSheet(); state.deleted={}; render();
+  }).catch(function(err){ if(!auto) alert('Не удалось загрузить db.json (нужен http-сервер, не file://): '+err); });
+}
+function exportDb(){
+  var list=getList();
+  var aggs=list.map(function(it){ return { name:it.name||'Агрегат', agg:pj(it.agg,{}), defects:pj(it.defects,[]), program:pj(it.program,{points:[]}) }; });
+  var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets'), sess=getTpls('nova_sessions');
+  var out=(ops.length||sets.length||sess.length)?{aggregates:aggs, opTemplates:ops, methodSets:sets, sessions:sess}:aggs;
+  var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100);
+}
+
+/* ---------- старт ---------- */
+if(!getList().length){ loadTestDb(true); } else { render(); }
 </script>
 </body>
 </html>
