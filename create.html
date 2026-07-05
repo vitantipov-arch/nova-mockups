@@ -4,263 +4,505 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nova — создание агрегата</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="nova-scheme.js"></script>
 <style>
-  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
-         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55); --r:12px; }
-  *{box-sizing:border-box;}
-  html,body{margin:0;background:var(--bg);}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
-  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
-  a{color:inherit;text-decoration:none;}
-  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
-  .hd .ti{font-size:23px;color:var(--muted);}
-  .ttl{font-size:16px;font-weight:500;}
-  .sttl{font-size:12px;color:var(--hint);}
-  .body{padding:16px;flex:1;}
-  .field{margin-bottom:14px;}
-  .field label{display:block;font-size:12px;color:var(--hint);margin-bottom:6px;}
-  .field input{width:100%;height:42px;background:var(--secondary);border:0.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:0 12px;font-family:inherit;}
-  .field input:read-only{color:var(--hint);background:rgba(255,255,255,0.03);}
-  .seg{display:flex;gap:6px;background:var(--secondary);border-radius:10px;padding:4px;margin-bottom:14px;}
-  .seg button{flex:1;height:34px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
-  .seg button.on{background:var(--info-bg);color:var(--info);}
-  .canvas{background:var(--primary);border:0.5px solid var(--border);border-radius:var(--r);overflow:auto;padding:10px;}
-  .canvas svg{display:block;}
-  .toolbar{display:flex;gap:8px;margin-top:10px;}
-  .toolbar button{flex:1;height:42px;border:0.5px dashed var(--border2);background:transparent;color:var(--text);border-radius:10px;font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
-  .note{font-size:12px;color:var(--hint);margin-top:10px;display:flex;gap:7px;align-items:flex-start;line-height:1.4;}
-  .note .ti{font-size:15px;margin-top:1px;}
-  .panel{margin-top:16px;background:var(--primary);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;}
-  .panel.hidden{display:none;}
-  .prow{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .pname{font-size:15px;font-weight:500;}
-  .sublbl{font-size:12px;color:var(--hint);margin:14px 0 8px;}
-  .mrow{display:flex;align-items:center;gap:8px;background:var(--secondary);border-radius:10px;padding:8px 10px;margin-bottom:8px;flex-wrap:wrap;}
-  .mdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
-  .mname{flex:1;font-size:14px;min-width:80px;}
-  .seg2{display:flex;gap:4px;background:var(--bg);border-radius:7px;padding:3px;}
-  .seg2 button{border:none;background:transparent;color:var(--hint);font-size:11px;font-family:inherit;border-radius:5px;padding:5px 8px;cursor:pointer;}
-  .seg2 button.on{background:var(--info-bg);color:var(--info);}
-  .mtrash{font-size:16px;color:#e24b4a;cursor:pointer;}
-  .addbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;height:40px;background:transparent;border:0.5px dashed var(--border2);border-radius:10px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px;}
-  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px;}
-  .pf input{width:100%;height:38px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;}
-  .pf input:read-only{color:var(--hint);background:rgba(255,255,255,0.03);}
-  .freq{margin-top:12px;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:9px;padding:10px 12px;font-size:13px;color:var(--info);display:flex;align-items:center;gap:8px;}
-  .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
-  .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
-  .next:disabled{opacity:0.4;border-color:var(--border2);background:transparent;color:var(--hint);}
-  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
-  .backdrop.on{opacity:1;pointer-events:auto;}
-  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:88vh;overflow-y:auto;}
-  .sheet.on{transform:translateY(0);}
-  .sheet h3{font-size:15px;font-weight:500;margin:4px 0 12px;}
-  .opt{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:11px;cursor:pointer;border:1.5px solid transparent;}
-  .opt:active{background:var(--secondary);}
-  .opt.on{border-color:var(--info-bd);background:var(--info-bg);}
-  .pic{width:40px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-  .pic .ti{font-size:20px;}
-  .opt .pn{font-size:14.5px;font-weight:500;}
-  .opt .pd{font-size:12px;color:var(--hint);}
-  .lparams{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);}
-  .dirrow{display:flex;gap:10px;margin-bottom:10px;}
-  .dirrow .dg{flex:1;}
-  .dirrow .dg>div{font-size:11px;color:var(--hint);margin-bottom:5px;}
+body{margin:0;background:#E8E6E1;font-family:'IBM Plex Sans',system-ui,sans-serif;display:flex;justify-content:center}
+#nsc-root{--bg:#F4F3F0;--surface:#FFFFFF;--surface2:#E7E5E0;--text:#1B1D21;--muted:#55585E;--hint:#9A9DA3;--border:#E4E2DD;--border2:#CDCAC3;--info:#2A6FDB;--info-bg:#EAF1FB;--info-bd:#BCD4F2;--danger:#C6483A;--warn:#C8891A;--canvas:#FBFAF8;width:100%;max-width:440px;height:100vh;height:100dvh;position:relative;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif}
+#nsc-root[data-theme="dark"]{--bg:#15171B;--surface:#20232A;--surface2:#2A2E36;--text:#ECEEF1;--muted:#A9AEB6;--hint:#6E747E;--border:#31353D;--border2:#3E434C;--info:#85B7EB;--info-bg:rgba(55,138,221,.16);--info-bd:rgba(55,138,221,.5);--danger:#E5675A;--warn:#E0B24A;--canvas:#191C22}
+#nsc-root *{box-sizing:border-box}
+.nsc-hd{display:flex;align-items:center;gap:12px;padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+.nsc-ic{width:32px;height:32px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--muted);cursor:pointer}
+.nsc-ttl{font-size:16px;font-weight:600}
+.nsc-sttl{font-size:11.5px;color:var(--hint);margin-top:1px}
+.nsc-body{padding:16px;flex:1;overflow-y:auto}
+.nsc-field{margin-bottom:14px}
+.nsc-lbl{display:block;font-size:11.5px;color:var(--hint);margin-bottom:6px}
+.nsc-inp{width:100%;height:42px;background:var(--surface);border:1px solid var(--border);border-radius:11px;color:var(--text);font-size:15px;padding:0 13px;font-family:inherit}
+.nsc-inp:focus{outline:none;border-color:var(--info-bd)}
+.nsc-seg{display:flex;gap:5px;background:var(--surface2);border-radius:11px;padding:4px;margin-bottom:14px}
+.nsc-seg button{flex:1;height:36px;border:none;border-radius:8px;background:transparent;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500}
+.nsc-seg button.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.nsc-choice-lbl{font-size:11.5px;color:var(--hint);margin:2px 0 8px}
+.nsc-choice{display:flex;flex-direction:column;gap:10px}
+.nsc-cch{display:flex;align-items:center;gap:13px;padding:15px 15px;border:1px solid var(--border);border-radius:14px;cursor:pointer;background:var(--surface)}
+.nsc-cch.hi{border:1.5px solid var(--info-bd);background:var(--info-bg)}
+.nsc-cch .g{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto;background:var(--surface2)}
+.nsc-cch.hi .g{background:rgba(42,111,219,.12)}
+.nsc-cch .pn{font-size:14px;font-weight:600}
+.nsc-cch .pd{font-size:11.5px;color:var(--hint);margin-top:2px}
+.nsc-canvas{background:var(--canvas);border:1px solid var(--border);border-radius:14px;padding:8px;overflow:auto}
+.nsc-toolbar{display:flex;gap:8px;margin-top:10px}
+.nsc-toolbar button{flex:1;height:42px;border:1px dashed var(--border2);background:transparent;color:var(--text);border-radius:11px;font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;font-weight:500}
+.nsc-toolbar button.clone{border:1px solid var(--info-bd);color:var(--info);background:var(--info-bg)}
+.nsc-note{font-size:12px;color:var(--hint);margin-top:12px;display:flex;gap:7px;align-items:flex-start;line-height:1.45}
+.nsc-panel{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.nsc-panel.hidden{display:none}
+.nsc-prow{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.nsc-pname{font-size:15px;font-weight:600}
+.nsc-sublbl{font-size:11.5px;color:var(--hint);margin:14px 0 8px}
+.nsc-mrow{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:11px;padding:8px 10px;margin-bottom:8px;flex-wrap:wrap}
+.nsc-mdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.nsc-mname{flex:1;font-size:13.5px;min-width:80px}
+.nsc-seg2{display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px}
+.nsc-seg2 button{border:none;background:transparent;color:var(--hint);font-size:11px;font-family:inherit;border-radius:6px;padding:5px 8px;cursor:pointer}
+.nsc-seg2 button.on{background:var(--info-bg);color:var(--info);font-weight:600}
+.nsc-trash{font-size:16px;color:var(--danger);cursor:pointer;line-height:1}
+.nsc-addbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;height:40px;background:transparent;border:1px dashed var(--border2);border-radius:11px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:4px}
+.nsc-pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nsc-pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px}
+.nsc-pf input{width:100%;height:38px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit}
+.nsc-pf input:focus{outline:none;border-color:var(--info-bd)}
+.nsc-pf input:read-only{color:var(--hint)}
+.nsc-freq{margin-top:12px;background:var(--info-bg);border:1px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--info);display:flex;align-items:center;gap:8px}
+.nsc-foot{padding:14px 16px;border-top:1px solid var(--border)}
+.nsc-steps{display:flex;align-items:center;gap:8px;margin:0 0 16px}
+.nsc-step{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--hint);font-weight:500}
+.nsc-step .n{width:19px;height:19px;border-radius:99px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.nsc-step.on{color:var(--info)}
+.nsc-step.on .n{border-color:var(--info);background:var(--info);color:#fff}
+.nsc-stepline{flex:1;height:1.5px;background:var(--border)}
+.nsc-issues{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--warn);margin-bottom:10px;line-height:1.4}
+.nsc-pf .inbox{position:relative;display:flex;align-items:center}
+.nsc-pf .inbox input{padding-right:44px}
+.nsc-suffix{position:absolute;right:11px;font-size:12px;color:var(--hint);pointer-events:none}
+.nsc-step2b{display:flex;align-items:center;gap:8px}
+.nsc-stepbtn{width:38px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:19px;font-family:inherit;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.nsc-stepbtn:active{background:var(--info-bg)}
+.nsc-stepval{flex:1;text-align:center;font-size:15px;font-weight:600}
+.nsc-presets{display:flex;gap:6px;margin:2px 0 8px;flex-wrap:wrap}
+.nsc-chip{border:1px solid var(--border2);background:var(--surface2);color:var(--muted);border-radius:8px;padding:8px 12px;font-size:12.5px;font-family:inherit;cursor:pointer}
+.nsc-chip.on{border-color:var(--info-bd);background:var(--info-bg);color:var(--info);font-weight:600}
+.nsc-zoom{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:8px}
+.nsc-zoom button{width:34px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;font-family:inherit}
+.nsc-zoom .z{font-size:11.5px;color:var(--hint);min-width:40px;text-align:center}
+.nsc-draft{display:flex;align-items:center;gap:8px;background:var(--info-bg);border:1px solid var(--info-bd);border-radius:10px;padding:9px 12px;font-size:12.5px;color:var(--info);margin-bottom:12px}
+.nsc-draft button{margin-left:auto;border:none;background:transparent;color:var(--info);font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline}
+.nsc-next{width:100%;height:50px;border-radius:13px;border:1.5px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
+.nsc-next:disabled{opacity:.45;border-color:var(--border2);background:transparent;color:var(--hint);cursor:default}
+.nsc-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.nsc-backdrop.on{opacity:1;pointer-events:auto}
+.nsc-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top-left-radius:20px;border-top-right-radius:20px;border-top:1px solid var(--border);padding:8px 16px 24px;transform:translateY(110%);transition:transform .26s cubic-bezier(.2,.8,.2,1);z-index:11;max-height:82%;overflow-y:auto}
+.nsc-sheet.on{transform:translateY(0)}
+.nsc-grab{width:38px;height:4px;border-radius:9px;background:var(--border2);margin:6px auto 10px}
+.nsc-sheet h3{font-size:15px;font-weight:600;margin:2px 0 12px}
+.nsc-opt{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:12px;cursor:pointer;border:1.5px solid transparent}
+.nsc-opt:active{background:var(--surface2)}
+.nsc-opt.on{border-color:var(--info-bd);background:var(--info-bg)}
+.nsc-pic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:var(--surface2);font-size:17px;font-weight:700}
+.nsc-pn{font-size:14.5px;font-weight:600}
+.nsc-pd{font-size:12px;color:var(--hint);margin-top:1px}
+.nsc-lparams{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.nsc-dirrow{display:flex;gap:10px;margin-bottom:10px}
+.nsc-dirrow .dg{flex:1}
+.nsc-dirrow .dg>div{font-size:11px;color:var(--hint);margin-bottom:5px}
+.nsc-thumb{width:58px;height:38px;border:1px solid var(--border);border-radius:7px;background:var(--canvas);flex:0 0 auto;overflow:hidden}
 </style>
 </head>
 <body>
-<div class="screen">
+<div id="nsc-root" data-theme="light"></div>
 
-  <div class="hd">
-    <a href="index.html"><i class="ti ti-chevron-left"></i></a>
-    <div style="flex:1;"><div class="ttl">Новый агрегат</div><div class="sttl">Валы · машины · передачи</div></div>
-    <i class="ti ti-check" style="color:var(--info);"></i>
-  </div>
-
-  <div class="body">
-    <div class="field">
-      <label>Название агрегата</label>
-      <input type="text" id="aggname" placeholder="Например, Насосный агрегат Н-3"/>
-    </div>
-
-    <div class="seg">
-      <button id="bh" class="on" onclick="setOrient('h')"><i class="ti ti-arrows-horizontal"></i> Горизонтальный</button>
-      <button id="bv" onclick="setOrient('v')"><i class="ti ti-arrows-vertical"></i> Вертикальный</button>
-    </div>
-
-    <div class="canvas" id="canvas"></div>
-    <div class="toolbar" id="toolbar"></div>
-    <div class="note" id="hint"><i class="ti ti-info-circle"></i><span>Добавьте первый вал — на него сядет двигатель. Привод — вал с двигателем; от него частота расходится по цепочке.</span></div>
-
-    <div class="panel hidden" id="panel"></div>
-  </div>
-
-  <div class="foot"><button class="next" id="next" disabled onclick="saveAndGo()">Далее → дефекты</button></div>
-</div>
-
-<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
-<div class="sheet" id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div>
-
-<script src="scheme.js"></script>
 <script>
-  const MT = {
-    motor:{name:'Двигатель', color:'#4d8dff', icon:'ti-bolt'},
-    pump:{name:'Насос', color:'#38e1d6', icon:'ti-droplet'},
-    fan:{name:'Вентилятор', color:'#ff5db1', icon:'ti-propeller'},
-    comp:{name:'Компрессор', color:'#ffb24d', icon:'ti-engine'},
-    gen:{name:'Генератор', color:'#9b6cff', icon:'ti-battery-charging'}
+/* ---------- реальная модель приложения ---------- */
+function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+
+/* Экран «Создание агрегата». Логика/схема — из hi-fi дизайна Designer (NovaScheme2),
+   точки интеграции (donors/save/edit/issues/back) переписаны на реальную модель nova_agg/nova_list. */
+class CreateAggregate {
+  constructor(){
+    this.props = { theme: 'auto', defaultOrient: 'h' };
+    this.units = []; this.trans = []; this.sel = null; this.orient = this.props.defaultOrient;
+    this.aggName = ''; this.curLink = null; this.addSide = 'r'; this.curMach = -1; this.curSup = {}; this.curSlot = 0;
+    this.zoom = 1; this._restored = false; this.DRAFT_KEY = 'nova_draft_create'; this.editId = null;
+  }
+
+  MT = {
+    motor: { name: 'Двигатель', color: '#4d8dff', gl: 'Д' },
+    pump:  { name: 'Насос',      color: '#22b8ac', gl: 'Н' },
+    fan:   { name: 'Вентилятор', color: '#e0559f', gl: 'В' },
+    comp:  { name: 'Компрессор', color: '#e0912b', gl: 'К' },
+    gen:   { name: 'Генератор',  color: '#8a63e6', gl: 'Г' }
   };
-  const LINKS = {
-    rigid:{name:'Муфта жёсткая', desc:'соосно, 1:1', off:false, params:[]},
-    elastic:{name:'Муфта упругая', desc:'соосно, пальцы + центровка', off:false, params:[{k:'pins',l:'Число пальцев'},{k:'radial',l:'Радиальное, мм'}]},
-    belt:{name:'Ремённая', desc:'перпендикулярно, шкивы + ремень', off:true, params:[{k:'d1',l:'Ø ведущего, мм'},{k:'d2',l:'Ø ведомого, мм'},{k:'len',l:'Длина ремня, мм'}]},
-    gear:{name:'Зубчатая', desc:'перпендикулярно, шестерни', off:true, params:[{k:'z1',l:'Зубья ведущей'},{k:'z2',l:'Зубья ведомой'}]}
+  MPARAMS = {
+    motor: [ { k: 'power', l: 'Мощность', u: 'кВт' }, { k: 'poles', l: 'Число полюсов', step: 2, min: 2 }, { k: 'zs', l: 'Пазы статора', step: 1, min: 0 }, { k: 'zr', l: 'Стержни ротора', step: 1, min: 0 } ],
+    pump:  [ { k: 'flow', l: 'Расход', u: 'м³/ч' }, { k: 'head', l: 'Напор', u: 'м' }, { k: 'blades', l: 'Число лопастей', step: 1, min: 1 } ],
+    fan:   [ { k: 'flow', l: 'Расход', u: 'м³/ч' }, { k: 'head', l: 'Давление', u: 'Па' }, { k: 'blades', l: 'Число лопастей', step: 1, min: 1 } ],
+    comp:  [ { k: 'flow', l: 'Производит.', u: 'м³/мин' }, { k: 'head', l: 'Давление', u: 'бар' }, { k: 'blades', l: 'Число лопастей', step: 1, min: 1 } ],
+    gen:   [ { k: 'power', l: 'Мощность', u: 'кВт' }, { k: 'poles', l: 'Число полюсов', step: 2, min: 2 } ]
   };
-  const BRG = [
-    {id:'6206', n:'6206', t:'Шариковый радиальный', kind:'rolling'},
-    {id:'6208', n:'6208', t:'Шариковый радиальный', kind:'rolling'},
-    {id:'6308', n:'6308', t:'Шариковый радиальный', kind:'rolling'},
-    {id:'6309', n:'6309', t:'Шариковый радиальный', kind:'rolling'},
-    {id:'NU309', n:'NU309', t:'Роликовый цилиндрический', kind:'rolling'},
-    {id:'NJ308', n:'NJ308', t:'Роликовый цилиндрический', kind:'rolling'},
-    {id:'22310', n:'22310', t:'Роликовый сферич. 2-ряд.', kind:'rolling'},
-    {id:'7308', n:'7308', t:'Радиально-упорный шариковый', kind:'rolling'},
-    {id:'30308', n:'30308', t:'Роликовый конический', kind:'rolling'},
-    {id:'1308', n:'1308', t:'Шариковый сферич. 2-ряд.', kind:'rolling'},
-    {id:'sl-rad', n:'Скольжения радиальный', t:'Подшипник скольжения', kind:'journal'},
-    {id:'sl-seg', n:'Сегментный (баббит)', t:'Скольжения, сегментный', kind:'journal'},
-    {id:'sl-thr', n:'Упорный скольжения', t:'Скольжения упорный', kind:'journal'}
+  BRGP = { motor: [], pump: ['6208', '6207', '7308'], fan: ['22310', '22312', '6309'], comp: ['NU309', '7308', '30308'], gen: ['6310', '6309'] };
+  RPM_PRESETS = [3000, 1500, 1000, 750, 600];
+  LINKS = {
+    rigid:   { name: 'Муфта жёсткая', desc: 'соосно, 1:1', off: false, params: [] },
+    elastic: { name: 'Муфта упругая', desc: 'соосно, пальцы + центровка', off: false, params: [{ k: 'pins', l: 'Число пальцев', step: 1, min: 0 }, { k: 'radial', l: 'Радиальное', u: 'мм' }] },
+    belt:    { name: 'Ремённая', desc: 'перпендикулярно, шкивы + ремень', off: true, params: [{ k: 'd1', l: 'Ø ведущего', u: 'мм' }, { k: 'd2', l: 'Ø ведомого', u: 'мм' }, { k: 'len', l: 'Длина ремня', u: 'мм' }] },
+    gear:    { name: 'Зубчатая', desc: 'перпендикулярно, шестерни', off: true, params: [{ k: 'z1', l: 'Зубья ведущей', step: 1, min: 1 }, { k: 'z2', l: 'Зубья ведомой', step: 1, min: 1 }] }
+  };
+  BRG = [
+    { id: '6206', n: '6206', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6207', n: '6207', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6208', n: '6208', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6209', n: '6209', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6210', n: '6210', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6305', n: '6305', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6308', n: '6308', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6309', n: '6309', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: '6310', n: '6310', t: 'Шариковый радиальный', kind: 'rolling' },
+    { id: 'NU309', n: 'NU309', t: 'Роликовый цилиндрический', kind: 'rolling' },
+    { id: 'NJ308', n: 'NJ308', t: 'Роликовый цилиндрический', kind: 'rolling' },
+    { id: 'NU2308', n: 'NU2308', t: 'Роликовый цилиндрический 2-ряд.', kind: 'rolling' },
+    { id: '22310', n: '22310', t: 'Роликовый сферич. 2-ряд.', kind: 'rolling' },
+    { id: '22312', n: '22312', t: 'Роликовый сферич. 2-ряд.', kind: 'rolling' },
+    { id: '7308', n: '7308', t: 'Радиально-упорный шариковый', kind: 'rolling' },
+    { id: '7310', n: '7310', t: 'Радиально-упорный шариковый', kind: 'rolling' },
+    { id: '30308', n: '30308', t: 'Роликовый конический', kind: 'rolling' },
+    { id: '30310', n: '30310', t: 'Роликовый конический', kind: 'rolling' },
+    { id: '1308', n: '1308', t: 'Шариковый сферич. 2-ряд.', kind: 'rolling' },
+    { id: 'sl-rad', n: 'Радиальный', t: 'Скольжения, радиальный', kind: 'journal' },
+    { id: 'sl-thr', n: 'Упорный', t: 'Скольжения, упорный', kind: 'journal' },
+    { id: 'sl-seg', n: 'Сегментный (баббит)', t: 'Скольжения, сегментный радиальный', kind: 'journal' }
   ];
-  function brgName(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].n; return ''; }
-  function brgType(id){ for(var i=0;i<BRG.length;i++) if(BRG[i].id===id) return BRG[i].t; return ''; }
-  let units=[], trans=[], sel=null, curLink=null, addSide='r', orient='h';
+  PALS = {
+    light: { shaft: '#6b6a63', tick: '#b6b4ab', warn: '#c8891a', supFill: '#ffffff', supRing: 'rgba(0,0,0,.26)', supText: '#55585e', label: '#55585e', metal1: '#b4b1a8', metal2: '#9a988f', pulleyFill: '#ffffff', pulleyStroke: '#8f8d84', belt: '#a8a69d', sel: '#2a6fdb', rpmFg: '#2a6fdb', rpmBg: '#eaf1fb', rpmBd: '#bcd4f2' },
+    dark:  { shaft: '#9a988f', tick: '#565b64', warn: '#e0b24a', supFill: '#20232a', supRing: 'rgba(255,255,255,.26)', supText: '#a9aeb6', label: '#a9aeb6', metal1: '#55534c', metal2: '#6e6c64', pulleyFill: '#20232a', pulleyStroke: '#8f8d84', belt: '#86857e', sel: '#85b7eb', rpmFg: '#85b7eb', rpmBg: 'rgba(55,138,221,.18)', rpmBd: 'rgba(55,138,221,.5)' }
+  };
 
-  function ratio(T){ if(T.type==='belt'){var a=parseFloat(T.d1),b=parseFloat(T.d2); return (a&&b)?a/b:null;} if(T.type==='gear'){var a=parseFloat(T.z1),b=parseFloat(T.z2); return (a&&b)?a/b:null;} return 1; }
-  function srcIdx(){ for(var i=0;i<units.length;i++) if(units[i].machines.some(function(m){return m.type==='motor';})) return i; return 0; }
-  function rigidGroup(i){ var g=[i],a=i,b=i; while(a>0 && !LINKS[trans[a-1].type].off){ a--; g.unshift(a); } while(b<units.length-1 && !LINKS[trans[b].type].off){ b++; g.push(b); } return g; }
-  function compute(){ if(!units.length) return;
-    var groups=[],cur=[0];
-    for(var i=1;i<units.length;i++){ if(LINKS[trans[i-1].type].off){ groups.push(cur); cur=[i]; } else cur.push(i); }
-    groups.push(cur);
-    var s=srcIdx(), gd=0; groups.forEach(function(g,gi){ if(g.indexOf(s)>=0) gd=gi; });
-    var base=groups.map(function(g){ return parseFloat(units[g[0]].rpm)||0; });
-    var man=groups.map(function(){ return false; });
-    for(var gi=gd+1; gi<groups.length; gi++){ var r=ratio(trans[groups[gi][0]-1]); if(r!==null) base[gi]=Math.round(base[gi-1]*r); else man[gi]=true; }
-    for(var gi=gd-1; gi>=0; gi--){ var r=ratio(trans[groups[gi+1][0]-1]); if(r!==null) base[gi]=Math.round(base[gi+1]/r); else man[gi]=true; }
-    groups.forEach(function(g,gi){ g.forEach(function(idx){ units[idx].rpm=String(base[gi]); units[idx].man=man[gi]; }); });
+  /* доноры для клонирования = реальные агрегаты из nova_list */
+  donors() {
+    return getList().map((it, i) => {
+      let a = {}; try { a = typeof it.agg === 'string' ? JSON.parse(it.agg) : (it.agg || {}); } catch (e) {}
+      return { id: String(i), name: it.name || 'Агрегат', desc: this.descOf(a), orient: (a.orient === 'v' ? 'v' : 'h'), units: a.units || [], trans: a.trans || [] };
+    }).filter(d => d.units.length);
+  }
+  descOf(a) {
+    const nu = (a.units || []).length; let ns = 0; (a.units || []).forEach(u => ns += (u.supports || []).length);
+    const types = []; (a.units || []).forEach(u => (u.machines || []).forEach(m => { const nm = (this.MT[m.type] || {}).name; if (nm && types.indexOf(nm) < 0) types.push(nm); }));
+    return nu + (nu === 1 ? ' вал' : ' вала') + ' · ' + ns + ' опор' + (types.length ? ' · ' + types.join('+') : '');
   }
 
-  function render(){
-    compute();
-    document.getElementById('next').disabled=units.length===0;
-    document.getElementById('hint').style.display=units.length?'none':'flex';
-    var tb=document.getElementById('toolbar');
-    var lA = orient==='h' ? '<i class="ti ti-arrow-left"></i> вал слева' : '<i class="ti ti-arrow-up"></i> вал сверху';
-    var rA = orient==='h' ? 'вал справа <i class="ti ti-arrow-right"></i>' : 'вал снизу <i class="ti ti-arrow-down"></i>';
-    tb.innerHTML = units.length
-      ? '<button onclick="addUnit(\'l\')">'+lA+'</button><button onclick="addUnit(\'r\')">'+rA+'</button>'
-      : '<button onclick="addUnit(\'r\')"><i class="ti ti-plus"></i> Добавить вал</button>';
-    var c=document.getElementById('canvas');
-    NovaScheme.render(c, {orient:orient, units:units, trans:trans},
-      {sel:sel, onUnit:'selUnit', onSup:'openSupport', onLink:'openLink', brgWarn:true});
+  // ---------- запуск ----------
+  init() {
+    this.root = document.getElementById('nsc-root');
+    this.applyTheme();
+    this.buildShell();
+    this.bind();
+    const editing = /(?:[?&])load=1(?:&|$)/.test(location.search);
+    if (editing) this.loadForEdit(); else this.loadDraft();
+    const n0 = this.q('#nsc-name'); if (n0) n0.value = this.aggName || '';
+    this.render();
+    if (window.matchMedia) { this._mq = window.matchMedia('(prefers-color-scheme: dark)'); this._mqh = () => { if ((this.props.theme || 'light') === 'auto') { this.applyTheme(); this.renderScheme(); } }; this._mq.addEventListener ? this._mq.addEventListener('change', this._mqh) : this._mq.addListener(this._mqh); }
+  }
+  loadForEdit() {
+    try { const a = JSON.parse(localStorage.getItem('nova_agg')); if (a && a.units && a.units.length) { this.units = a.units; this.trans = a.trans || []; this.orient = a.orient || 'h'; this.aggName = a.name || ''; this.sel = null; } } catch (e) {}
+    const eid = localStorage.getItem('nova_editId'); this.editId = (eid != null && eid !== '' && !isNaN(+eid)) ? +eid : null;
+    this._restored = false;
+  }
+  applyTheme() { let t = this.props.theme || 'light'; if (t === 'auto') t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; this.theme = t; if (this.root) this.root.setAttribute('data-theme', t); }
+  pal() { return this.PALS[this.theme] || this.PALS.light; }
+  q(sel) { return this.root.querySelector(sel); }
+
+  buildShell() {
+    this.root.innerHTML =
+      '<div class="nsc-hd"><div class="nsc-ic" data-act="back">‹</div>'
+      + '<div style="flex:1"><div class="nsc-ttl">Новый агрегат</div><div class="nsc-sttl">валы · машины · передачи</div></div>'
+      + '<div class="nsc-ic" data-act="save" style="color:var(--info)">✓</div></div>'
+      + '<div class="nsc-body">'
+      + '<div class="nsc-steps"><div class="nsc-step on"><span class="n">1</span>Схема</div><div class="nsc-stepline"></div><div class="nsc-step"><span class="n">2</span>Дефекты</div></div>'
+      + '<div id="nsc-draft"></div>'
+      + '<div class="nsc-field"><label class="nsc-lbl">Название агрегата</label><input class="nsc-inp" id="nsc-name" placeholder="Например, Насосный агрегат Н-3" data-inp="aggname"/></div>'
+      + '<div class="nsc-seg"><button id="nsc-bh" data-act="orient" data-v="h">⇆ Горизонтальный</button><button id="nsc-bv" data-act="orient" data-v="v">⇅ Вертикальный</button></div>'
+      + '<div id="nsc-choice"></div>'
+      + '<div id="nsc-canvas" class="nsc-canvas" style="display:none"></div>'
+      + '<div id="nsc-zoom" class="nsc-zoom" style="display:none"></div>'
+      + '<div id="nsc-toolbar" class="nsc-toolbar" style="display:none"></div>'
+      + '<div id="nsc-hint" class="nsc-note" style="display:none"></div>'
+      + '<div id="nsc-panel" class="nsc-panel hidden"></div>'
+      + '</div>'
+      + '<div class="nsc-foot"><div id="nsc-issues" style="display:none"></div><button class="nsc-next" id="nsc-next" data-act="save" disabled>Далее → дефекты</button></div>'
+      + '<div class="nsc-backdrop" id="nsc-backdrop" data-act="closeSheet"></div>'
+      + '<div class="nsc-sheet" id="nsc-sheet"><div class="nsc-grab"></div><h3 id="nsc-stitle"></h3><div id="nsc-sbody"></div></div>';
+    this.elCanvas = this.q('#nsc-canvas'); this.elToolbar = this.q('#nsc-toolbar'); this.elHint = this.q('#nsc-hint');
+    this.elPanel = this.q('#nsc-panel'); this.elChoice = this.q('#nsc-choice');
+    this.elSheet = this.q('#nsc-sheet'); this.elBackdrop = this.q('#nsc-backdrop'); this.elSTitle = this.q('#nsc-stitle'); this.elSBody = this.q('#nsc-sbody');
   }
 
-  function setOrient(o){ orient=o; document.getElementById('bh').classList.toggle('on',o==='h'); document.getElementById('bv').classList.toggle('on',o==='v'); render(); }
-  function selUnit(i){ sel=i; render(); renderPanel(); }
-  function renderPanel(){
-    var p=document.getElementById('panel');
-    if(sel===null||!units[sel]){ p.classList.add('hidden'); return; }
-    compute(); var u=units[sel], inDrv=rigidGroup(sel).indexOf(srcIdx())>=0, canEdit=inDrv||u.man, ms='';
-    u.machines.forEach(function(m,j){
-      ms+='<div class="mrow"><span class="mdot" style="background:'+MT[m.type].color+'"></span>'
-        +'<span class="mname" onclick="machPalette('+j+')">'+MT[m.type].name+'</span>'
-        +'<div class="seg2"><button class="'+(m.pos==='left'?'on':'')+'" onclick="setPos('+j+',\'left\')">консоль◄</button><button class="'+(m.pos==='center'?'on':'')+'" onclick="setPos('+j+',\'center\')">центр</button><button class="'+(m.pos==='right'?'on':'')+'" onclick="setPos('+j+',\'right\')">►консоль</button></div>'
-        +'<i class="ti ti-trash mtrash" onclick="delMach('+j+')"></i></div>';
+  bind() {
+    this.root.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-act]'); if (!t || !this.root.contains(t)) return;
+      const a = t.getAttribute('data-act'); const i = +t.getAttribute('data-i'); const k = +t.getAttribute('data-k'); const j = +t.getAttribute('data-j'); const v = t.getAttribute('data-v'); const id = t.getAttribute('data-id');
+      const M = {
+        orient: () => this.setOrient(v), back: () => { location.href = 'index.html'; }, save: () => this.save(),
+        scratch: () => this.startScratch(), clone: () => this.openClone(), clonePick: () => this.doClone(id),
+        addUnit: () => this.addUnit(v), selUnit: () => this.selUnit(i),
+        openSup: () => this.openSupport(i, k), openLink: () => this.openLink(i),
+        delUnit: () => this.delUnit(), setPos: () => this.setPos(j, v), delMach: () => this.delMach(j),
+        machPalette: () => this.machPalette(j), pickMach: () => this.pickMach(v),
+        setSupCnt: () => this.setSupCnt(+v), openCatalog: () => this.openCatalog(j), pickBrg: () => this.pickBrg(id), setBrgCnt: () => this.setBrgCnt(+v),
+        pickLink: () => this.addUnitWith(v), setLink: () => this.setLink(v), setDir: () => this.setDir(t.getAttribute('data-key'), v),
+        brgKind: () => this.brgKind(v), pickBrgPreset: () => this.pickBrgPreset(id),
+        setRpmPreset: () => this.setRpmPreset(v),
+        stepMach: () => this.stepMach(j, t.getAttribute('data-key'), +t.getAttribute('data-d'), +t.getAttribute('data-min') || 0),
+        stepLink: () => this.stepLink(t.getAttribute('data-key'), +t.getAttribute('data-d'), +t.getAttribute('data-min') || 0),
+        zoomIn: () => this.setZoom((this.zoom || 1) + 0.25), zoomOut: () => this.setZoom((this.zoom || 1) - 0.25), zoomReset: () => this.setZoom(1),
+        clearDraft: () => this.clearDraft(),
+        closeSheet: () => this.closeSheet()
+      };
+      if (M[a]) M[a]();
     });
-    var supTbl='';
-    u.supports.forEach(function(sp,k){ var names=sp.brgs.filter(function(b){return b;}).map(function(b){return brgName(b);}); var t=names.length?names.join(', '):'не выбран'; supTbl+='<div class="mrow" style="cursor:pointer" onclick="openSupport('+sel+','+k+')"><span class="mname">Опора №'+supNum(sel,k)+'</span><span style="font-size:13px;color:'+(names.length?'#ececea':'#ef9f27')+'">'+t+'</span><i class="ti ti-chevron-right" style="color:#86857e"></i></div>'; });
-    var rpmF=canEdit
-      ? '<div class="pf"><label>Частота, об/мин'+(inDrv?' (привод)':' (вручную)')+'</label><input type="text" value="'+u.rpm+'" oninput="updRpm(this.value)"/></div>'
-      : '<div class="pf"><label>Частота, об/мин</label><input type="text" value="'+u.rpm+'" readonly/></div>';
-    p.innerHTML='<div class="prow"><div class="pname">'+u.name+'</div><i class="ti ti-trash" style="color:#e24b4a;cursor:pointer" onclick="delUnit()"></i></div>'
-      +'<div class="pgrid"><div class="pf"><label>Обозначение вала</label><input type="text" value="'+u.name+'" oninput="updUName(this.value)"/></div>'+rpmF+'</div>'
-      +'<div class="sublbl">Опоры вала</div>'
-      +'<div class="mrow"><span class="mname">Число опор: '+u.supports.length+'</span><div class="seg2"><button onclick="setSupCnt(-1)">−</button><button onclick="setSupCnt(1)">+</button></div></div>'
-      +supTbl
-      +'<div class="sublbl">Машины на валу</div>'+ms
-      +'<button class="addbtn" onclick="machPalette(-1)"><i class="ti ti-plus"></i> Добавить машину на этот вал</button>';
+    this.root.addEventListener('input', (e) => {
+      const t = e.target.closest('[data-inp]'); if (!t) return;
+      const kind = t.getAttribute('data-inp');
+      if (kind === 'aggname') { this.aggName = t.value; this.persist(); this.updValidation(); }
+      else if (kind === 'rpm') { this.rigidGroup(this.sel).forEach(x => this.units[x].rpm = t.value); this.compute(); this.renderScheme(); this.persist(); this.updValidation(); }
+      else if (kind === 'uname') { this.units[this.sel].name = t.value; this.renderScheme(); this.persist(); }
+      else if (kind === 'linkParam') { this.trans[this.curLink][t.getAttribute('data-key')] = t.value; this.compute(); this.renderScheme(); this.renderPanel(); this.updFreq(); this.persist(); }
+      else if (kind === 'brgSearch') { this.brgQuery = t.value; this.fillRolling(); }
+      else if (kind === 'motorParam') { this.units[this.sel].machines[+t.getAttribute('data-j')][t.getAttribute('data-key')] = t.value; this.persist(); }
+      else if (kind === 'cloneSearch') { this.cloneQuery = t.value; this.fillClones(); }
+    });
+  }
+
+  // ---------- частоты ----------
+  ratio(T) { if (T.type === 'belt') { const a = parseFloat(T.d1), b = parseFloat(T.d2); return (a && b) ? a / b : null; } if (T.type === 'gear') { const a = parseFloat(T.z1), b = parseFloat(T.z2); return (a && b) ? a / b : null; } return 1; }
+  srcIdx() { for (let i = 0; i < this.units.length; i++) if (this.units[i].machines.some(m => m.type === 'motor')) return i; return 0; }
+  rigidGroup(i) { if (i == null) return []; const g = [i]; let a = i, b = i; while (a > 0 && !this.LINKS[this.trans[a - 1].type].off) { a--; g.unshift(a); } while (b < this.units.length - 1 && !this.LINKS[this.trans[b].type].off) { b++; g.push(b); } return g; }
+  compute() {
+    if (!this.units.length) return;
+    const groups = []; let cur = [0];
+    for (let i = 1; i < this.units.length; i++) { if (this.LINKS[this.trans[i - 1].type].off) { groups.push(cur); cur = [i]; } else cur.push(i); }
+    groups.push(cur);
+    const s = this.srcIdx(); let gd = 0; groups.forEach((g, gi) => { if (g.indexOf(s) >= 0) gd = gi; });
+    const base = groups.map(g => parseFloat(this.units[g[0]].rpm) || 0); const man = groups.map(() => false);
+    for (let gi = gd + 1; gi < groups.length; gi++) { const r = this.ratio(this.trans[groups[gi][0] - 1]); if (r !== null) base[gi] = Math.round(base[gi - 1] * r); else man[gi] = true; }
+    for (let gi = gd - 1; gi >= 0; gi--) { const r = this.ratio(this.trans[groups[gi + 1][0] - 1]); if (r !== null) base[gi] = Math.round(base[gi + 1] / r); else man[gi] = true; }
+    groups.forEach((g, gi) => g.forEach(idx => { this.units[idx].rpm = String(base[gi]); this.units[idx].man = man[gi]; }));
+  }
+
+  // ---------- render ----------
+  render() {
+    this.compute();
+    const has = this.units.length > 0;
+    const nameEl = this.q('#nsc-name'); if (nameEl && document.activeElement !== nameEl) nameEl.value = this.aggName || '';
+    const del = this.q('#nsc-draft');
+    if (del) { if (this._restored) { del.style.display = 'flex'; del.innerHTML = '<span style="font-size:14px">↩</span><span>Восстановлен незавершённый черновик</span><button data-act="clearDraft">Начать заново</button>'; } else { del.style.display = 'none'; del.innerHTML = ''; } }
+    this.q('#nsc-bh').classList.toggle('on', this.orient === 'h');
+    this.q('#nsc-bv').classList.toggle('on', this.orient === 'v');
+    this.elChoice.style.display = has ? 'none' : 'block';
+    this.elCanvas.style.display = has ? 'block' : 'none';
+    this.q('#nsc-zoom').style.display = has ? 'flex' : 'none';
+    this.elToolbar.style.display = has ? 'flex' : 'none';
+    this.elHint.style.display = has ? 'flex' : 'none';
+    if (has) { this.q('#nsc-zoom').innerHTML = '<span class="z">Масштаб</span><button data-act="zoomOut">−</button><span class="z">' + Math.round((this.zoom || 1) * 100) + '%</span><button data-act="zoomIn">＋</button><button data-act="zoomReset">⟲</button>'; }
+    this.updValidation();
+    this.persist();
+    if (!has) {
+      this.elChoice.innerHTML = '<div class="nsc-choice-lbl">Как заполнить схему?</div><div class="nsc-choice">'
+        + '<div class="nsc-cch" data-act="scratch"><div class="g">✎</div><div><div class="pn">Собрать с нуля</div><div class="pd">добавляйте валы и машины вручную</div></div></div>'
+        + '<div class="nsc-cch hi" data-act="clone"><div class="g">⧉</div><div><div class="pn">Клонировать агрегат</div><div class="pd">взять готовый из базы и переименовать</div></div></div>'
+        + '</div>';
+      this.elPanel.classList.add('hidden');
+      return;
+    }
+    const lA = this.orient === 'h' ? '＋ Вал слева' : '＋ Вал сверху';
+    const rA = this.orient === 'h' ? '＋ Вал справа' : '＋ Вал снизу';
+    this.elToolbar.innerHTML = '<button data-act="addUnit" data-v="l">' + lA + '</button><button data-act="addUnit" data-v="r">' + rA + '</button>';
+    this.elHint.innerHTML = '<span style="font-size:14px">ⓘ</span><span>Тап по валу, опоре или передаче — открыть настройку. Повторный тап по выбранному валу — добавить машину. Частота расходится по цепочке автоматически.</span>';
+    this.renderScheme();
+    this.renderPanel();
+  }
+  renderScheme() {
+    if (!this.units.length || !window.NovaScheme2) return;
+    this.compute();
+    const ratios = this.trans.map((T) => { if (!this.LINKS[T.type].off) return null; const r = this.ratio(T); return r == null ? null : ('i ' + r.toFixed(2)); });
+    window.NovaScheme2.render(this.elCanvas, { orient: this.orient, units: this.units, trans: this.trans },
+      { sel: this.sel, hit: true, brgWarn: true, pal: this.pal(), ratios: ratios, maxH: 260 });
+    this.applyZoom();
+  }
+  applyZoom() {
+    const svg = this.elCanvas.querySelector('svg'); if (!svg || !svg.viewBox || !svg.viewBox.baseVal) return;
+    const vb = svg.viewBox.baseVal; if (!vb.width || !vb.height) return;
+    const cw = Math.max(220, this.elCanvas.clientWidth - 16);
+    const fitH = Math.min(260, cw * vb.height / vb.width);
+    const h = fitH * (this.zoom || 1);
+    svg.removeAttribute('width');
+    svg.style.width = (h * vb.width / vb.height) + 'px';
+    svg.style.height = h + 'px';
+    svg.style.maxHeight = 'none';
+    svg.style.display = 'block';
+  }
+  setZoom(z) { this.zoom = Math.max(0.5, Math.min(3, Math.round(z * 100) / 100)); this.q('#nsc-zoom').innerHTML = '<span class="z">Масштаб</span><button data-act="zoomOut">−</button><span class="z">' + Math.round(this.zoom * 100) + '%</span><button data-act="zoomIn">＋</button><button data-act="zoomReset">⟲</button>'; this.applyZoom(); }
+  setOrient(o) { this.orient = o; this.render(); }
+  selUnit(i) { if (this.sel === i) { this.machPalette(-1); return; } this.sel = i; this.render(); }
+
+  renderPanel() {
+    const p = this.elPanel;
+    if (this.sel === null || !this.units[this.sel]) { p.classList.add('hidden'); return; }
+    this.compute();
+    const u = this.units[this.sel]; const inDrv = this.rigidGroup(this.sel).indexOf(this.srcIdx()) >= 0; const canEdit = inDrv || u.man;
+    let ms = '';
+    u.machines.forEach((m, j) => {
+      ms += '<div class="nsc-mrow"><span class="nsc-mdot" style="background:' + this.MT[m.type].color + '"></span>'
+        + '<span class="nsc-mname" data-act="machPalette" data-j="' + j + '" style="cursor:pointer">' + this.MT[m.type].name + '</span>'
+        + '<div class="nsc-seg2"><button class="' + (m.pos === 'left' ? 'on' : '') + '" data-act="setPos" data-j="' + j + '" data-v="left">◄</button><button class="' + (m.pos === 'center' ? 'on' : '') + '" data-act="setPos" data-j="' + j + '" data-v="center">центр</button><button class="' + (m.pos === 'right' ? 'on' : '') + '" data-act="setPos" data-j="' + j + '" data-v="right">►</button></div>'
+        + '<span class="nsc-trash" data-act="delMach" data-j="' + j + '">🗑</span></div>';
+    });
+    let supTbl = '';
+    u.supports.forEach((sp, k) => { const names = sp.brgs.filter(b => b).map(b => this.brgName(b)); const txt = names.length ? names.join(', ') : 'не выбран'; supTbl += '<div class="nsc-mrow" style="cursor:pointer" data-act="openSup" data-i="' + this.sel + '" data-k="' + k + '"><span class="nsc-mname">Опора №' + this.supNum(this.sel, k) + '</span><span style="font-size:12.5px;color:' + (names.length ? 'var(--text)' : 'var(--warn,#c8891a)') + '">' + txt + '</span><span style="color:var(--hint)">›</span></div>'; });
+    const rpmF = '<div class="nsc-pf"><label>Частота, об/мин' + (inDrv ? ' (привод)' : (u.man ? ' (вручную)' : '')) + '</label><input type="text" value="' + u.rpm + '" ' + (canEdit ? 'data-inp="rpm"' : 'readonly') + '/></div>';
+    let rpmChips = '';
+    if (canEdit) { rpmChips = '<div class="nsc-choice-lbl" style="margin:2px 0 6px">Синхронная частота (50 Гц)</div><div class="nsc-presets">' + this.RPM_PRESETS.map(v => '<button class="nsc-chip' + (String(v) === String(u.rpm) ? ' on' : '') + '" data-act="setRpmPreset" data-v="' + v + '">' + v + '</button>').join('') + '</div>'; }
+    let mp = '';
+    u.machines.forEach((m, mj) => {
+      const sch = this.MPARAMS[m.type]; if (!sch) return;
+      mp += '<div class="nsc-sublbl">Параметры: ' + this.MT[m.type].name.toLowerCase() + '</div><div class="nsc-pgrid">';
+      sch.forEach((pp, pi) => { const wide = (sch.length % 2 === 1 && pi === sch.length - 1) ? ' style="grid-column:1 / -1"' : ''; mp += '<div class="nsc-pf"' + wide + '>' + this.paramField(m[pp.k], pp, 'motorParam', 'stepMach', 'data-j="' + mj + '"') + '</div>'; });
+      mp += '</div>';
+    });
+    p.innerHTML = '<div class="nsc-prow"><div class="nsc-pname">' + u.name + '</div><span class="nsc-trash" data-act="delUnit">🗑</span></div>'
+      + '<div class="nsc-pgrid"><div class="nsc-pf"><label>Обозначение вала</label><input type="text" value="' + u.name + '" data-inp="uname"/></div>' + rpmF + '</div>'
+      + rpmChips
+      + '<div class="nsc-sublbl">Опоры вала</div>'
+      + '<div class="nsc-mrow"><span class="nsc-mname">Число опор: ' + u.supports.length + '</span><div class="nsc-seg2"><button data-act="setSupCnt" data-v="-1">−</button><button data-act="setSupCnt" data-v="1">+</button></div></div>'
+      + supTbl
+      + '<div class="nsc-sublbl">Машины на валу</div>' + ms
+      + '<button class="nsc-addbtn" data-act="machPalette" data-j="-1">＋ Добавить машину на этот вал</button>'
+      + mp;
     p.classList.remove('hidden');
   }
-  function updRpm(v){ rigidGroup(sel).forEach(function(idx){ units[idx].rpm=v; }); compute(); render(); }
-  function updUName(v){ units[sel].name=v; render(); }
-  function setPos(j,pos){ units[sel].machines[j].pos=pos; render(); renderPanel(); }
-  function delMach(j){ units[sel].machines.splice(j,1); if(!units[sel].machines.length){ delUnit(); return; } render(); renderPanel(); }
-  function delUnit(){ if(sel===null) return; units.splice(sel,1); if(trans.length) trans.splice(Math.max(0,sel-1),1); sel=null; render(); renderPanel(); }
-  function addUnit(side){ addSide=side; if(!units.length){ units.push({name:'Вал 1',rpm:'2940',machines:[{type:'motor',pos:'center'}],supports:[{brgs:['']},{brgs:['']}]}); sel=0; render(); renderPanel(); return; } openTransSheet(); }
 
-  var curMach=-1, curSup={}, curSlot=0;
-  function supNum(ui,si){ var n=0; for(var x=0;x<ui;x++) n+=units[x].supports.length; return n+si+1; }
-  function setSupCnt(d){ var u=units[sel]; var n=Math.max(1,Math.min(4,u.supports.length+d)); while(u.supports.length>n)u.supports.pop(); while(u.supports.length<n)u.supports.push({brgs:['']}); render(); renderPanel(); }
-  function openSupport(ui,si){ sel=ui; curSup={u:ui,s:si}; render(); renderPanel(); buildSupport(); openSheet(); }
-  function buildSupport(){ var u=curSup.u,si=curSup.s,sup=units[u].supports[si]; document.getElementById('sheetTitle').textContent='Опора №'+supNum(u,si)+' · '+units[u].name; var h='<div class="mrow"><span class="mname">Подшипников: '+sup.brgs.length+' (макс. 3)</span><div class="seg2"><button onclick="setBrgCnt(-1)">−</button><button onclick="setBrgCnt(1)">+</button></div></div>';
-    sup.brgs.forEach(function(b,j){ var nm=b?(brgName(b)+' · '+brgType(b)):'не выбран — тапните'; h+='<div class="opt" onclick="openCatalog('+j+')"><div class="pic" style="background:rgba(255,255,255,0.06)"><i class="ti ti-circle-dot" style="color:'+(b?'#85b7eb':'#86857e')+'"></i></div><div><div class="pn">Подшипник '+(j+1)+'</div><div class="pd">'+nm+'</div></div></div>'; });
-    document.getElementById('sheetBody').innerHTML=h;
-  }
-  function setBrgCnt(d){ var sup=units[curSup.u].supports[curSup.s]; var n=Math.max(1,Math.min(3,sup.brgs.length+d)); while(sup.brgs.length>n)sup.brgs.pop(); while(sup.brgs.length<n)sup.brgs.push(''); render(); renderPanel(); buildSupport(); }
-  function openCatalog(j){ curSlot=j; document.getElementById('sheetTitle').textContent='Подшипник из каталога'; var h=''; BRG.forEach(function(b){ h+='<div class="opt" onclick="pickBrg(\''+b.id+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)"><i class="ti ti-circle-dot" style="color:#85b7eb"></i></div><div><div class="pn">'+b.n+'</div><div class="pd">'+b.t+'</div></div></div>'; }); document.getElementById('sheetBody').innerHTML=h; }
-  function pickBrg(id){ units[curSup.u].supports[curSup.s].brgs[curSlot]=id; render(); renderPanel(); buildSupport(); }
-  function machPalette(j){ curMach=j; document.getElementById('sheetTitle').textContent=(j>=0?'Тип машины':'Добавить машину'); var h='';
-    for(var k in MT){ var t=MT[k]; h+='<div class="opt" onclick="pickMach(\''+k+'\')"><div class="pic" style="background:'+t.color+'22"><i class="ti '+t.icon+'" style="color:'+t.color+'"></i></div><div><div class="pn">'+t.name+'</div></div></div>'; }
-    document.getElementById('sheetBody').innerHTML=h; openSheet();
-  }
-  function pickMach(type){ if(curMach>=0) units[sel].machines[curMach].type=type; else units[sel].machines.push({type:type,pos:'center'}); closeSheet(); render(); renderPanel(); }
-  function connIcon(t){ var g='#86857e';
-    if(t==='belt') return '<svg width="26" height="40" viewBox="0 0 26 40"><circle cx="13" cy="10" r="5" fill="none" stroke="'+g+'" stroke-width="2"/><circle cx="13" cy="30" r="5" fill="none" stroke="'+g+'" stroke-width="2"/><line x1="8" y1="10" x2="8" y2="30" stroke="'+g+'" stroke-width="1.5"/><line x1="18" y1="10" x2="18" y2="30" stroke="'+g+'" stroke-width="1.5"/></svg>';
-    if(t==='gear') return '<svg width="26" height="40" viewBox="0 0 26 40"><circle cx="13" cy="11" r="5" fill="none" stroke="'+g+'" stroke-width="1.8"/><circle cx="13" cy="22" r="5" fill="none" stroke="'+g+'" stroke-width="1.8"/></svg>';
-    if(t==='shaft') return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="3.4" stroke-linecap="round"/></svg>';
-    if(t==='elastic') return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="2.3"/><rect x="9" y="13" width="2.4" height="14" fill="'+g+'"/><rect x="15" y="13" width="2.4" height="14" fill="'+g+'"/></svg>';
-    return '<svg width="26" height="40" viewBox="0 0 26 40"><line x1="2" y1="20" x2="24" y2="20" stroke="'+g+'" stroke-width="2.3"/><rect x="10" y="13" width="2.4" height="14" fill="'+g+'"/><rect x="14" y="13" width="2.4" height="14" fill="'+g+'"/></svg>';
-  }
-  function openTransSheet(){ document.getElementById('sheetTitle').textContent='Чем соединить новый вал'; var h='';
-    for(var k in LINKS){ var t=LINKS[k]; h+='<div class="opt" onclick="addUnitWith(\''+k+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)">'+connIcon(k)+'</div><div><div class="pn">'+t.name+'</div><div class="pd">'+t.desc+'</div></div></div>'; }
-    document.getElementById('sheetBody').innerHTML=h; openSheet();
-  }
-  function addUnitWith(type){ var T={type:type}; if(LINKS[type].off){ T.beltDir='down'; T.nextDir='right'; }
-    var nu={name:'Вал '+(units.length+1),rpm:'1450',machines:[{type:'pump',pos:'center'}],supports:[{brgs:['']},{brgs:['']}]};
-    if(addSide==='r'){ units.push(nu); trans.push(T); sel=units.length-1; } else { units.unshift(nu); trans.unshift(T); sel=0; }
-    closeSheet(); render(); renderPanel();
-  }
-  function openLink(i){ curLink=i; document.getElementById('sheetTitle').textContent='Передача между валами'; buildLink(i); openSheet(); }
-  function buildLink(i){ var L=trans[i],h='';
-    for(var k in LINKS){ var t=LINKS[k]; h+='<div class="opt'+(L.type===k?' on':'')+'" onclick="setLink(\''+k+'\')"><div class="pic" style="background:rgba(255,255,255,0.06)">'+connIcon(k)+'</div><div><div class="pn">'+t.name+'</div><div class="pd">'+t.desc+'</div></div></div>'; }
-    var sch=LINKS[L.type];
-    if(sch.off){ h+='<div class="lparams"><div class="dirrow">'
-        +'<div class="dg"><div>'+(orient==='h'?'Ремень':'Ремень')+'</div><div class="seg2"><button class="'+(L.beltDir==='up'?'on':'')+'" onclick="setDir(\'beltDir\',\'up\')">'+(orient==='h'?'↑ вверх':'◄ влево')+'</button><button class="'+(L.beltDir==='down'?'on':'')+'" onclick="setDir(\'beltDir\',\'down\')">'+(orient==='h'?'↓ вниз':'вправо ►')+'</button></div></div>'
-        +'<div class="dg"><div>Следующий вал</div><div class="seg2"><button class="'+(L.nextDir==='left'?'on':'')+'" onclick="setDir(\'nextDir\',\'left\')">'+(orient==='h'?'◄ влево':'↑ вверх')+'</button><button class="'+(L.nextDir==='right'?'on':'')+'" onclick="setDir(\'nextDir\',\'right\')">'+(orient==='h'?'вправо ►':'↓ вниз')+'</button></div></div>'
-        +'</div><div class="pgrid">';
-      sch.params.forEach(function(pp){ h+='<div class="pf"><label>'+pp.l+'</label><input type="text" value="'+(L[pp.k]||'')+'" placeholder="—" oninput="updLink(\''+pp.k+'\',this.value)"/></div>'; });
-      h+='</div>'; var cf=charFreq(i); if(cf) h+='<div class="freq" id="cf"><i class="ti ti-wave-sine"></i> '+cf+'</div>';
-      h+='<div class="note" style="margin-top:10px"><i class="ti ti-info-circle"></i><span>Параметры пусты → частоту вала после передачи задайте вручную в его панели.</span></div></div>';
-    } else if(sch.params.length){ h+='<div class="lparams"><div class="pgrid">';
-      sch.params.forEach(function(pp){ h+='<div class="pf"><label>'+pp.l+'</label><input type="text" value="'+(L[pp.k]||'')+'" placeholder="—" oninput="updLink(\''+pp.k+'\',this.value)"/></div>'; });
-      h+='</div></div>';
+  paramField(val, pp, inpKind, stepAct, extraAttrs) {
+    if (pp.step) {
+      return '<label>' + pp.l + '</label><div class="nsc-step2b">'
+        + '<button class="nsc-stepbtn" data-act="' + stepAct + '" ' + extraAttrs + ' data-key="' + pp.k + '" data-d="-' + pp.step + '" data-min="' + (pp.min || 0) + '">−</button>'
+        + '<span class="nsc-stepval">' + ((val && +val !== 0) ? val : '—') + '</span>'
+        + '<button class="nsc-stepbtn" data-act="' + stepAct + '" ' + extraAttrs + ' data-key="' + pp.k + '" data-d="' + pp.step + '" data-min="' + (pp.min || 0) + '">＋</button></div>';
     }
-    document.getElementById('sheetBody').innerHTML=h;
+    return '<label>' + pp.l + '</label><div class="inbox"><input type="text" value="' + (val || '') + '" placeholder="—" data-inp="' + inpKind + '" ' + extraAttrs + ' data-key="' + pp.k + '"/>' + (pp.u ? '<span class="nsc-suffix">' + pp.u + '</span>' : '') + '</div>';
   }
-  function charFreq(i){ var L=trans[i],n=parseFloat(units[i].rpm)||0;
-    if(L.type==='belt'){ var d1=parseFloat(L.d1),len=parseFloat(L.len); if(d1&&len) return 'Частота ремня ≈ '+(Math.PI*d1*(n/60)/len).toFixed(1)+' Гц'; }
-    if(L.type==='gear'){ var z1=parseFloat(L.z1); if(z1) return 'Зубцовая GMF ≈ '+(z1*n/60).toFixed(1)+' Гц'; }
-    return null;
+  stepMach(j, key, d, min) { const m = this.units[this.sel].machines[j]; const cur = parseInt(m[key] || 0, 10) || 0; m[key] = String(Math.max(min, cur + d)); this.renderPanel(); this.persist(); }
+  stepLink(key, d, min) { const L = this.trans[this.curLink]; const cur = parseInt(L[key] || 0, 10) || 0; L[key] = String(Math.max(min, cur + d)); this.compute(); this.renderScheme(); this.buildLink(this.curLink); this.updFreq(); this.persist(); }
+  setRpmPreset(v) { this.rigidGroup(this.sel).forEach(x => this.units[x].rpm = String(v)); this.compute(); this.render(); }
+  pickBrgPreset(id) { const sup = this.units[this.curSup.u].supports[this.curSup.s]; let slot = sup.brgs.findIndex(b => !b); if (slot < 0) slot = 0; sup.brgs[slot] = id; this.render(); this.buildSupport(); }
+
+  issues() {
+    const soft = []; let block = false; const nm = (this.aggName || '').trim();
+    if (!this.units.length) block = true;
+    if (!nm) block = true; else if (getList().some((it, idx) => idx !== this.editId && (it.name || '').toLowerCase() === nm.toLowerCase())) soft.push('имя уже есть в базе');
+    let nb = 0; this.units.forEach(u => u.supports.forEach(sp => { if (!sp.brgs.some(b => b)) nb++; }));
+    if (nb) soft.push(nb + ' опор(ы) без подшипника');
+    let nf = 0; this.units.forEach(u => { if (u.man && !(parseFloat(u.rpm) > 0)) nf++; });
+    if (nf) soft.push(nf + ' вал(а) без частоты');
+    return { soft: soft, block: block };
   }
-  function setLink(type){ var L=trans[curLink]; L.type=type; if(LINKS[type].off){ if(!L.beltDir)L.beltDir='down'; if(!L.nextDir)L.nextDir='right'; } render(); renderPanel(); buildLink(curLink); }
-  function setDir(k,v){ trans[curLink][k]=v; render(); buildLink(curLink); }
-  function updLink(k,v){ trans[curLink][k]=v; render(); renderPanel(); var el=document.getElementById('cf'),cf=charFreq(curLink); if(el&&cf) el.innerHTML='<i class="ti ti-wave-sine"></i> '+cf; }
-  function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
-  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function saveAndGo(){ try{ localStorage.setItem('nova_agg', JSON.stringify({name:(document.getElementById('aggname').value||'Агрегат'), orient:orient, units:units, trans:trans})); }catch(e){} location.href='defects.html'; }
-  (function(){ if(location.search.indexOf('load=1')>=0){ try{ var a=JSON.parse(localStorage.getItem('nova_agg')); if(a&&a.units&&a.units.length){ units=a.units; trans=a.trans||[]; orient=a.orient||'h'; document.getElementById('bh').classList.toggle('on',orient==='h'); document.getElementById('bv').classList.toggle('on',orient==='v'); document.getElementById('aggname').value=a.name||''; sel=0; } }catch(e){} } render(); })();
+  updValidation() {
+    const { soft, block } = this.issues();
+    const b = this.q('#nsc-next'); if (b) b.disabled = block;
+    const iel = this.q('#nsc-issues'); if (!iel) return;
+    const noName = this.units.length && !(this.aggName || '').trim();
+    if (this.units.length && (soft.length || noName)) {
+      let msg = []; if (noName) msg.push('название'); msg = msg.concat(soft);
+      iel.innerHTML = '<span style="font-size:14px">⚠</span><span>Не заполнено: ' + msg.join(', ') + '</span>'; iel.style.display = 'flex';
+    } else { iel.style.display = 'none'; iel.innerHTML = ''; }
+  }
+  persist() { try { localStorage.setItem(this.DRAFT_KEY, JSON.stringify({ units: this.units, trans: this.trans, orient: this.orient, name: this.aggName })); } catch (e) {} }
+  loadDraft() { try { const s = localStorage.getItem(this.DRAFT_KEY); if (s) { const d = JSON.parse(s); if (d && d.units && d.units.length) { this.units = d.units; this.trans = d.trans || []; this.orient = d.orient || 'h'; this.aggName = d.name || ''; this.sel = null; this._restored = true; } } } catch (e) {} }
+  clearDraft() { try { localStorage.removeItem(this.DRAFT_KEY); } catch (e) {} this.units = []; this.trans = []; this.sel = null; this.aggName = ''; this._restored = false; const n = this.q('#nsc-name'); if (n) n.value = ''; this.render(); }
+
+  brgName(id) { const b = this.BRG.find(x => x.id === id); return b ? b.n : ''; }
+  brgType(id) { const b = this.BRG.find(x => x.id === id); return b ? b.t : ''; }
+  supNum(ui, si) { let n = 0; for (let x = 0; x < ui; x++) n += this.units[x].supports.length; return n + si + 1; }
+
+  // ---------- машины / опоры / валы ----------
+  setPos(j, pos) { this.units[this.sel].machines[j].pos = pos; this.render(); }
+  delMach(j) { this.units[this.sel].machines.splice(j, 1); if (!this.units[this.sel].machines.length) { this.delUnit(); return; } this.render(); }
+  delUnit() { if (this.sel === null) return; this.units.splice(this.sel, 1); if (this.trans.length) this.trans.splice(Math.max(0, this.sel - 1), 1); this.sel = null; this.render(); }
+  addUnit(side) { this.addSide = side; if (!this.units.length) { this.units.push({ name: 'Вал 1', rpm: '2940', machines: [{ type: 'motor', pos: 'center' }], supports: [{ brgs: [''] }, { brgs: [''] }] }); this.sel = 0; this.render(); return; } this.openTransSheet(); }
+  setSupCnt(d) { const u = this.units[this.sel]; const n = Math.max(1, Math.min(4, u.supports.length + d)); while (u.supports.length > n) u.supports.pop(); while (u.supports.length < n) u.supports.push({ brgs: [''] }); this.render(); }
+
+  startScratch() { this.addUnit('r'); }
+
+  // ---------- клонирование ----------
+  openClone() { this.cloneQuery = ''; this.elSTitle.textContent = 'Клонировать агрегат из базы'; this.elSBody.innerHTML = '<div style="margin-bottom:10px"><input class="nsc-inp" placeholder="Поиск: имя, тип, участок…" data-inp="cloneSearch"/></div><div id="nsc-clonelist"></div><div class="nsc-note" style="margin-top:8px"><span>ⓘ</span><span>Копируется весь агрегат, кроме уникального названия — задайте его в поле сверху.</span></div>'; this.fillClones(); this.openSheet(); }
+  fillClones() { const q = (this.cloneQuery || '').toLowerCase(); const list = this.donors().filter(d => !q || (d.name + ' ' + d.desc).toLowerCase().includes(q)); let h = ''; list.forEach(d => { h += '<div class="nsc-opt" data-act="clonePick" data-id="' + d.id + '"><div class="nsc-thumb">' + this.thumb(d) + '</div><div><div class="nsc-pn">' + d.name + '</div><div class="nsc-pd">' + d.desc + '</div></div></div>'; }); if (!list.length) h = '<div class="nsc-pd" style="padding:14px 4px">Ничего не найдено</div>'; const el = this.q('#nsc-clonelist'); if (el) el.innerHTML = h; }
+  thumb(d) { const el = document.createElement('div'); window.NovaScheme2.render(el, { orient: d.orient, units: d.units, trans: d.trans }, { pal: this.pal(), maxH: 38 }); return el.innerHTML; }
+  doClone(id) { const d = this.donors().find(x => x.id === id); if (!d) return; this.units = JSON.parse(JSON.stringify(d.units)); this.trans = JSON.parse(JSON.stringify(d.trans)); this.orient = d.orient; this.aggName = ''; this.editId = null; this.sel = 0; this._restored = false; this.closeSheet(); this.render(); const n = this.q('#nsc-name'); if (n) { n.value = ''; setTimeout(() => { n.focus(); }, 60); } }
+
+  // ---------- шторки ----------
+  openSheet() { this.elSheet.classList.add('on'); this.elBackdrop.classList.add('on'); }
+  closeSheet() { this.elSheet.classList.remove('on'); this.elBackdrop.classList.remove('on'); }
+
+  machPalette(j) { this.curMach = j; this.elSTitle.textContent = (j >= 0 ? 'Тип машины' : 'Добавить машину'); let h = ''; for (const k in this.MT) { const t = this.MT[k]; h += '<div class="nsc-opt" data-act="pickMach" data-v="' + k + '"><div class="nsc-pic" style="background:' + t.color + '22;color:' + t.color + '">' + t.gl + '</div><div><div class="nsc-pn">' + t.name + '</div></div></div>'; } this.elSBody.innerHTML = h; this.openSheet(); }
+  pickMach(type) { if (this.curMach >= 0) this.units[this.sel].machines[this.curMach].type = type; else this.units[this.sel].machines.push({ type: type, pos: 'center' }); this.closeSheet(); this.render(); }
+
+  openSupport(ui, si) { this.sel = ui; this.curSup = { u: ui, s: si }; this.render(); this.buildSupport(); this.openSheet(); }
+  buildSupport() {
+    const u = this.curSup.u, si = this.curSup.s, sup = this.units[u].supports[si];
+    this.elSTitle.textContent = 'Опора №' + this.supNum(u, si) + ' · ' + this.units[u].name;
+    const mt = (this.units[u].machines[0] && this.units[u].machines[0].type) || 'motor';
+    const pres = this.BRGP[mt] || [];
+    let ph = pres.length ? '<div class="nsc-choice-lbl" style="margin:2px 0 6px">Типовые для «' + this.MT[mt].name.toLowerCase() + '»</div><div class="nsc-presets">' + pres.map(id => '<button class="nsc-chip' + (sup.brgs.indexOf(id) >= 0 ? ' on' : '') + '" data-act="pickBrgPreset" data-id="' + id + '">' + this.brgName(id) + '</button>').join('') + '</div>' : '';
+    let h = ph + '<div class="nsc-mrow"><span class="nsc-mname">Подшипников: ' + sup.brgs.length + ' (макс. 3)</span><div class="nsc-seg2"><button data-act="setBrgCnt" data-v="-1">−</button><button data-act="setBrgCnt" data-v="1">+</button></div></div>';
+    sup.brgs.forEach((b, j) => { const nm = b ? (this.brgName(b) + ' · ' + this.brgType(b)) : 'не выбран — тапните'; h += '<div class="nsc-opt" data-act="openCatalog" data-j="' + j + '"><div class="nsc-pic" style="color:' + (b ? 'var(--info)' : 'var(--hint)') + '">◎</div><div><div class="nsc-pn">Подшипник ' + (j + 1) + '</div><div class="nsc-pd">' + nm + '</div></div></div>'; });
+    this.elSBody.innerHTML = h;
+  }
+  setBrgCnt(d) { const sup = this.units[this.curSup.u].supports[this.curSup.s]; const n = Math.max(1, Math.min(3, sup.brgs.length + d)); while (sup.brgs.length > n) sup.brgs.pop(); while (sup.brgs.length < n) sup.brgs.push(''); this.render(); this.buildSupport(); }
+  openCatalog(j) { this.curSlot = j; this.elSTitle.textContent = 'Тип подшипника'; this.elSBody.innerHTML =
+    '<div class="nsc-opt" data-act="brgKind" data-v="rolling"><div class="nsc-pic" style="color:var(--info)">◎</div><div><div class="nsc-pn">Качения</div><div class="nsc-pd">шариковые и роликовые — из базы</div></div></div>'
+    + '<div class="nsc-opt" data-act="brgKind" data-v="journal"><div class="nsc-pic" style="color:var(--info)">◍</div><div><div class="nsc-pn">Скольжения</div><div class="nsc-pd">радиальный или упорный</div></div></div>'; }
+  brgKind(v) { if (v === 'rolling') this.openRolling(); else this.openJournal(); }
+  openRolling() { this.brgQuery = ''; this.elSTitle.textContent = 'Подшипник качения'; this.elSBody.innerHTML = '<div style="margin-bottom:10px"><input class="nsc-inp" placeholder="Поиск: 6208, роликовый…" data-inp="brgSearch"/></div><div id="nsc-brglist"></div>'; this.fillRolling(); }
+  fillRolling() { const q = (this.brgQuery || '').toLowerCase(); const list = this.BRG.filter(b => b.kind === 'rolling' && (!q || (b.n + ' ' + b.t).toLowerCase().includes(q))); let h = ''; list.forEach(b => { h += '<div class="nsc-opt" data-act="pickBrg" data-id="' + b.id + '"><div class="nsc-pic" style="color:var(--info)">◎</div><div><div class="nsc-pn">' + b.n + '</div><div class="nsc-pd">' + b.t + '</div></div></div>'; }); if (!list.length) h = '<div class="nsc-pd" style="padding:14px 4px">Ничего не найдено</div>'; const el = this.q('#nsc-brglist'); if (el) el.innerHTML = h; }
+  openJournal() { this.elSTitle.textContent = 'Подшипник скольжения'; let h = ''; this.BRG.filter(b => b.kind === 'journal').forEach(b => { h += '<div class="nsc-opt" data-act="pickBrg" data-id="' + b.id + '"><div class="nsc-pic" style="color:var(--info)">◍</div><div><div class="nsc-pn">' + b.n + '</div><div class="nsc-pd">' + b.t + '</div></div></div>'; }); this.elSBody.innerHTML = h; }
+  pickBrg(id) { this.units[this.curSup.u].supports[this.curSup.s].brgs[this.curSlot] = id; this.render(); this.buildSupport(); }
+
+  openTransSheet() { this.elSTitle.textContent = 'Чем соединить новый вал'; let h = ''; for (const k in this.LINKS) { const t = this.LINKS[k]; h += '<div class="nsc-opt" data-act="pickLink" data-v="' + k + '"><div class="nsc-pic">' + this.connIcon(k) + '</div><div><div class="nsc-pn">' + t.name + '</div><div class="nsc-pd">' + t.desc + '</div></div></div>'; } this.elSBody.innerHTML = h; this.openSheet(); }
+  addUnitWith(type) { const T = { type: type }; if (this.LINKS[type].off) { T.beltDir = 'down'; T.nextDir = 'right'; } const nu = { name: 'Вал ' + (this.units.length + 1), rpm: '1450', machines: [{ type: 'pump', pos: 'center' }], supports: [{ brgs: [''] }, { brgs: [''] }] }; if (this.addSide === 'r') { this.units.push(nu); this.trans.push(T); this.sel = this.units.length - 1; } else { this.units.unshift(nu); this.trans.unshift(T); this.sel = 0; } this.closeSheet(); this.render(); }
+
+  openLink(i) { this.curLink = i; this.elSTitle.textContent = 'Передача между валами'; this.buildLink(i); this.openSheet(); }
+  buildLink(i) {
+    const L = this.trans[i]; let h = '';
+    for (const k in this.LINKS) { const t = this.LINKS[k]; h += '<div class="nsc-opt' + (L.type === k ? ' on' : '') + '" data-act="setLink" data-v="' + k + '"><div class="nsc-pic">' + this.connIcon(k) + '</div><div><div class="nsc-pn">' + t.name + '</div><div class="nsc-pd">' + t.desc + '</div></div></div>'; }
+    const sch = this.LINKS[L.type];
+    if (sch.off) {
+      h += '<div class="nsc-lparams"><div class="nsc-dirrow">'
+        + '<div class="dg"><div>Ремень</div><div class="nsc-seg2"><button class="' + (L.beltDir === 'up' ? 'on' : '') + '" data-act="setDir" data-key="beltDir" data-v="up">' + (this.orient === 'h' ? '↑ вверх' : '◄ влево') + '</button><button class="' + (L.beltDir === 'down' ? 'on' : '') + '" data-act="setDir" data-key="beltDir" data-v="down">' + (this.orient === 'h' ? '↓ вниз' : 'вправо ►') + '</button></div></div>'
+        + '<div class="dg"><div>Следующий вал</div><div class="nsc-seg2"><button class="' + (L.nextDir === 'left' ? 'on' : '') + '" data-act="setDir" data-key="nextDir" data-v="left">' + (this.orient === 'h' ? '◄ влево' : '↑ вверх') + '</button><button class="' + (L.nextDir === 'right' ? 'on' : '') + '" data-act="setDir" data-key="nextDir" data-v="right">' + (this.orient === 'h' ? 'вправо ►' : '↓ вниз') + '</button></div></div>'
+        + '</div><div class="nsc-pgrid">';
+      sch.params.forEach(pp => { h += '<div class="nsc-pf">' + this.paramField(L[pp.k], pp, 'linkParam', 'stepLink', '') + '</div>'; });
+      h += '</div>'; const cf = this.charFreq(i); h += '<div class="nsc-freq" id="nsc-cf" style="' + (cf ? '' : 'display:none') + '">〜 ' + (cf || '') + '</div>';
+      h += '<div class="nsc-note" style="margin-top:10px"><span>ⓘ</span><span>Параметры пусты → частоту вала после передачи задайте вручную в его панели.</span></div></div>';
+    } else if (sch.params.length) {
+      h += '<div class="nsc-lparams"><div class="nsc-pgrid">';
+      sch.params.forEach(pp => { h += '<div class="nsc-pf">' + this.paramField(L[pp.k], pp, 'linkParam', 'stepLink', '') + '</div>'; });
+      h += '</div></div>';
+    }
+    this.elSBody.innerHTML = h;
+  }
+  charFreq(i) { const L = this.trans[i], n = parseFloat(this.units[i].rpm) || 0; if (L.type === 'belt') { const d1 = parseFloat(L.d1), len = parseFloat(L.len); if (d1 && len) return 'Частота ремня ≈ ' + (Math.PI * d1 * (n / 60) / len).toFixed(1) + ' Гц'; } if (L.type === 'gear') { const z1 = parseFloat(L.z1); if (z1) return 'Зубцовая GMF ≈ ' + (z1 * n / 60).toFixed(1) + ' Гц'; } return null; }
+  setLink(type) { const L = this.trans[this.curLink]; L.type = type; if (this.LINKS[type].off) { if (!L.beltDir) L.beltDir = 'down'; if (!L.nextDir) L.nextDir = 'right'; } this.render(); this.buildLink(this.curLink); }
+  setDir(k, v) { this.trans[this.curLink][k] = v; this.render(); this.buildLink(this.curLink); }
+  updFreq() { const el = this.q('#nsc-cf'); const cf = this.charFreq(this.curLink); if (el && cf) { el.textContent = '〜 ' + cf; el.style.display = 'flex'; } }
+
+  connIcon(t) { const g = this.pal().shaft; const s = (b) => '<svg width="26" height="34" viewBox="0 0 26 40">' + b + '</svg>';
+    if (t === 'belt') return s('<circle cx="13" cy="12" r="5" fill="none" stroke="' + g + '" stroke-width="2"/><circle cx="13" cy="28" r="5" fill="none" stroke="' + g + '" stroke-width="2"/><line x1="8" y1="12" x2="8" y2="28" stroke="' + g + '" stroke-width="1.5"/><line x1="18" y1="12" x2="18" y2="28" stroke="' + g + '" stroke-width="1.5"/>');
+    if (t === 'gear') return s('<circle cx="13" cy="13" r="5" fill="none" stroke="' + g + '" stroke-width="1.8"/><circle cx="13" cy="24" r="5" fill="none" stroke="' + g + '" stroke-width="1.8"/>');
+    if (t === 'elastic') return s('<line x1="2" y1="20" x2="24" y2="20" stroke="' + g + '" stroke-width="2.3"/><rect x="9" y="13" width="2.4" height="14" fill="' + g + '"/><rect x="15" y="13" width="2.4" height="14" fill="' + g + '"/>');
+    return s('<line x1="2" y1="20" x2="24" y2="20" stroke="' + g + '" stroke-width="2.3"/><rect x="10" y="13" width="2.4" height="14" fill="' + g + '"/><rect x="14" y="13" width="2.4" height="14" fill="' + g + '"/>');
+  }
+
+  /* Далее → дефекты: пишем nova_agg, чистим черновик, переходим (nova_editId сохраняется для write-back в program) */
+  save() {
+    const { block } = this.issues(); if (block) return;
+    try {
+      localStorage.setItem('nova_agg', JSON.stringify({ name: this.aggName, orient: this.orient, units: this.units, trans: this.trans }));
+      localStorage.removeItem(this.DRAFT_KEY);
+    } catch (e) {}
+    location.href = 'defects.html';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function () { new CreateAggregate().init(); });
 </script>
 </body>
 </html>
