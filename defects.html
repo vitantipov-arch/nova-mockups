@@ -34,7 +34,11 @@
   .thr input{width:42px;height:30px;background:var(--secondary);border:0.5px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;text-align:center;font-family:inherit;}
   .thr span{font-size:10.5px;color:var(--hint);}
   .cust{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:34px;background:transparent;border:0.5px dashed var(--border2);border-radius:9px;color:var(--hint);font-size:12px;font-family:inherit;cursor:pointer;margin-top:2px;}
+  .banner{display:flex;gap:8px;align-items:flex-start;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--info);line-height:1.45;margin:10px 0 4px;}
+  .banner .ti{font-size:16px;margin-top:1px;flex:0 0 auto;}
   .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
+  .skip{text-align:center;font-size:13px;color:var(--hint);cursor:pointer;padding:6px 8px 12px;}
+  .skip:active{color:var(--muted);}
   .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
   .backdrop.on{opacity:1;pointer-events:auto;}
@@ -54,8 +58,11 @@
     <div style="flex:1;"><div class="ttl">Дефекты по узлам</div><div class="sttl" id="aggName">—</div></div>
     <i class="ti ti-bolt" style="color:var(--info);"></i>
   </div>
-  <div class="body"><div id="list"></div></div>
-  <div class="foot"><button class="next" onclick="saveGo()">Далее → программа измерений</button></div>
+  <div class="body">
+    <div class="banner"><i class="ti ti-flask"></i><span>Модуль в разработке: диагностика по этим дефектам появится вместе с алгоритмами. Заполнять сейчас необязательно — можно пропустить и вернуться позже.</span></div>
+    <div id="list"></div>
+  </div>
+  <div class="foot"><div class="skip" onclick="skip()">Пропустить — заполнить позже →</div><button class="next" onclick="saveGo()">Далее → программа измерений</button></div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
@@ -172,6 +179,7 @@
   function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
   function saveGo(){ try{ localStorage.setItem('nova_defects', JSON.stringify(blocks.map(function(b){ return {title:b.title,cat:b.cat,sel:Object.keys(b.sel).filter(function(k){return b.sel[k];}),thr:b.thr,custom:b.custom}; }))); }catch(e){} location.href='program.html'; }
+  function skip(){ location.href='program.html'; }   // пропуск: диагностика ещё не проводится, шаг необязателен
   (function restoreDefects(){ var saved; try{ saved=JSON.parse(localStorage.getItem('nova_defects')); }catch(e){} if(!saved||!saved.length) return;
     saved.forEach(function(sb){ var bk=blocks.filter(function(b){return b.title===sb.title&&b.cat===sb.cat;})[0]; if(!bk) return;
       (sb.sel||[]).forEach(function(id){ bk.sel[id]=true; }); if(sb.thr) bk.thr=sb.thr; if(sb.custom&&sb.custom.length) bk.custom=sb.custom; });
