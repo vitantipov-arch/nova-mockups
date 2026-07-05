@@ -17,174 +17,36 @@
   .hd .ti{font-size:23px;color:var(--muted);}
   .ttl{font-size:16px;font-weight:500;}
   .sttl{font-size:12px;color:var(--hint);}
-  .body{padding:8px 16px 16px;flex:1;}
-  .bhd{display:flex;align-items:center;gap:9px;margin:16px 0 8px;}
-  .bdot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
-  .bname{font-size:14px;font-weight:500;flex:1;}
-  .ball{font-size:12px;color:var(--info);cursor:pointer;white-space:nowrap;}
-  .row{display:flex;align-items:center;gap:10px;background:var(--primary);border:0.5px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:6px;}
-  .row.on{border-color:var(--info-bd);}
-  .cb{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;}
-  .cb.ck{background:var(--info-bd);border-color:var(--info-bd);}
-  .cb.ck::after{content:'';width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);margin-top:-2px;}
-  .rmain{flex:1;min-width:0;}
-  .rname{font-size:13.5px;}
-  .rfreq{font-size:11.5px;color:var(--hint);margin-top:2px;}
-  .thr{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
-  .thr input{width:42px;height:30px;background:var(--secondary);border:0.5px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;text-align:center;font-family:inherit;}
-  .thr span{font-size:10.5px;color:var(--hint);}
-  .cust{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:34px;background:transparent;border:0.5px dashed var(--border2);border-radius:9px;color:var(--hint);font-size:12px;font-family:inherit;cursor:pointer;margin-top:2px;}
-  .banner{display:flex;gap:8px;align-items:flex-start;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--info);line-height:1.45;margin:10px 0 4px;}
-  .banner .ti{font-size:16px;margin-top:1px;flex:0 0 auto;}
+  .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}
+  .badge{display:inline-flex;align-items:center;gap:7px;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:99px;padding:6px 13px;font-size:12.5px;color:var(--info);margin-bottom:18px;}
+  .ic{width:72px;height:72px;border-radius:20px;background:var(--secondary);display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+  .ic .ti{font-size:34px;color:var(--hint);}
+  .h1{font-size:18px;font-weight:500;margin-bottom:8px;}
+  .p{font-size:13.5px;color:var(--muted);line-height:1.5;max-width:320px;}
   .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
-  .skip{text-align:center;font-size:13px;color:var(--hint);cursor:pointer;padding:6px 8px 12px;}
-  .skip:active{color:var(--muted);}
   .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
-  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
-  .backdrop.on{opacity:1;pointer-events:auto;}
-  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 26px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:88vh;overflow-y:auto;}
-  .sheet.on{transform:translateY(0);}
-  .sheet h3{font-size:15px;font-weight:500;margin:4px 0 12px;}
-  .pf{margin-bottom:10px;}
-  .pf label{display:block;font-size:11px;color:var(--hint);margin-bottom:4px;}
-  .pf input{width:100%;height:40px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;}
-  .sbtn{width:100%;height:46px;border-radius:11px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;margin-top:6px;}
 </style>
 </head>
 <body>
 <div class="screen">
   <div class="hd">
-    <a href="create.html"><i class="ti ti-chevron-left"></i></a>
-    <div style="flex:1;"><div class="ttl">Дефекты по узлам</div><div class="sttl" id="aggName">—</div></div>
-    <i class="ti ti-bolt" style="color:var(--info);"></i>
+    <a href="create.html?load=1"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Дефекты</div><div class="sttl" id="aggName">—</div></div>
+    <i class="ti ti-flask" style="color:var(--info);"></i>
   </div>
+
   <div class="body">
-    <div class="banner"><i class="ti ti-flask"></i><span>Модуль в разработке: диагностика по этим дефектам появится вместе с алгоритмами. Заполнять сейчас необязательно — можно пропустить и вернуться позже.</span></div>
-    <div id="list"></div>
+    <div class="badge"><i class="ti ti-tool" style="font-size:15px;"></i> Модуль в разработке</div>
+    <div class="ic"><i class="ti ti-bug"></i></div>
+    <div class="h1">Дефекты и диагностика</div>
+    <div class="p">Раздел появится вместе с алгоритмами обнаружения. По мере их добавления сюда войдут признаки дефектов и нормы по ним — как расширение критериев состояния.</div>
   </div>
-  <div class="foot"><div class="skip" onclick="skip()">Пропустить — заполнить позже →</div><button class="next" onclick="saveGo()">Далее → программа измерений</button></div>
+
+  <div class="foot"><button class="next" onclick="location.href='program.html'">Далее → программа измерений</button></div>
 </div>
-
-<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
-<div class="sheet" id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div>
-
 <script>
-  var BZ={'6206':9,'6208':9,'6308':8,'6309':8,'NU309':12,'NJ308':11,'22310':14,'7308':13,'30308':14,'1308':10};
-  var BNAME={'6206':'6206','6208':'6208','6308':'6308','6309':'6309','NU309':'NU309','NJ308':'NJ308','22310':'22310','7308':'7308','30308':'30308','1308':'1308','sl-rad':'Скольжения','sl-seg':'Сегментный','sl-thr':'Упорный скольж.'};
-  var KIND={'sl-rad':'journal','sl-seg':'journal','sl-thr':'journal'};
-  function brgName(id){ return BNAME[id]||id; }
-  function hz(v){ return v.toFixed(1)+' Гц'; }
-
-  var FALL={name:'Агрегат (пример)',units:[{name:'Вал 1',rpm:'3000',machines:[{type:'motor',pos:'center'}],supports:[{brgs:['6308']},{brgs:['6308']}]},{name:'Вал 2',rpm:'3000',machines:[{type:'pump',pos:'center'}],supports:[{brgs:['sl-rad']},{brgs:['6308']}]}],trans:[{type:'elastic',pins:'6'}]};
-  var AGG; try{ AGG=JSON.parse(localStorage.getItem('nova_agg')); }catch(e){} if(!AGG||!AGG.units||!AGG.units.length) AGG=FALL;
-  document.getElementById('aggName').textContent=AGG.name||'Агрегат';
-  function supNum(i,k){ var n=0; for(var x=0;x<i;x++) n+=(AGG.units[x].supports||[]).length; return n+k+1; }
-
-  var CAT={
-    shaft:[
-      {id:'unb',name:'Дисбаланс',meth:'1× амп/фаза',u:'мм/с',t:4.5,f:function(c){return '1× = '+hz(c.fr);}},
-      {id:'mis',name:'Расцентровка',meth:'2×, фаза опор',u:'мм/с',t:4.5,f:function(c){return '2× = '+hz(2*c.fr)+', осевая';}},
-      {id:'loose',name:'Механическое ослабление',meth:'спектр гармоник',u:'мм/с',t:4.5,f:function(c){return '1×,2×,3×, 0.5×';}},
-      {id:'bent',name:'Изгиб вала',meth:'осевой спектр',u:'мм/с',t:4.5,f:function(c){return '1×,2× осевая';}}
-    ],
-    rolling:[
-      {id:'bpfo',name:'Внешнее кольцо (BPFO)',meth:'огибающая',u:'м/с²',t:0.5,f:function(c){return hz(0.35*c.z*c.fr);}},
-      {id:'bpfi',name:'Внутреннее кольцо (BPFI)',meth:'огибающая',u:'м/с²',t:0.5,f:function(c){return hz(0.65*c.z*c.fr);}},
-      {id:'bsf',name:'Тела качения (BSF)',meth:'огибающая',u:'м/с²',t:0.4,f:function(c){return hz(1.517*c.fr);}},
-      {id:'ftf',name:'Сепаратор (FTF)',meth:'огибающая',u:'м/с²',t:0.3,f:function(c){return hz(0.35*c.fr);}}
-    ],
-    journal:[
-      {id:'whirl',name:'Масляный вихрь',meth:'спектр НЧ',u:'мм/с',t:3.0,f:function(c){return '0.42–0.48× = '+hz(0.45*c.fr);}},
-      {id:'whip',name:'Масляный кнут',meth:'спектр НЧ',u:'мм/с',t:3.0,f:function(c){return '≈ критическая';}},
-      {id:'wear',name:'Износ вкладыша',meth:'спектр + орбита',u:'мм/с',t:3.5,f:function(c){return '1× рост + гарм.';}},
-      {id:'rub',name:'Задевание',meth:'спектр + орбита',u:'м/с²',t:0.5,f:function(c){return 'суб-/гармоники';}}
-    ],
-    coupling:[
-      {id:'cmis',name:'Несоосность (через муфту)',meth:'осевой 2×, фаза',u:'мм/с',t:4.5,f:function(c){return '2× осевая';}},
-      {id:'cpin',name:'Дефект пальцев (упругая)',meth:'спектр',u:'мм/с',t:3.0,f:function(c){return c.pins?('N× = '+hz(c.pins*c.fr)):'N× оборотной';}}
-    ],
-    belt:[
-      {id:'belt',name:'Дефект ремня',meth:'спектр частоты ремня',u:'мм/с',t:3.0,f:function(c){return hz(c.beltF)+' + гарм.';}},
-      {id:'pmis',name:'Несоосность шкивов',meth:'осевой 1×',u:'мм/с',t:3.0,f:function(c){return '1× осевая';}}
-    ],
-    gear:[
-      {id:'gmf',name:'Зубцовая (GMF)',meth:'спектр GMF',u:'мм/с',t:3.0,f:function(c){return hz(c.gmf);}},
-      {id:'gtooth',name:'Дефект зуба',meth:'GMF + боковые',u:'мм/с',t:3.0,f:function(c){return 'GMF ± 1×';}}
-    ],
-    motor:[
-      {id:'emag',name:'Электромагнитные',meth:'спектр 2·LF',u:'мм/с',t:2.8,f:function(c){return '2·LF = 100 Гц';}},
-      {id:'ecc',name:'Эксцентриситет ротора',meth:'спектр боковые',u:'мм/с',t:2.8,f:function(c){return '1× ± боковые';}},
-      {id:'bar',name:'Обрыв стержня',meth:'спектр боковые',u:'мм/с',t:2.8,f:function(c){return '1× ± 2s·LF';}}
-    ],
-    pump:[
-      {id:'vpf',name:'Лопаточная (VPF)',meth:'спектр VPF',u:'мм/с',t:3.5,f:function(c){return c.blades?('z×1× = '+hz(c.blades*c.fr)):'z×1×';}},
-      {id:'cav',name:'Кавитация',meth:'СКЗ ВЧ / тренд',u:'м/с²',t:0.6,f:function(c){return 'широкополосный ВЧ';}}
-    ],
-    fan:[
-      {id:'bpf',name:'Лопаточная (BPF)',meth:'спектр BPF',u:'мм/с',t:3.5,f:function(c){return c.blades?('z×1× = '+hz(c.blades*c.fr)):'z×1×';}},
-      {id:'fimb',name:'Дисбаланс лопаток',meth:'1× амп/фаза',u:'мм/с',t:4.5,f:function(c){return '1× = '+hz(c.fr);}}
-    ]
-  };
-
-  var blocks=[], bn=0;
-  AGG.units.forEach(function(u,i){
-    if(i>0){ var T=AGG.trans[i-1], fr=(parseFloat(AGG.units[i-1].rpm)||0)/60, c={fr:fr}, cat, title;
-      if(T.type==='rigid'||T.type==='elastic'){ cat='coupling'; if(T.type==='elastic') c.pins=parseFloat(T.pins)||0; title='Муфта ('+AGG.units[i-1].name+'→'+u.name+')'; }
-      else if(T.type==='belt'){ cat='belt'; c.beltF=Math.PI*(parseFloat(T.d1)||125)*fr/(parseFloat(T.len)||1250); title='Ремённая ('+AGG.units[i-1].name+'→'+u.name+')'; }
-      else if(T.type==='gear'){ cat='gear'; c.gmf=(parseFloat(T.z1)||24)*fr; title='Зубчатая ('+AGG.units[i-1].name+'→'+u.name+')'; }
-      if(cat) blocks.push({title:title,cat:cat,c:c,color:'#8a5cff',sel:{},thr:{},custom:[]});
-    }
-    var fr=(parseFloat(u.rpm)||0)/60;
-    blocks.push({title:u.name,cat:'shaft',c:{fr:fr},color:'#9a988f',sel:{},thr:{},custom:[]});
-    u.machines.forEach(function(m){
-      if(m.type==='motor') blocks.push({title:'Двигатель ('+u.name+')',cat:'motor',c:{fr:fr},color:'#4d8dff',sel:{},thr:{},custom:[]});
-      else if(m.type==='pump') blocks.push({title:'Насос ('+u.name+')',cat:'pump',c:{fr:fr,blades:7},color:'#38e1d6',sel:{},thr:{},custom:[]});
-      else if(m.type==='fan') blocks.push({title:'Вентилятор ('+u.name+')',cat:'fan',c:{fr:fr,blades:12},color:'#ff5db1',sel:{},thr:{},custom:[]});
-    });
-    (u.supports||[]).forEach(function(sp,k){ (sp.brgs||[]).forEach(function(b){ if(b){ bn++; var kind=KIND[b]||'rolling';
-      blocks.push({title:'Подшипник '+bn+' · '+brgName(b)+' (Опора №'+supNum(i,k)+')',cat:kind,c:{fr:fr,z:BZ[b]||8},color:'#ffb24d',sel:{},thr:{},custom:[]}); } }); });
-  });
-
-  function render(){
-    var h='';
-    blocks.forEach(function(bk,bi){
-      var defs=CAT[bk.cat]||[]; var allOn=defs.length&&defs.every(function(d){return bk.sel[d.id];});
-      h+='<div class="bhd"><span class="bdot" style="background:'+bk.color+'"></span><span class="bname">'+bk.title+'</span><span class="ball" onclick="tgAll('+bi+')">'+(allOn?'снять все':'выбрать все')+'</span></div>';
-      defs.forEach(function(d){ var on=bk.sel[d.id];
-        h+='<div class="row'+(on?' on':'')+'"><div class="cb'+(on?' ck':'')+'" onclick="tg('+bi+',\''+d.id+'\')"></div><div class="rmain"><div class="rname">'+d.name+'</div><div class="rfreq">'+d.f(bk.c)+' · '+d.meth+'</div></div>'
-          +(on?'<div class="thr"><input value="'+(bk.thr[d.id]!==undefined?bk.thr[d.id]:d.t)+'" oninput="setThr('+bi+',\''+d.id+'\',this.value)"/><span>'+d.u+'</span></div>':'')+'</div>';
-      });
-      bk.custom.forEach(function(cd,ci){ h+='<div class="row on"><div class="cb ck" onclick="delCust('+bi+','+ci+')"></div><div class="rmain"><div class="rname">'+cd.name+' <span style="color:#86857e">(свой)</span></div><div class="rfreq">'+cd.freq+' · '+cd.meth+'</div></div><div class="thr"><input value="'+cd.t+'"/><span>'+cd.u+'</span></div></div>'; });
-      h+='<button class="cust" onclick="openCustom('+bi+')"><i class="ti ti-plus"></i> свой дефект в этот узел</button>';
-    });
-    document.getElementById('list').innerHTML=h;
-  }
-  function tg(bi,id){ var s=blocks[bi].sel; s[id]=s[id]?false:true; render(); }
-  function tgAll(bi){ var bk=blocks[bi],defs=CAT[bk.cat]||[],allOn=defs.every(function(d){return bk.sel[d.id];}); defs.forEach(function(d){ bk.sel[d.id]=!allOn; }); render(); }
-  function setThr(bi,id,v){ blocks[bi].thr[id]=v; }
-  var curBlk=-1;
-  function openCustom(bi){ curBlk=bi; document.getElementById('sheetTitle').textContent='Свой дефект — '+blocks[bi].title;
-    document.getElementById('sheetBody').innerHTML=
-      '<div class="pf"><label>Название</label><input id="cn" placeholder="Напр. Трещина вала"/></div>'
-      +'<div class="pf"><label>Частота / признак</label><input id="cf" placeholder="Напр. 0.5× субгармоника"/></div>'
-      +'<div class="pf"><label>Методика</label><input id="cm" placeholder="Напр. спектр НЧ"/></div>'
-      +'<div class="pf"><label>Порог</label><input id="cp" placeholder="4.5"/></div>'
-      +'<button class="sbtn" onclick="addCustom()">Добавить</button>';
-    openSheet();
-  }
-  function addCustom(){ var g=function(id){return document.getElementById(id).value;};
-    blocks[curBlk].custom.push({name:g('cn')||'Дефект',freq:g('cf')||'—',meth:g('cm')||'—',t:g('cp')||'',u:''}); closeSheet(); render();
-  }
-  function delCust(bi,ci){ blocks[bi].custom.splice(ci,1); render(); }
-  function openSheet(){ document.getElementById('sheet').classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
-  function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
-  function saveGo(){ try{ localStorage.setItem('nova_defects', JSON.stringify(blocks.map(function(b){ return {title:b.title,cat:b.cat,sel:Object.keys(b.sel).filter(function(k){return b.sel[k];}),thr:b.thr,custom:b.custom}; }))); }catch(e){} location.href='program.html'; }
-  function skip(){ location.href='program.html'; }   // пропуск: диагностика ещё не проводится, шаг необязателен
-  (function restoreDefects(){ var saved; try{ saved=JSON.parse(localStorage.getItem('nova_defects')); }catch(e){} if(!saved||!saved.length) return;
-    saved.forEach(function(sb){ var bk=blocks.filter(function(b){return b.title===sb.title&&b.cat===sb.cat;})[0]; if(!bk) return;
-      (sb.sel||[]).forEach(function(id){ bk.sel[id]=true; }); if(sb.thr) bk.thr=sb.thr; if(sb.custom&&sb.custom.length) bk.custom=sb.custom; });
-  })();
-  render();
+  (function(){ var AGG; try{ AGG=JSON.parse(localStorage.getItem('nova_agg')); }catch(e){}
+    document.getElementById('aggName').textContent=(AGG&&AGG.name)||'Агрегат'; })();
 </script>
 </body>
 </html>

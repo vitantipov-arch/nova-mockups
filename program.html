@@ -81,7 +81,7 @@
     <button class="toolbtn" onclick="openMethods()"><i class="ti ti-database"></i> Библиотека методов (создать / посмотреть)</button>
     <div id="list"></div>
   </div>
-  <div class="foot"><button class="next" onclick="saveProgram()">Сохранить агрегат</button></div>
+  <div class="foot"><button class="next" onclick="saveProgram()">Далее → критерии</button></div>
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
@@ -329,11 +329,11 @@
   function saveProgram(){ var list=[]; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){}
     var entry={name:(AGG.name||'Агрегат'), agg:localStorage.getItem('nova_agg')||JSON.stringify(AGG), defects:localStorage.getItem('nova_defects')||'[]', program:JSON.stringify({points:points})};
     var idx=-1, eid=localStorage.getItem('nova_editId'); if(eid!==null&&eid!==''&&!isNaN(+eid)&&list[+eid]) idx=+eid;
-    if(idx>=0) list[idx]=entry; else { list.push(entry); idx=list.length-1; }
+    if(idx>=0){ if(list[idx]&&list[idx].criteria) entry.criteria=list[idx].criteria; list[idx]=entry; } else { list.push(entry); idx=list.length-1; }
     try{ localStorage.setItem('nova_list', JSON.stringify(list)); localStorage.setItem('nova_program', JSON.stringify({points:points})); localStorage.removeItem('nova_editId'); }catch(e){}
-    location.href='equipment.html?id='+idx;
+    location.href='criteria.html?id='+idx;
   }
-  (function(){ var eid=localStorage.getItem('nova_editId'); if(eid!==null&&eid!==''){ var b=document.querySelector('.next'); if(b) b.textContent='Сохранить изменения'; } })();
+  (function(){ var eid=localStorage.getItem('nova_editId'); if(eid!==null&&eid!==''){ var b=document.querySelector('.next'); if(b) b.textContent='Далее → критерии'; } })();
   render();
 </script>
 </body>

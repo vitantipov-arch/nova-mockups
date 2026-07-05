@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — критерии состояния</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --warn:#ef9f27; --danger:#e24b4a; --ok:#97c459; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:480px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:0.5px solid var(--border);}
+  .hd .ti{font-size:23px;color:var(--muted);}
+  .ttl{font-size:16px;font-weight:500;}
+  .sttl{font-size:12px;color:var(--hint);}
+  .body{padding:8px 16px 16px;flex:1;}
+  .banner{display:flex;gap:8px;align-items:flex-start;background:var(--info-bg);border:0.5px solid var(--info-bd);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--info);line-height:1.45;margin:10px 0 14px;}
+  .banner .ti{font-size:17px;margin-top:1px;flex:0 0 auto;}
+  .card{background:var(--primary);border:0.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .mhd{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .mdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+  .mname{font-size:14.5px;font-weight:500;}
+  .qgrid{display:grid;grid-template-columns:1fr 74px 74px;gap:8px 8px;align-items:center;}
+  .chd{font-size:10.5px;color:var(--hint);text-align:center;padding-bottom:2px;}
+  .chd.lbl{text-align:left;}
+  .zlbl{display:flex;flex-direction:column;}
+  .zname{font-size:13px;}
+  .zunit{font-size:10.5px;color:var(--hint);margin-top:1px;}
+  .zin{width:100%;height:38px;background:var(--secondary);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;text-align:center;font-family:inherit;}
+  .zin:focus{outline:none;border-color:var(--info-bd);}
+  .zin.warn:focus{border-color:var(--warn);}
+  .zin.alarm:focus{border-color:var(--danger);}
+  .zhint{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--hint);margin:4px 2px 0;}
+  .zhint .sw{display:inline-flex;gap:3px;}
+  .zhint .sw i{width:9px;height:9px;border-radius:2px;}
+  .foot{padding:14px 16px;border-top:0.5px solid var(--border);}
+  .next{width:100%;height:50px;border-radius:12px;border:2px solid var(--info-bd);background:var(--info-bg);color:var(--info);font-size:16px;font-weight:500;font-family:inherit;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <a id="back" href="program.html"><i class="ti ti-chevron-left"></i></a>
+    <div style="flex:1;"><div class="ttl">Критерии состояния</div><div class="sttl" id="aggName">—</div></div>
+    <i class="ti ti-adjustments-check" style="color:var(--info);"></i>
+  </div>
+
+  <div class="body">
+    <div class="banner"><i class="ti ti-info-circle"></i><span>Нормы состояния по СКЗ на каждую машину: <b>ограничение</b> и <b>отказ</b>. Ниже ограничения — <b>допустимо</b>. Пусто — норма не задана. Признаки дефектов с их нормами добавятся сюда позже.</span></div>
+    <div class="zhint"><span class="sw"><i style="background:var(--ok)"></i><i style="background:var(--warn)"></i><i style="background:var(--danger)"></i></span> допустимо · ограничение · отказ</div>
+    <div id="list" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="foot"><button class="next" onclick="save()">Готово → паспорт</button></div>
+</div>
+<script>
+  var MT={ motor:{n:'Двигатель',c:'#4d8dff'}, pump:{n:'Насос',c:'#22b8ac'}, fan:{n:'Вентилятор',c:'#e0559f'}, comp:{n:'Компрессор',c:'#e0912b'}, gen:{n:'Генератор',c:'#8a63e6'} };
+  var QUANT=[ {k:'vel',n:'Виброскорость СКЗ',u:'мм/с'}, {k:'acc',n:'Виброускорение СКЗ',u:'м/с²'}, {k:'disp',n:'Виброперемещение СКЗ',u:'мкм'} ];
+
+  function qid(){ var m=/[?&]id=(\d+)/.exec(location.search); return m?+m[1]:-1; }
+  function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
+  var ID=qid();
+  var AGG=null; try{ AGG=JSON.parse(localStorage.getItem('nova_agg')); }catch(e){}
+  var entry=getList()[ID]||null;
+  if((!AGG||!AGG.units)&&entry){ try{ AGG=typeof entry.agg==='string'?JSON.parse(entry.agg):entry.agg; }catch(e){} }
+  if(!AGG||!AGG.units){ AGG={name:'Агрегат',units:[{name:'Вал 1',machines:[{type:'motor'}]}]}; }
+  document.getElementById('aggName').textContent=(AGG.name||'Агрегат')+' · критерии';
+  if(ID>=0) document.getElementById('back').href='program.html';
+
+  // машины из структуры
+  var machines=[];
+  (AGG.units||[]).forEach(function(u){ (u.machines||[]).forEach(function(m){ if(MT[m.type]) machines.push({ title:MT[m.type].n+' ('+u.name+')', color:MT[m.type].c, norms:{} }); }); });
+  if(!machines.length) machines.push({title:(AGG.name||'Агрегат'),color:'#9a988f',norms:{}});
+
+  // восстановление ранее заданных норм
+  (function(){ var saved=entry&&entry.criteria&&entry.criteria.machines; if(!saved) return;
+    machines.forEach(function(mc){ var s=saved.filter(function(x){return x.title===mc.title;})[0]; if(s&&s.norms) mc.norms=s.norms; }); })();
+
+  function render(){
+    var h='';
+    machines.forEach(function(mc,mi){
+      h+='<div class="card"><div class="mhd"><span class="mdot" style="background:'+mc.color+'"></span><span class="mname">'+mc.title+'</span></div>'
+        +'<div class="qgrid"><div class="chd lbl">Величина</div><div class="chd">Ограничение</div><div class="chd">Отказ</div>';
+      QUANT.forEach(function(q){ var nv=mc.norms[q.k]||{};
+        var w=(nv.warn!==undefined?nv.warn:''), a=(nv.alarm!==undefined?nv.alarm:'');
+        h+='<div class="zlbl"><span class="zname">'+q.n+'</span><span class="zunit">'+q.u+'</span></div>'
+          +'<input class="zin warn" inputmode="decimal" value="'+w+'" placeholder="—" oninput="setN('+mi+',\''+q.k+'\',\'warn\',this.value)"/>'
+          +'<input class="zin alarm" inputmode="decimal" value="'+a+'" placeholder="—" oninput="setN('+mi+',\''+q.k+'\',\'alarm\',this.value)"/>';
+      });
+      h+='</div></div>';
+    });
+    document.getElementById('list').innerHTML=h;
+  }
+  function setN(mi,k,bound,v){ var nm=machines[mi].norms; if(!nm[k]) nm[k]={}; nm[k][bound]=v; }
+
+  function save(){
+    var list=getList(); var id=ID;
+    var crit={ machines: machines.map(function(mc){
+      var norms={}; Object.keys(mc.norms).forEach(function(k){ var b=mc.norms[k]; var o={}; if(b.warn!=='' && b.warn!==undefined) o.warn=b.warn; if(b.alarm!=='' && b.alarm!==undefined) o.alarm=b.alarm; if(o.warn!==undefined||o.alarm!==undefined) norms[k]=o; });
+      return { title:mc.title, norms:norms };
+    }) };
+    if(id>=0 && list[id]){ list[id].criteria=crit; try{ localStorage.setItem('nova_list', JSON.stringify(list)); }catch(e){} }
+    try{ localStorage.setItem('nova_criteria', JSON.stringify(crit)); }catch(e){}
+    location.href = id>=0 ? ('equipment.html?id='+id) : 'measure.html';
+  }
+  render();
+</script>
+</body>
+</html>
