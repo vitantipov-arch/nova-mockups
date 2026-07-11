@@ -116,7 +116,7 @@
   var DET={rms:'СКЗ',peak:'Пик',pp:'Размах'};
   var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
   var SLAB={a:'Вибро',g:'Гиро'};
-  var COL={a_Z:'#85b7eb',a_X:'#38e1d6',a_Y:'#97c459',g_Z:'#c79bff',g_X:'#ff5db1',g_Y:'#ffb24d'};
+  var COL={a_Z:'#85b7eb',a_X:'#38e1d6',a_Y:'#97c459',g_Z:'#c79bff',g_X:'#ff5db1',g_Y:'#ffb24d','a_ВЧ':'#ff8f3d'};
   function key(c){ return c.s+'_'+c.ax; }
   function chColor(c){ return COL[key(c)]||'#85b7eb'; }
   function chName(c){ return SLAB[c.s]+' '+c.ax; }
@@ -125,6 +125,8 @@
   function selChans(){ var a=[]; ['a','g'].forEach(function(s){ ['Z','X','Y'].forEach(function(ax){ if(cfg.chans[s+'_'+ax]) a.push({s:s,ax:ax}); }); }); return a; }
   function nSel(){ return selChans().length; }
   function shown(){ return data?data.per.filter(function(p){return viewChans[key(p.c)];}):[]; }
+  // ось строится по реальной полосе показанных каналов (ВЧ-канал → до 10 кГц)
+  function dispFmax(){ var sh=shown(), m=Math.max.apply(null,sh.map(function(p){return p.fmax||0;}).concat([0])); return m||(parseFloat(cfg.fmax)||1000); }
 
   function scale(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
   function comps(q,s,kind){ var sc=scale(q,s);
@@ -156,7 +158,7 @@
   }
   function drawSpec(srcKey,maxKey){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
     var vib=sh.filter(function(p){return p.c.s==='a';}), gyr=sh.filter(function(p){return p.c.s==='g';});
-    var L=40,Rr=352,fmax=parseFloat(cfg.fmax)||1000; function X(f){ return L+312*f/fmax; }
+    var L=40,Rr=352,fmax=dispFmax(); function X(f){ return L+312*f/fmax; }
     var s='',H=176;
     if(vib.length&&gyr.length){ var mid=90;
       s+=bandSpectrum(vib,X,mid,78,1,srcKey,maxKey)+bandSpectrum(gyr,X,mid,72,-1,srcKey,maxKey);
@@ -200,7 +202,8 @@
 
   function renderCfgBar(){ var sel=selChans(), va=sel.filter(function(c){return c.s==='a';}).map(function(c){return c.ax;}), gy=sel.filter(function(c){return c.s==='g';}).map(function(c){return c.ax;}), ch=[];
     if(va.length) ch.push('Вибро '+va.join('/')); if(gy.length) ch.push('Гиро '+gy.join('/'));
-    document.getElementById('cfgbar').innerHTML='<span class="cchip act"><i class="ti ti-adjustments"></i> '+presetName()+'</span><span class="cchip">'+(ch.join(' · ')||'нет каналов')+'</span><span class="cchip">'+QTY[cfg.qty]+' · '+cfg.fmin+'–'+cfg.fmax+' Гц · '+cfg.lines+' лин</span>';
+    var fmaxD=VIEWMODE?dispFmax():cfg.fmax, bandTxt=(fmaxD>=1000?(fmaxD/1000).toString().replace(/\.0$/,'')+' кГц':fmaxD+' Гц');
+    document.getElementById('cfgbar').innerHTML='<span class="cchip act"><i class="ti ti-adjustments"></i> '+presetName()+'</span><span class="cchip">'+(ch.join(' · ')||'нет каналов')+'</span><span class="cchip">'+QTY[cfg.qty]+' · '+(VIEWMODE?'до '+bandTxt:cfg.fmin+'–'+cfg.fmax+' Гц')+' · '+cfg.lines+' лин</span>';
   }
   function render(){ renderCfgBar();
     var vt=document.getElementById('vtabs'), vc=document.getElementById('vchips'), vw=document.getElementById('view'), rd=document.getElementById('read');
@@ -261,10 +264,10 @@
     cfg.preset='manual';
     closeSheet(); if(data&&data.per.length) data=genData(); render();
   }
-  function fromComps(c){ var fmax=parseFloat(cfg.fmax)||1000, cm=c.comps||[], ecm=c.ecomps||cm, rms=c.rms||0;
+  function fromComps(c){ var fmax=parseFloat(c.fmax)||parseFloat(cfg.fmax)||1000, cm=c.comps||[], ecm=c.ecomps||cm, rms=c.rms||0;
     var bins=binsOf(cm,fmax,0.05*rms), ebins=binsOf(ecm,fmax,0.04*rms);
     var M=130,wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr),y=0; cm.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
-    return {c:{s:c.s,ax:c.ax},unit:c.unit||uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:c.peak||rms*2,pp:c.pp||rms*4,amp1:(c.amp1!=null?c.amp1:rms),phase:c.phase||0,bins:bins,ebins:ebins,wave:wave,
+    return {c:{s:c.s,ax:c.ax},fmax:fmax,unit:c.unit||uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:c.peak||rms*2,pp:c.pp||rms*4,amp1:(c.amp1!=null?c.amp1:rms),phase:c.phase||0,bins:bins,ebins:ebins,wave:wave,
       bmax:Math.max.apply(null,bins.map(function(x){return x.a;}).concat([1e-6])),emax:Math.max.apply(null,ebins.map(function(x){return x.a;}).concat([1e-6])),wmax:Math.max.apply(null,wave.map(Math.abs).concat([1e-6]))};
   }
   (function initView(){ if((location.search||'').indexOf('mode=view')<0) return; VIEWMODE=true;

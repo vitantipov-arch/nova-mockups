@@ -109,23 +109,32 @@
   var FR=driveRpm/60;
   function axisMap(dir){ var rads=orient==='v'?['R1','R2']:['В','П'], ax='О'; if(dir===ax) return {Z:ax,X:rads[0],Y:rads[1]}; var other=rads[0]===dir?rads[1]:rads[0]; return {Z:dir,X:ax,Y:other}; }
   function sc(q,s){ var b=q==='acc'?1.2:(q==='disp'?40:3.5); if(s==='g') b*=(q==='disp'?0.02:0.12); return b; }
-  function cmps(q,s,kind){ var k=sc(q,s);
+  function cmps(q,s,kind,fmax){ var k=sc(q,s); fmax=fmax||1000;
     if(kind==='env'){ var bp=(7+Math.random())*FR; return [{n:'BPFO',f:bp,a:(0.5+Math.random()*0.6)*k},{n:'2·BPFO',f:2*bp,a:(0.25+Math.random()*0.35)*k}]; }
-    return [{n:'0.5×',f:0.5*FR,a:(0.04+Math.random()*0.16)*k},{n:'1×',f:FR,a:(0.4+Math.random()*0.6)*k},{n:'2×',f:2*FR,a:(0.15+Math.random()*0.45)*k},{n:'3×',f:3*FR,a:(0.05+Math.random()*0.25)*k}]; }
-  function vals(q,s){ var cm=cmps(q,s,'spec'), ecm=cmps(q,s,'env'), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
-    return {rms:rms,unit:UNIT[q][s],comps:cm,ecomps:ecm,peak:peak,pp:peak*1.9}; }
+    var base=[{n:'0.5×',f:0.5*FR,a:(0.04+Math.random()*0.16)*k},{n:'1×',f:FR,a:(0.4+Math.random()*0.6)*k},{n:'2×',f:2*FR,a:(0.15+Math.random()*0.45)*k},{n:'3×',f:3*FR,a:(0.05+Math.random()*0.25)*k}];
+    // ВЧ-канал ускорения (широкая полоса): резонанс корпуса + подшипниковые боковые до ~0,6·fmax
+    if(q==='acc'&&fmax>3000){ var res=fmax*(0.42+Math.random()*0.12), bp2=(7+Math.random())*FR;
+      base.push({n:'рез.',f:res,a:(0.8+Math.random()*0.7)*k});
+      base.push({n:'рез+',f:res+bp2,a:(0.35+Math.random()*0.3)*k});
+      base.push({n:'рез−',f:Math.max(res-bp2,4*FR),a:(0.35+Math.random()*0.3)*k});
+      base.push({n:'2·рез',f:Math.min(res*1.65,fmax*0.92),a:(0.25+Math.random()*0.25)*k}); }
+    return base; }
+  function vals(q,s,fmax){ fmax=fmax||1000; var cm=cmps(q,s,'spec',fmax), ecm=cmps(q,s,'env',fmax), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
+    return {rms:rms,unit:UNIT[q][s],comps:cm,ecomps:ecm,peak:peak,pp:peak*1.9,fmax:fmax}; }
   var CHMAP={aX:{s:'a',ax:'X'},aY:{s:'a',ax:'Y'},aZ:{s:'a',ax:'Z'},gX:{s:'g',ax:'X'},gY:{s:'g',ax:'Y'},gZ:{s:'g',ax:'Z'},hf:{s:'a',ax:'Z'}};
   var QMID={vel:'vel',acc:'acc',disp:'disp',avel:'vel',aacc:'acc'};
   function genPoint(n){ var pt=n.pt||{}, amap=axisMap(n.dir||'В'), chans=[];
     (pt.channels||[]).forEach(function(c){ if(!c.on) return; var meta=CHMAP[c.ch]; if(!meta) return; var vv={};
-      (c.meas||[]).forEach(function(m){ var q=QMID[m.qty]||'vel'; if(!vv[q]) vv[q]=vals(q,meta.s); });
-      if(!Object.keys(vv).length) vv.vel=vals('vel',meta.s);
+      (c.meas||[]).forEach(function(m){ var q=QMID[m.qty]||'vel', fm=(m.type==='spectrum'&&m.f1)?parseFloat(m.f1):1000;
+        if(!vv[q]||fm>(vv[q].fmax||0)) vv[q]=vals(q,meta.s,fm); });
+      if(!Object.keys(vv).length) vv.vel=vals('vel',meta.s,1000);
       var any=vv.vel||vv[Object.keys(vv)[0]];
-      chans.push({s:meta.s,ax:meta.ax,dir:amap[meta.ax]||meta.ax,vals:vv,amp1:any?any.comps[1].a:0,phase:Math.random()*360}); });
+      // ВЧ-канал — отдельная дорожка во вьюере (иначе слипается с вибро aZ по ключу a_Z)
+      chans.push({s:meta.s,ax:(c.ch==='hf'?'ВЧ':meta.ax),dir:amap[meta.ax]||meta.ax,vals:vv,amp1:any?any.comps[1].a:0,phase:Math.random()*360}); });
     if(!chans.length) chans=[{s:'a',ax:'Z',dir:amap.Z,vals:{vel:vals('vel','a')},amp1:0,phase:0}];
     return {channels:chans}; }
   function viewerChannels(channels,q){ return channels.map(function(c){ var vq=c.vals[q]?q:Object.keys(c.vals)[0], v=c.vals[vq]; if(!v) return null;
-    return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean); }
+    return {s:c.s,ax:c.ax,qty:vq,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase,fmax:v.fmax}; }).filter(Boolean); }
 
   // ---- точки программы (новая модель): узел = точка (опора × направление) ----
   var sup2ik={}, nodes=[];
