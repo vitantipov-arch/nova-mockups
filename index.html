@@ -176,10 +176,18 @@ function getSessions(){ try{ return JSON.parse(localStorage.getItem('nova_sessio
 function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
 function pj(s,d){ try{ return typeof s==='string'?JSON.parse(s):(s||d); }catch(e){ return d; } }
 
-/* ---------- пороги зон (D1: по классу + override; пока дефолт) ---------- */
-var ZONE_DEFAULT = { warn:4.5, alarm:7.1 };   // ISO 10816 общий дефолт (класс-каталог позже)
-function resolveZones(agg){
-  var z = agg && agg.zone;                     // override на агрегат, если задан
+/* ---------- пороги зон: норма виброскорости из «Критериев состояния», иначе дефолт ---------- */
+var ZONE_DEFAULT = { warn:4.5, alarm:7.1 };   // общий дефолт, если норма не задана
+function resolveZones(agg, criteria){
+  // строжайшая норма виброскорости по машинам агрегата (агрегат = по худшей машине)
+  if(criteria && criteria.machines){
+    var warn=Infinity, alarm=Infinity;
+    criteria.machines.forEach(function(m){ var v=m.norms&&m.norms.vel; if(!v) return;
+      if(v.warn!==undefined&&v.warn!=='') warn=Math.min(warn,+v.warn);
+      if(v.alarm!==undefined&&v.alarm!=='') alarm=Math.min(alarm,+v.alarm); });
+    if(isFinite(warn)&&isFinite(alarm)) return { warn:warn, alarm:alarm };
+  }
+  var z = agg && agg.zone;                      // override на агрегат
   if(z && typeof z.warn==='number' && typeof z.alarm==='number') return z;
   return ZONE_DEFAULT;
 }
@@ -197,8 +205,8 @@ function dateShort(s){ var m=/(\d{2}\.\d{2}\.\d{4})/.exec(s||''); return m?m[1]:
 function ptKey(p){ return (p.sup==null?'?':p.sup)+'|'+(p.dir||''); }   // идентификатор точки: опора+направление
 function findPt(points, key){ for(var k=0;k<points.length;k++){ if(ptKey(points[k])===key) return points[k]; } return null; }
 
-function healthOf(i, agg, sessions){
-  var z = resolveZones(agg);
+function healthOf(i, agg, sessions, criteria){
+  var z = resolveZones(agg, criteria);
   var mine = sessions
     .map(function(s,idx){ return {s:s, idx:idx}; })
     .filter(function(o){ return o.s.aggId===i && o.s.points && o.s.points.length; })
@@ -254,7 +262,7 @@ function computeRows(){
   var list=getList(), sess=getSessions();
   return list.map(function(it,i){
     var agg=pj(it.agg,{units:[]});
-    var h=healthOf(i, agg, sess);
+    var h=healthOf(i, agg, sess, it.criteria||null);
     return { i:i, name:it.name||'Агрегат', h:h,
              status:h?h.status:'neu', val:h?h.val:null };
   });
