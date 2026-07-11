@@ -111,6 +111,7 @@
   var cfg={ chans:{a_Z:true,a_X:true,a_Y:true,g_Z:true,g_X:true,g_Y:true}, qty:'vel', fmin:'10', fmax:'1000', lines:'1600', window:'Hann', preset:'iso' };
   var manualOpen=false;
   var data=null, view='spectrum', viewChans={}, detector='rms', VIEWMODE=false;
+  var viewRpm=2940, viewRpmMeasured=false;   // обороты в просмотре: из замера (тахо/паспорт)
   var QTY={vel:'Скорость',acc:'Ускорение',disp:'Перемещение'};
   var VIEW=[['spectrum','Спектр'],['wave','Сигнал'],['envelope','Огибающая'],['phase','Ампл-фаза'],['level','Уровень']];
   var DET={rms:'СКЗ',peak:'Пик',pp:'Размах'};
@@ -234,7 +235,7 @@
     if(view==='level'){ rh+='<div class="det">'+['rms','peak','pp'].map(function(d){return '<button class="'+(detector===d?'on':'')+'" onclick="setDet(\''+d+'\')">'+DET[d]+'</button>';}).join('')+'</div>'; }
     else if(view==='phase'){ sh.forEach(function(p){ rh+='<div class="crow"><span class="cn"><span class="cdot" style="background:'+chColor(p.c)+'"></span>'+chName(p.c)+'</span><span class="cf">1×</span><span class="ca">'+p.amp1.toFixed(2)+' '+p.unit+' ∠ '+p.phase.toFixed(0)+'°</span></div>'; }); }
     else if(sh.length){ var prim=sh[0], v=prim.rms, z=(cfg.qty==='vel'&&prim.c.s==='a')?zoneVel(v):null;
-      rh+='<div class="big"><div><div><span class="rms">'+v.toFixed(2)+'</span> <span class="rmsu">'+prim.unit+' СКЗ</span></div>'+(z?'<div class="zone"><span class="zdot" style="background:'+ZC[z]+'"></span>'+ZN[z]+'</div>':'<div class="zone" style="color:var(--hint)"><span class="cdot" style="background:'+chColor(prim.c)+'"></span>'+chName(prim.c)+'</div>')+'</div><div style="flex:1"></div><div style="text-align:right"><div style="font-size:11px;color:var(--hint)">режим</div><div style="font-size:14px">2940 об/мин</div></div></div>';
+      rh+='<div class="big"><div><div><span class="rms">'+v.toFixed(2)+'</span> <span class="rmsu">'+prim.unit+' СКЗ</span></div>'+(z?'<div class="zone"><span class="zdot" style="background:'+ZC[z]+'"></span>'+ZN[z]+'</div>':'<div class="zone" style="color:var(--hint)"><span class="cdot" style="background:'+chColor(prim.c)+'"></span>'+chName(prim.c)+'</div>')+'</div><div style="flex:1"></div><div style="text-align:right"><div style="font-size:11px;color:var(--hint)">обороты · '+(viewRpmMeasured?'тахо':'паспорт')+'</div><div style="font-size:14px">'+viewRpm+' об/мин</div></div></div>';
       if(sh.length===1){ prim.comps.slice().sort(function(a,b){return b.a-a.a;}).forEach(function(c){ rh+='<div class="crow"><span class="cn">'+c.n+'</span><span class="cf">'+c.f.toFixed(1)+' Гц</span><span class="ca">'+c.a.toFixed(2)+' '+prim.unit+'</span></div>'; }); }
       else { sh.forEach(function(p){ rh+='<div class="crow"><span class="cn"><span class="cdot" style="background:'+chColor(p.c)+'"></span>'+chName(p.c)+'</span><span class="cf">СКЗ</span><span class="ca">'+p.rms.toFixed(2)+' '+p.unit+'</span></div>'; }); }
     }
@@ -288,6 +289,7 @@
     var v; try{ v=JSON.parse(localStorage.getItem('nova_view')); }catch(e){}
     if(!v||!v.channels||!v.channels.length) return;
     cfg.qty=v.qty||'vel';
+    if(v.rpm) viewRpm=Math.round(v.rpm); viewRpmMeasured=!!v.rpmMeasured;
     data={per:v.channels.map(fromComps)};
     viewChans={}; data.per.forEach(function(p){ viewChans[key(p.c)]=true; });
     var t=document.querySelector('.ttl'); if(t) t.textContent=v.title||'Просмотр замера';

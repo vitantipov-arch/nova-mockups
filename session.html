@@ -64,6 +64,7 @@
     <i class="ti ti-bolt" style="color:var(--info);"></i>
   </div>
   <div class="stbar" id="stbar"></div>
+  <div id="sensbanner"></div>
   <div class="body">
     <div class="canvas" id="canvas"></div>
     <div class="leg"><span><span class="ld" style="background:var(--secondary);border:1px solid var(--border2)"></span>не снято</span><span><span class="ld" style="background:var(--success)"></span>норма</span><span><span class="ld" style="background:var(--warning)"></span>повышено</span><span><span class="ld" style="background:var(--danger)"></span>недопустимо</span></div>
@@ -84,6 +85,7 @@
 </div>
 
 <script src="nova-scheme.js"></script>
+<script src="nova-sensors.js"></script>
 <script>
   function tryLeave(){ if(!Object.keys(sess).length){ location.href='measure.html'; return; } document.getElementById('leave').style.display='flex'; }
   function leaveNoSave(){ location.href='measure.html'; }
@@ -101,6 +103,13 @@
   var units=(AGG&&AGG.units)||[], trans=(AGG&&AGG.trans)||[], orient=(AGG&&AGG.orient==='v')?'v':'h';
   document.getElementById('aggName').textContent=(it&&it.name)||'Сессия';
   var operator=localStorage.getItem('nova_operator')||'';
+  // датчик: целевой (из программы) vs подключённый; фаза/обороты от тахо
+  var progSensor=(prog&&prog.sensor&&NovaSensors.CATALOG[prog.sensor])?prog.sensor:NovaSensors.current();
+  var connSensor=NovaSensors.current();
+  var progDef=NovaSensors.get(progSensor), connDef=NovaSensors.get(connSensor);
+  var phaseMeasured=NovaSensors.tacho();
+  function chanOk(ch){ return connDef.chans.indexOf(ch)>=0; }
+  function missingChans(){ var set={}; (prog.points||[]).forEach(function(pt){ (pt.channels||[]).forEach(function(c){ if(c.on&&!chanOk(c.ch)) set[c.ch]=1; }); }); return Object.keys(set); }
   var sess={};        // ключ pi_dir -> {zone,rms,data,q}
   var active=-1, measuring=-1;
   var UNIT={vel:{a:'мм/с',g:'°/с'},acc:{a:'м/с²',g:'°/с²'},disp:{a:'мкм',g:'°'}};
@@ -124,7 +133,7 @@
   var CHMAP={aX:{s:'a',ax:'X'},aY:{s:'a',ax:'Y'},aZ:{s:'a',ax:'Z'},gX:{s:'g',ax:'X'},gY:{s:'g',ax:'Y'},gZ:{s:'g',ax:'Z'},hf:{s:'a',ax:'Z'}};
   var QMID={vel:'vel',acc:'acc',disp:'disp',avel:'vel',aacc:'acc'};
   function genPoint(n){ var pt=n.pt||{}, amap=axisMap(n.dir||'В'), chans=[];
-    (pt.channels||[]).forEach(function(c){ if(!c.on) return; var meta=CHMAP[c.ch]; if(!meta) return; var vv={};
+    (pt.channels||[]).forEach(function(c){ if(!c.on) return; if(!chanOk(c.ch)) return; var meta=CHMAP[c.ch]; if(!meta) return; var vv={};
       (c.meas||[]).forEach(function(m){ var q=QMID[m.qty]||'vel', fm=(m.type==='spectrum'&&m.f1)?parseFloat(m.f1):1000;
         if(!vv[q]||fm>(vv[q].fmax||0)) vv[q]=vals(q,meta.s,fm); });
       if(!Object.keys(vv).length) vv.vel=vals('vel',meta.s,1000);
@@ -213,7 +222,19 @@
     }
     p.innerHTML=h; p.classList.remove('hidden');
   }
-  function renderAll(){ renderScheme(); renderTable(); renderBar(); renderPanel(); }
+  function chLabelRu(ch){ return {aX:'Вибро X',aY:'Вибро Y',aZ:'Вибро Z',gX:'Гиро X',gY:'Гиро Y',gZ:'Гиро Z',hf:'ВЧ'}[ch]||ch; }
+  function retargetProg(){ try{ localStorage.setItem('nova_editId', String(qid())); }catch(e){} location.href='program.html'; }
+  window.retargetProg=retargetProg;
+  function renderBanner(){ var el=document.getElementById('sensbanner'); if(!el) return; var miss=missingChans();
+    if(miss.length){
+      el.innerHTML='<div style="margin:0 16px 10px;padding:10px 12px;border-radius:10px;background:rgba(239,159,39,.14);border:1px solid rgba(239,159,39,.4);font-size:12.5px;color:#ecd9b0;line-height:1.4">'
+        +'<b>Датчик не совпадает.</b> Программа под '+progDef.short+', подключён '+connDef.short+'. Не измеряются: '+miss.map(chLabelRu).join(', ')+'.'
+        +' <a href="javascript:void(0)" onclick="retargetProg()" style="color:#ffcf7a;text-decoration:underline;white-space:nowrap">Пересобрать под '+connDef.short+'</a></div>';
+    } else if(progSensor!==connSensor){
+      el.innerHTML='<div style="margin:0 16px 10px;padding:9px 12px;border-radius:10px;background:rgba(55,138,221,.12);border:1px solid rgba(55,138,221,.35);font-size:12.5px;color:#bcd8f5;line-height:1.4">Программа под '+progDef.short+', подключён '+connDef.short+' — совместимо, лишние каналы датчика не используются.</div>';
+    } else el.innerHTML='';
+  }
+  function renderAll(){ renderScheme(); renderTable(); renderBar(); renderPanel(); renderBanner(); }
 
   function tapCell(idx){ if(measuring>=0) return;
     active=idx;
@@ -234,7 +255,7 @@
     }, 700);
   }
   function openData(){ if(active<0) return; var n=nodes[active], st=sess[nkey(n)]; if(!st||!st.data) return;
-    var payload={ title:'Точка '+n.dir+' · Опора №'+n.sup, sub:((it&&it.name)||'')+' · '+driveRpm+' об/мин', qty:'vel', channels:viewerChannels(st.data.channels,'vel'), back:'session.html?id='+qid() };
+    var payload={ title:'Точка '+n.dir+' · Опора №'+n.sup, sub:((it&&it.name)||'')+' · '+driveRpm+' об/мин', qty:'vel', rpm:driveRpm, rpmMeasured:phaseMeasured, channels:viewerChannels(st.data.channels,'vel'), back:'session.html?id='+qid() };
     try{ localStorage.setItem('nova_view', JSON.stringify(payload)); }catch(e){}
     location.href='spectrum.html?mode=view';
   }

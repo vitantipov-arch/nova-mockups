@@ -46,6 +46,8 @@ body{margin:0;background:#E8E6E1;font-family:'IBM Plex Sans',system-ui,sans-seri
 .nms-actions{display:flex;gap:8px;margin-bottom:14px}
 .nms-actions button{flex:1;height:40px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:11px;font-size:12.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500}
 .nms-plabel{font-size:11.5px;color:var(--hint);margin-bottom:8px;font-weight:500}
+.nms-sseg button{flex:1;text-align:center}
+.nms-shint{font-size:11px;color:var(--hint);margin:6px 2px 0;line-height:1.35}
 .nms-supgrp{margin-bottom:16px}
 .nms-suphd{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;padding-left:2px}
 .nms-suphd .s{font-size:13px;font-weight:700}
@@ -62,6 +64,7 @@ body{margin:0;background:#E8E6E1;font-family:'IBM Plex Sans',system-ui,sans-seri
 .nms-tag.acc{background:rgba(42,111,219,.1);color:var(--info)}
 .nms-tag.vel{background:rgba(31,138,91,.12);color:var(--ok)}
 .nms-tag.sig{background:rgba(200,137,26,.12);color:var(--warn)}
+.nms-tag.phase{background:rgba(140,90,220,.14);color:#8c5adc}
 .nms-tag.off{opacity:.5}
 .nms-chan{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 13px;margin-bottom:9px}
 .nms-chan.off{opacity:.55}
@@ -116,6 +119,7 @@ body{margin:0;background:#E8E6E1;font-family:'IBM Plex Sans',system-ui,sans-seri
 </head>
 <body>
 <div id="nms-root" data-theme="light"></div>
+<script src="nova-sensors.js"></script>
 <script>
 /* ---------- реальная модель приложения ---------- */
 function getList(){ try{ return JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ return []; } }
@@ -145,21 +149,31 @@ class MeasSettings {
   init() {
     this.AGG = pj(localStorage.getItem('nova_agg'), null); if (!this.AGG || !this.AGG.units || !this.AGG.units.length) this.AGG = FALL_AGG;
     this.aggOrient = this.AGG.orient === 'v' ? 'v' : 'h';
-    this.hasHf = sensorHf(); this.sensor = this.hasHf ? 'v2' : 'v1';
     this.view = 'list'; this.curPt = 0; this.defOpen = false; this.budOpen = false; this._extra = null; this.editM = null;
-    this.def = { odr: this.hasHf ? 4000 : 8000, df: 0.3, avg: 2, detail: false, accFs: '±16g', gyroFs: '±250 °/с' };
     // восстановление ранее сохранённой программы (новая форма) или посев из структуры
     this.editId = null; var eid = localStorage.getItem('nova_editId');
     if (eid != null && eid !== '' && !isNaN(+eid)) this.editId = +eid;
     var loaded = null;
     if (this.editId != null) { var it = getList()[this.editId]; if (it) loaded = pj(it.program, null); }
     if (!loaded) loaded = pj(localStorage.getItem('nova_program'), null);
-    if (loaded && loaded.points && loaded.points[0] && loaded.points[0].channels) { this.points = loaded.points; if (loaded.def) Object.assign(this.def, loaded.def); }
+    // датчик вибрации: из программы (оверрайд) или глобальное умолчание оператора
+    var sid = (loaded && loaded.sensor && NovaSensors.CATALOG[loaded.sensor]) ? loaded.sensor : NovaSensors.current();
+    this.phaseRef = (loaded && typeof loaded.phaseRef === 'boolean') ? loaded.phaseRef : NovaSensors.tacho();
+    this.applySensor(sid, true);            // задаёт SENSOR, ODRS/FS/BAND, def по умолчанию датчика
+    if (loaded && loaded.def) Object.assign(this.def, loaded.def);
+    if (loaded && loaded.points && loaded.points[0] && loaded.points[0].channels) this.points = loaded.points;
     else this.points = this.seedPoints();
     this.root = document.getElementById('nms-root');
     this.applyTheme(); this.bindOnce(); this.render();
     if (window.matchMedia) { this._mq = matchMedia('(prefers-color-scheme: dark)'); this._mq.addEventListener ? this._mq.addEventListener('change', () => { this.applyTheme(); this.render(); }) : this._mq.addListener(() => { this.applyTheme(); this.render(); }); }
   }
+  applySensor(id, reseedDef) {
+    this.sensorId = id; this.SENSOR = NovaSensors.get(id);
+    this.hasHf = this.SENSOR.hasHf; this.hasGyro = this.SENSOR.hasGyro;
+    this.ODRS = this.SENSOR.odrs; this.ACC_FS = this.SENSOR.accFs; this.GYRO_FS = this.SENSOR.gyroFs; this.BAND_OPT = this.SENSOR.bandOpt;
+    if (reseedDef || !this.def) this.def = Object.assign({ detail: false }, this.SENSOR.def);
+  }
+  defOnFor(ck, radial) { const kind = this.CH[ck].kind; if (kind === 'hf') return true; if (kind === 'gyro') return !!radial; return radial ? true : (ck === 'aZ'); }
   applyTheme() { var t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; this.theme = t; if (this.root) this.root.setAttribute('data-theme', t); }
   q(s) { return this.root.querySelector(s); }
   dirNames() { return this.aggOrient === 'v' ? ['R1', 'R2', 'О'] : ['В', 'П', 'О']; }
@@ -168,10 +182,8 @@ class MeasSettings {
   _uid() { return 'p' + (this._pc = (this._pc || 0) + 1); }
   mkPoint(sup, mach, name, radial) {
     const chans = [];
-    const axes = [['aX', 'acc'], ['aY', 'acc'], ['aZ', 'acc'], ['gX', 'gyro'], ['gY', 'gyro'], ['gZ', 'gyro']];
-    axes.forEach(([ck]) => { const on = radial ? true : (ck === 'aZ'); chans.push({ ch: ck, on, meas: on ? this.defMeas(ck) : [] }); });
-    if (this.hasHf) chans.push({ ch: 'hf', on: true, meas: this.defMeas('hf') });
-    return { id: this._uid(), sup, mach, name, radial, fs: { accFs: this.def.accFs, gyroFs: this.def.gyroFs }, odr: this.def.odr, df: this.def.df, avg: this.def.avg, detail: false, channels: chans };
+    this.SENSOR.chans.forEach(ck => { const on = this.defOnFor(ck, radial); chans.push({ ch: ck, on, meas: on ? this.defMeas(ck) : [] }); });
+    return { id: this._uid(), sup, mach, name, radial, fs: { accFs: this.def.accFs, gyroFs: this.hasGyro ? this.def.gyroFs : null }, odr: this.def.odr, df: this.def.df, avg: this.def.avg, detail: false, channels: chans };
   }
   seedPoints() {
     var pts = [], supNo = 0, self = this;
@@ -185,13 +197,20 @@ class MeasSettings {
     const kind = this.CH[ck].kind;
     if (kind === 'gyro') return [{ type: 'spectrum', qty: 'avel', f0: 2, f1: 1000, df: 0.3, win: 'Хеннинга', avg: 2 }];
     if (kind === 'hf') return [{ type: 'spectrum', qty: 'acc', f0: 10, f1: 10000, df: 1, win: 'Хеннинга', avg: 2 }];
+    // канал ускорения
+    if (this.sensorId === 'v0') {
+      const m = [{ type: 'spectrum', qty: 'vel', f0: 2, f1: 1000, df: 0.3, win: 'Хеннинга', avg: 2 },
+                 { type: 'spectrum', qty: 'acc', f0: 2, f1: 1000, df: 0.5, win: 'Хеннинга', avg: 2 }];
+      if (this.phaseRef) m.push({ type: 'phase', qty: 'vel', ord: 1, avg: 4 });   // балансировка: амплитуда+фаза 1×
+      return m;
+    }
     const m = [{ type: 'spectrum', qty: 'vel', f0: 2, f1: 1000, df: 0.3, win: 'Хеннинга', avg: 2 }];
     if (!this.hasHf) m.push({ type: 'spectrum', qty: 'acc', f0: 2, f1: 2000, df: 0.5, win: 'Хеннинга', avg: 2 });
     return m;
   }
   supGroups() { const g = []; this.points.forEach((p, i) => { let s = g.find(x => x.sup === p.sup); if (!s) { s = { sup: p.sup, mach: p.mach, idx: [] }; g.push(s); } s.idx.push(i); }); return g; }
 
-  ptBytes(p) { let samples = 0; p.channels.forEach(c => { if (!c.on) return; c.meas.forEach(m => { if (m.type === 'spectrum') samples += (p.odr / m.df) * (m.avg || 1); else samples += (m.dur || 1) * p.odr; }); }); return samples * 2; }
+  ptBytes(p) { let samples = 0; p.channels.forEach(c => { if (!c.on) return; c.meas.forEach(m => { if (m.type === 'spectrum') samples += (p.odr / m.df) * (m.avg || 1); else if (m.type === 'phase') samples += 512 * (m.avg || 1); else samples += (m.dur || 1) * p.odr; }); }); return samples * 2; }
   budget() { let bytes = 0, maxBand = 0, chans = 0; this.points.forEach(p => { bytes += this.ptBytes(p); p.channels.forEach(c => { if (c.on) { chans++; maxBand = Math.max(maxBand, c.ch === 'hf' ? 10000 : (p.odr / 2.56)); } }); }); const kb = bytes / 1024; return { bytes, kb, chans, band: maxBand, secs: kb / this.BLE_KBPS }; }
   fmtSize(kb) { return kb >= 1024 ? (kb / 1024).toFixed(1) + ' МБ' : Math.round(kb) + ' КБ'; }
   fmtTime(s) { if (s >= 60) return Math.floor(s / 60) + ' мин ' + Math.round(s % 60) + ' с'; return Math.round(s) + ' с'; }
@@ -199,10 +218,10 @@ class MeasSettings {
 
   chanOnCount(p) { return p.channels.filter(c => c.on).length; }
   ptMeasTags(p) { const set = [], seen = {}; p.channels.forEach(c => { if (!c.on) return; c.meas.forEach(m => { const key = m.type + m.qty; if (seen[key]) return; seen[key] = 1; set.push(m); }); }); return set; }
-  measTitle(m) { if (m.type === 'signal') return 'Осц. ' + (this.QLABEL[m.qty] || m.qty); return 'Спектр ' + (this.QLABEL[m.qty] || m.qty); }
-  measSub(m) { if (m.type === 'signal') return m.dur + ' с · ' + this.qtyUnit(m); return m.f0 + '–' + m.f1 + ' Гц · Δf ' + m.df + ' · ' + (m.avg || 1) + '× · ' + m.win; }
+  measTitle(m) { if (m.type === 'signal') return 'Осц. ' + (this.QLABEL[m.qty] || m.qty); if (m.type === 'phase') return 'Ампл-фаза ' + (m.ord || 1) + '×'; return 'Спектр ' + (this.QLABEL[m.qty] || m.qty); }
+  measSub(m) { if (m.type === 'signal') return m.dur + ' с · ' + this.qtyUnit(m); if (m.type === 'phase') return 'опорная метка · ' + (this.QLABEL[m.qty] || m.qty) + ' · ' + (m.avg || 1) + '× усредн.'; return m.f0 + '–' + m.f1 + ' Гц · Δf ' + m.df + ' · ' + (m.avg || 1) + '× · ' + m.win; }
   qtyUnit(m) { const kind = (m.qty === 'avel' || m.qty === 'aacc') ? 'gyro' : 'acc'; const arr = this.QTY[kind] || this.QTY.acc; const f = arr.find(x => x.k === m.qty); return f ? f.u : ''; }
-  tagClass(m) { if (m.type === 'signal') return 'sig'; if (m.qty === 'vel') return 'vel'; return 'acc'; }
+  tagClass(m) { if (m.type === 'signal') return 'sig'; if (m.type === 'phase') return 'phase'; if (m.qty === 'vel') return 'vel'; return 'acc'; }
 
   render() { if (this.view === 'point') return this.renderPoint(); this.renderList(); }
 
@@ -254,8 +273,9 @@ class MeasSettings {
     const d = this.def;
     const body =
       '<div class="nms-step">Шаг 3 из 5</div><div class="nms-stepbar"><span class="done"></span><span class="done"></span><span class="on"></span><span></span><span></span></div>'
-      + '<div class="nms-def">'
-      + '<div class="nms-defhd" data-act="toggleDef"><div class="t">⚙ Профиль по умолчанию</div><div class="c">' + d.odr / 1000 + ' кГц · Δf ' + d.df + ' · ' + d.accFs + ' / ' + d.gyroFs + ' ' + (this.defOpen ? '⌄' : '›') + '</div></div>'
+      + this.sensorBlock()
+      + '<div class="nms-def" style="margin-top:14px">'
+      + '<div class="nms-defhd" data-act="toggleDef"><div class="t">⚙ Профиль по умолчанию</div><div class="c">' + d.odr / 1000 + ' кГц · Δf ' + d.df + ' · ' + d.accFs + (this.hasGyro ? ' / ' + d.gyroFs : '') + ' ' + (this.defOpen ? '⌄' : '›') + '</div></div>'
       + '<div class="nms-defbody ' + (this.defOpen ? 'open' : '') + '">' + this.defBodyHtml() + '</div></div>'
       + '<div class="nms-actions"><button data-act="applyAll">⇊ Применить ко всем</button><button data-act="profiles">☰ Профили</button></div>'
       + '<div class="nms-plabel">Опоры и точки · из структуры агрегата</div>'
@@ -263,6 +283,15 @@ class MeasSettings {
     this.root.innerHTML = this.chrome(body, this.footer());
   }
 
+  sensorBlock() {
+    const cur = this.SENSOR;
+    const segs = NovaSensors.list().map(s => '<button class="' + (s.id === this.sensorId ? 'on' : '') + '" data-act="setSensor" data-v="' + s.id + '">' + s.short + '</button>').join('');
+    return '<div class="nms-plabel" style="margin-top:2px">Датчик вибрации</div>'
+      + '<div class="nms-seg nms-sseg">' + segs + '</div>'
+      + '<div class="nms-shint">' + cur.desc + '</div>'
+      + '<div class="nms-row2" style="margin:8px 2px 0"><span class="k">Фазовая привязка (тахометр)</span><div class="nms-toggle ' + (this.phaseRef ? 'on' : '') + '" data-act="togglePhase"><div class="k"></div></div></div>'
+      + (this.phaseRef ? '<div class="nms-shint">Опорная метка тахометра: 1× амплитуда-фаза + порядковый анализ. Обороты в замере — по тахо.</div>' : '');
+  }
   defBodyHtml() {
     const d = this.def;
     return ''
@@ -273,7 +302,7 @@ class MeasSettings {
       + '<div class="nms-row2"><span class="k">Детально (Δf 0,1 Гц)</span><div class="nms-toggle ' + (d.detail ? 'on' : '') + '" data-act="defDetail"><div class="k"></div></div></div>'
       + '<div class="nms-sec">Диапазон измерения (на блок осей)</div>'
       + '<div class="nms-row2"><span class="k">Акселерометр</span>' + this.segChips('defAccFs', this.ACC_FS, d.accFs) + '</div>'
-      + '<div class="nms-row2"><span class="k">Гироскоп</span>' + this.segChips('defGyroFs', this.GYRO_FS, d.gyroFs) + '</div>';
+      + (this.hasGyro ? '<div class="nms-row2"><span class="k">Гироскоп</span>' + this.segChips('defGyroFs', this.GYRO_FS, d.gyroFs) + '</div>' : '');
   }
   segChips(act, opts, cur, fmt) { return '<div class="nms-presets">' + opts.map(o => '<button class="nms-chip ' + (String(o) === String(cur) ? 'on' : '') + '" data-act="' + act + '" data-v="' + o + '">' + (fmt ? fmt(o) : o) + '</button>').join('') + '</div>'; }
   stepInline(act, val) { return '<div class="nms-step2b" style="width:120px"><button class="nms-stepbtn" data-act="' + act + '" data-d="-1">−</button><span class="nms-stepval">' + val + '</span><button class="nms-stepbtn" data-act="' + act + '" data-d="1">＋</button></div>'; }
@@ -282,7 +311,7 @@ class MeasSettings {
     const p = this.points[this.curPt];
     let chans = '';
     p.channels.forEach((c, ci) => {
-      if (c.ch === 'hf' && this.sensor !== 'v2') return;
+      if (this.SENSOR.chans.indexOf(c.ch) < 0) return;   // канал недоступен текущему датчику
       const meta = this.CH[c.ch];
       const col = meta.kind === 'gyro' ? 'var(--warn)' : (meta.kind === 'hf' ? 'var(--danger)' : 'var(--info)');
       const bg = meta.kind === 'gyro' ? 'rgba(200,137,26,.12)' : (meta.kind === 'hf' ? 'rgba(198,72,58,.12)' : 'var(--info-bg)');
@@ -290,7 +319,7 @@ class MeasSettings {
       if (c.on) {
         c.meas.forEach((m, mi) => {
           meas += '<div class="nms-mcard" data-act="editMeas" data-ci="' + ci + '" data-mi="' + mi + '">'
-            + '<div class="mi nms-tag ' + this.tagClass(m) + '">' + (m.type === 'signal' ? '∿' : '⊹') + '</div>'
+            + '<div class="mi nms-tag ' + this.tagClass(m) + '">' + (m.type === 'signal' ? '∿' : (m.type === 'phase' ? '∠' : '⊹')) + '</div>'
             + '<div style="flex:1"><div class="mn">' + this.measTitle(m) + '</div><div class="md">' + this.measSub(m) + '</div></div>'
             + '<div class="mx" data-act="delMeas" data-ci="' + ci + '" data-mi="' + mi + '">×</div></div>';
         });
@@ -310,7 +339,7 @@ class MeasSettings {
       + '<div class="nms-row2"><span class="k">Разрешение Δf</span>' + this.segChips('ptDf', this.DF_OPT, p.df, x => x + ' Гц') + '</div>'
       + '<div class="nms-row2"><span class="k">Усреднений</span>' + this.stepInline('ptAvg', p.avg) + '</div>'
       + '<div class="nms-row2"><span class="k">Акс. диапазон</span>' + this.segChips('ptAccFs', this.ACC_FS, p.fs.accFs) + '</div>'
-      + '<div class="nms-row2"><span class="k">Гиро диапазон</span>' + this.segChips('ptGyroFs', this.GYRO_FS, p.fs.gyroFs) + '</div>'
+      + (this.hasGyro ? '<div class="nms-row2"><span class="k">Гиро диапазон</span>' + this.segChips('ptGyroFs', this.GYRO_FS, p.fs.gyroFs) + '</div>' : '')
       + '</div>'
       + '<div class="nms-actions"><button data-act="copyPt">⧉ Копировать на точки…</button><button data-act="delPt" style="flex:0 0 auto;color:var(--danger);border-color:var(--border)">🗑 Удалить точку</button></div>'
       + '<div class="nms-plabel">Каналы датчика · ' + this.chanOnCount(p) + ' активно</div>'
@@ -332,6 +361,7 @@ class MeasSettings {
       delPt: () => this.delPoint(),
       renamePt: () => this.renamePoint(),
       applyAll: () => this.applyAll(), profiles: () => this.openProfiles(), copyPt: () => this.openCopy(),
+      setSensor: () => this.pickSensor(v), togglePhase: () => this.togglePhase(),
       defOdr: () => { this.def.odr = +v; this.render(); }, defDf: () => { this.def.df = +v; this.render(); },
       defAvg: () => { this.def.avg = Math.max(1, Math.min(16, this.def.avg + d)); this.render(); },
       defDetail: () => { this.def.detail = !this.def.detail; if (this.def.detail) this.def.df = 0.1; this.render(); },
@@ -361,10 +391,11 @@ class MeasSettings {
   /* сохранить программу (новая форма) в nova_list[i].program → перейти на критерии */
   saveNext() {
     const list = getList();
-    const entry = { name: (this.AGG.name || 'Агрегат'), agg: localStorage.getItem('nova_agg') || JSON.stringify(this.AGG), defects: localStorage.getItem('nova_defects') || '[]', program: JSON.stringify({ def: this.def, points: this.points }) };
+    const prog = { sensor: this.sensorId, phaseRef: this.phaseRef, def: this.def, points: this.points };
+    const entry = { name: (this.AGG.name || 'Агрегат'), agg: localStorage.getItem('nova_agg') || JSON.stringify(this.AGG), defects: localStorage.getItem('nova_defects') || '[]', program: JSON.stringify(prog) };
     let idx = -1; const eid = localStorage.getItem('nova_editId'); if (eid != null && eid !== '' && !isNaN(+eid) && list[+eid]) idx = +eid;
     if (idx >= 0) { if (list[idx] && list[idx].criteria) entry.criteria = list[idx].criteria; list[idx] = entry; } else { list.push(entry); idx = list.length - 1; }
-    try { localStorage.setItem('nova_list', JSON.stringify(list)); localStorage.setItem('nova_program', JSON.stringify({ def: this.def, points: this.points })); localStorage.removeItem('nova_editId'); } catch (e) {}
+    try { localStorage.setItem('nova_list', JSON.stringify(list)); localStorage.setItem('nova_program', JSON.stringify(prog)); localStorage.removeItem('nova_editId'); } catch (e) {}
     location.href = 'criteria.html?id=' + idx;
   }
 
@@ -406,6 +437,39 @@ class MeasSettings {
       + '<button class="nms-sheetbtn" data-act="closeSheet" style="background:var(--surface2);color:var(--text)">Отмена</button>');
     this._extra = { doApplyAll: () => { this.points.forEach(p => { p.odr = this.def.odr; p.df = this.def.df; p.avg = this.def.avg; p.fs = { accFs: this.def.accFs, gyroFs: this.def.gyroFs }; }); this.closeSheet(); this.render(); } };
   }
+  pickSensor(id) {
+    if (!NovaSensors.CATALOG[id] || id === this.sensorId) return;
+    const s = NovaSensors.get(id);
+    this.openSheet('<h3>Сменить датчик на ' + s.short + '?</h3><p class="sh-sub">' + s.desc + '. Каналы и измерения всех точек пересоберутся под возможности датчика: недоступные каналы удалятся, новые получат измерения по умолчанию.</p>'
+      + '<div class="nms-opt on" data-act="doSetSensor" data-v="' + id + '"><div class="oi">⇄</div><div><div class="on1">Пересобрать под ' + s.short + '</div><div class="od">частоты и диапазоны точек приведутся к датчику</div></div></div>'
+      + '<button class="nms-sheetbtn" data-act="closeSheet" style="background:var(--surface2);color:var(--text)">Отмена</button>');
+    this._extra = { doSetSensor: (t) => { this.applySensor(t.getAttribute('data-v'), true); this.retargetPoints(); this.closeSheet(); this.view = 'list'; this.render(); } };
+  }
+  togglePhase() { this.phaseRef = !this.phaseRef; this.retargetPhase(); this.render(); }
+  retargetPhase() {
+    this.points.forEach(p => { p.channels.forEach(c => {
+      if (this.CH[c.ch].kind !== 'acc') return;
+      const has = c.meas.some(m => m.type === 'phase');
+      if (this.phaseRef && this.sensorId === 'v0' && c.on && !has) c.meas.push({ type: 'phase', qty: 'vel', ord: 1, avg: 4 });
+      if (!this.phaseRef && has) c.meas = c.meas.filter(m => m.type !== 'phase');
+    }); });
+  }
+  retargetPoints() {
+    this.points.forEach(p => {
+      const old = {}; (p.channels || []).forEach(c => old[c.ch] = c);
+      const chans = [];
+      this.SENSOR.chans.forEach(ck => {
+        // сохраняем вкл/выкл канала, но измерения пересобираем под дефолты нового датчика
+        const on = old[ck] ? !!old[ck].on : this.defOnFor(ck, p.radial);
+        chans.push({ ch: ck, on, meas: on ? this.defMeas(ck) : [] });
+      });
+      p.channels = chans;
+      if (this.ODRS.map(o => o.v).indexOf(p.odr) < 0) p.odr = this.def.odr;
+      if (this.ACC_FS.indexOf(p.fs.accFs) < 0) p.fs.accFs = this.def.accFs;
+      if (!this.hasGyro) p.fs.gyroFs = null; else if (this.GYRO_FS.indexOf(p.fs.gyroFs) < 0) p.fs.gyroFs = this.def.gyroFs;
+    });
+    this.retargetPhase();
+  }
   openProfiles() {
     const profs = [
       { nm: 'Базовый мониторинг', d: 'ODR 4 кГц · Δf 0,3 · ±16g' },
@@ -430,22 +494,30 @@ class MeasSettings {
     };
   }
   openAddMeas(ci) {
+    const chKind = this.CH[this.points[this.curPt].channels[ci].ch].kind;
+    const phaseOpt = (this.phaseRef && chKind === 'acc') ? '<div class="nms-opt" data-act="addType" data-v="phase" data-ci="' + ci + '"><div class="oi">∠</div><div><div class="on1">Амплитуда-фаза</div><div class="od">порядок 1× · опорная метка тахо</div></div></div>' : '';
     this.openSheet('<h3>Новое измерение</h3><p class="sh-sub">' + this.CH[this.points[this.curPt].channels[ci].ch].nm + '</p>'
       + '<div class="nms-opt" data-act="addType" data-v="spectrum" data-ci="' + ci + '"><div class="oi">⊹</div><div><div class="on1">Спектр</div><div class="od">величина · диапазон · Δf · усреднения · окно</div></div></div>'
-      + '<div class="nms-opt" data-act="addType" data-v="signal" data-ci="' + ci + '"><div class="oi">∿</div><div><div class="on1">Сигнал / осциллограмма</div><div class="od">длительность · величина</div></div></div>');
-    this._extra = { addType: (t) => { const type = t.getAttribute('data-v'); const cci = +t.getAttribute('data-ci'); const ch = this.points[this.curPt].channels[cci]; const kind = this.CH[ch.ch].kind; const q0 = (this.QTY[kind] || this.QTY.acc)[kind === 'acc' ? 1 : 0].k; const m = type === 'spectrum' ? { type: 'spectrum', qty: q0, f0: 2, f1: 1000, df: this.points[this.curPt].df, win: 'Хеннинга', avg: this.points[this.curPt].avg } : { type: 'signal', qty: q0, dur: 1 }; ch.meas.push(m); this.closeSheet(); this.render(); setTimeout(() => this.openEditMeas(cci, ch.meas.length - 1), 60); } };
+      + '<div class="nms-opt" data-act="addType" data-v="signal" data-ci="' + ci + '"><div class="oi">∿</div><div><div class="on1">Сигнал / осциллограмма</div><div class="od">длительность · величина</div></div></div>'
+      + phaseOpt);
+    this._extra = { addType: (t) => { const type = t.getAttribute('data-v'); const cci = +t.getAttribute('data-ci'); const ch = this.points[this.curPt].channels[cci]; const kind = this.CH[ch.ch].kind; const q0 = (this.QTY[kind] || this.QTY.acc)[kind === 'acc' ? 1 : 0].k; const m = type === 'spectrum' ? { type: 'spectrum', qty: q0, f0: 2, f1: 1000, df: this.points[this.curPt].df, win: 'Хеннинга', avg: this.points[this.curPt].avg } : (type === 'phase' ? { type: 'phase', qty: 'vel', ord: 1, avg: 4 } : { type: 'signal', qty: q0, dur: 1 }); ch.meas.push(m); this.closeSheet(); this.render(); setTimeout(() => this.openEditMeas(cci, ch.meas.length - 1), 60); } };
   }
   openEditMeas(ci, mi) { this.editM = { ci, mi }; this.buildEditMeas(); this.q('#nms-sheet').classList.add('on'); this.q('#nms-backdrop').classList.add('on'); }
   buildEditMeas() {
     const p = this.points[this.curPt], ch = p.channels[this.editM.ci], m = ch.meas[this.editM.mi], kind = this.CH[ch.ch].kind;
     const qtys = this.QTY[kind] || this.QTY.acc;
-    let h = '<h3>' + (m.type === 'signal' ? 'Осциллограмма' : 'Спектр') + '</h3><p class="sh-sub">' + this.CH[ch.ch].nm + '</p>';
+    const title = m.type === 'signal' ? 'Осциллограмма' : (m.type === 'phase' ? 'Амплитуда-фаза' : 'Спектр');
+    let h = '<h3>' + title + '</h3><p class="sh-sub">' + this.CH[ch.ch].nm + '</p>';
     h += '<div class="nms-fld"><label>Величина</label>' + this.segChips('mQty', qtys.map(x => x.k), m.qty, k => qtys.find(x => x.k === k).l) + '</div>';
     if (m.type === 'spectrum') {
       h += '<div class="nms-fld"><label>Диапазон частот, Гц</label>' + this.segChips('mBand', this.BAND_OPT.map(b => b.join('–')), m.f0 + '–' + m.f1) + '</div>';
       h += '<div class="nms-fld"><label>Разрешение Δf</label>' + this.segChips('mDf', this.DF_OPT, m.df, x => x + ' Гц') + '</div>';
       h += '<div class="nms-fld"><label>Усреднений</label>' + this.stepInline('mAvg', m.avg || 1) + '</div>';
       h += '<div class="nms-fld"><label>Окно</label>' + this.segChips('mWin', this.WINS, m.win) + '</div>';
+    } else if (m.type === 'phase') {
+      h += '<div class="nms-fld"><label>Порядок (× оборотов)</label>' + this.segChips('mOrd', [1, 2, 3], m.ord || 1, x => x + '×') + '</div>';
+      h += '<div class="nms-fld"><label>Усреднений</label>' + this.stepInline('mAvg', m.avg || 1) + '</div>';
+      h += '<p class="sh-sub" style="margin-top:2px">Опорная метка тахометра обязательна. Амплитуда и фаза на выбранном порядке — для балансировки/центровки.</p>';
     } else {
       h += '<div class="nms-fld"><label>Длительность</label>' + this.segChips('mDur', this.DUR_OPT, m.dur, x => x + ' с') + '</div>';
     }
@@ -456,6 +528,7 @@ class MeasSettings {
       mBand: (t) => { const parts = t.getAttribute('data-v').split('–').map(Number); m.f0 = parts[0]; m.f1 = parts[1]; this.reflectMeas(); },
       mDf: (t) => { m.df = +t.getAttribute('data-v'); this.reflectMeas(); },
       mAvg: (t) => { m.avg = Math.max(1, Math.min(16, (m.avg || 1) + (+t.getAttribute('data-d')))); this.reflectMeas(); },
+      mOrd: (t) => { m.ord = +t.getAttribute('data-v'); this.reflectMeas(); },
       mWin: (t) => { m.win = t.getAttribute('data-v'); this.reflectMeas(); },
       mDur: (t) => { m.dur = +t.getAttribute('data-v'); this.reflectMeas(); }
     };
