@@ -96,7 +96,7 @@
     step:'config', trialIdx:0,
     supports:2, orient:'h',
     dirs:[{key:'V',on:true},{key:'H',on:true},{key:'A',on:false}],
-    planes:[{id:1,name:'Плоскость 1',radius:''},{id:2,name:'Плоскость 2',radius:''}],
+    planes:[{id:1,name:'Плоскость 1'},{id:2,name:'Плоскость 2'}],
     nplanes:2,
     base:{vib:{}}, trials:[], calc:null, custom:null
   };
@@ -167,10 +167,9 @@
     S.dirs.forEach(function(d){ body+='<div class="row"><span class="k">Направление '+dirName(d.key)+'</span><div class="tog '+(d.on?'on':'')+'" data-act="dir" data-v="'+d.key+'"><div class="k"></div></div></div>'; });
     body+='<div class="sec">Плоскости коррекции</div>';
     body+='<div class="row"><span class="k">Число плоскостей</span>'+stepper('nplanes',S.nplanes,1,4)+'</div>';
-    planesActive().forEach(function(pl,i){ body+='<div class="card"><div style="font-size:12px;color:var(--hint)">Плоскость '+(i+1)+'</div>'
-      +'<div class="plane-row"><input class="f" data-pl="name" data-i="'+i+'" value="'+pl.name+'" placeholder="имя"/>'
-      +'<input class="f rw" data-pl="radius" data-i="'+i+'" value="'+pl.radius+'" placeholder="радиус, мм" inputmode="decimal"/></div></div>'; });
-    body+='<div class="hint">Груз задаётся массой и углом (против вращения) на выбранном радиусе; балансировка ведётся на одном радиусе.</div>';
+    planesActive().forEach(function(pl,i){ body+='<div class="card"><div style="font-size:12px;color:var(--hint);margin-bottom:8px">Плоскость '+(i+1)+'</div>'
+      +'<input class="f" data-pl="name" data-i="'+i+'" value="'+pl.name+'" placeholder="имя"/></div>'; });
+    body+='<div class="hint">Груз задаётся массой и углом (против вращения).</div>';
     document.getElementById('body').innerHTML=body;
     document.getElementById('sub').textContent='шаг 1 · конфигурация';
     setNext('Начать → базовый пуск', true);
@@ -268,7 +267,7 @@
     else if(S.step==='result'){ S.step='trial'; S.trialIdx=S.nplanes-1; render(); }
     else location.href='index.html';
   });
-  function syncPlanes(){ while(S.planes.length<S.nplanes) S.planes.push({id:S.planes.length+1,name:'Плоскость '+(S.planes.length+1),radius:''}); }
+  function syncPlanes(){ while(S.planes.length<S.nplanes) S.planes.push({id:S.planes.length+1,name:'Плоскость '+(S.planes.length+1)}); }
 
   syncPlanes(); render();
 })();
