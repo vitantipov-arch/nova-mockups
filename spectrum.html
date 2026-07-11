@@ -142,7 +142,7 @@
     var bins=binsOf(cm,fmax,0.05*rms), ebins=binsOf(ecm,fmax,0.04*rms);
     var M=130,wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr),y=0; cm.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
     var bmax=Math.max.apply(null,bins.map(function(x){return x.a;})), emax=Math.max.apply(null,ebins.map(function(x){return x.a;})), wmax=Math.max.apply(null,wave.map(Math.abs));
-    return {c:c,unit:uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:peak,pp:pp,amp1:one.a,phase:rnd(0,360),bins:bins,ebins:ebins,wave:wave,bmax:bmax,emax:emax,wmax:wmax};
+    return {c:c,qty:cfg.qty,unit:uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:peak,pp:pp,amp1:one.a,phase:rnd(0,360),bins:bins,ebins:ebins,wave:wave,bmax:bmax,emax:emax,wmax:wmax};
   }
   function genData(){ var per=selChans().map(genChannel); viewChans={}; per.forEach(function(p){ viewChans[key(p.c)]=true; }); return {per:per}; }
   function detVal(p){ return detector==='peak'?p.peak:(detector==='pp'?p.pp:p.rms); }
@@ -156,19 +156,33 @@
     list.forEach(function(p){ var d=''; p[src].forEach(function(b,i){ var y=base-dir*bandH*Math.min(b.a,mx)/mx; d+=(i?'L':'M')+X(b.f).toFixed(1)+' '+y.toFixed(1); }); s+='<path d="'+d+'" fill="none" stroke="'+chColor(p.c)+'" stroke-width="1.5"/>'; });
     return s;
   }
-  function drawSpec(srcKey,maxKey){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
-    var vib=sh.filter(function(p){return p.c.s==='a';}), gyr=sh.filter(function(p){return p.c.s==='g';});
-    var L=40,Rr=352,fmax=dispFmax(); function X(f){ return L+312*f/fmax; }
+  // группировка каналов по величине: в просмотре — своя панель/ось на скорость, ускорение, перемещение
+  function specGroups(sh){ if(!VIEWMODE) return [{qty:cfg.qty,list:sh}];
+    var order=['vel','acc','disp'],by={}; sh.forEach(function(p){ var q=p.qty||cfg.qty; (by[q]=by[q]||[]).push(p); });
+    var res=[]; order.forEach(function(q){ if(by[q]) res.push({qty:q,list:by[q]}); });
+    Object.keys(by).forEach(function(q){ if(order.indexOf(q)<0) res.push({qty:q,list:by[q]}); }); return res; }
+  function panelFmax(list){ return Math.max.apply(null,list.map(function(p){return p.fmax||0;}).concat([parseFloat(cfg.fmax)||1000])); }
+  function bandTxt(fmax){ return fmax>=1000?(fmax/1000).toString().replace(/\.0$/,'')+' кГц':Math.round(fmax)+' Гц'; }
+  function specSvg(list,srcKey,maxKey,qty){
+    var vib=list.filter(function(p){return p.c.s==='a';}), gyr=list.filter(function(p){return p.c.s==='g';});
+    var L=40,Rr=352,fmax=panelFmax(list); function X(f){ return L+312*f/fmax; }
     var s='',H=176;
     if(vib.length&&gyr.length){ var mid=90;
       s+=bandSpectrum(vib,X,mid,78,1,srcKey,maxKey)+bandSpectrum(gyr,X,mid,72,-1,srcKey,maxKey);
       s+='<line x1="'+L+'" y1="'+mid+'" x2="'+Rr+'" y2="'+mid+'" stroke="rgba(255,255,255,0.18)"/>';
       s+='<text x="'+L+'" y="12" font-size="8" fill="#85b7eb">Вибро ('+vib[0].unit+')</text><text x="'+L+'" y="170" font-size="8" fill="#c79bff">Гиро ('+gyr[0].unit+')</text>';
-    } else { var B=158; s+=bandSpectrum(sh,X,B,150,1,srcKey,maxKey);
-      if(cfg.qty==='vel'&&sh[0].c.s==='a'){ var mx=Math.max.apply(null,sh.map(function(p){return p[maxKey];})); var ty=B-150*Math.min(4.5,mx)/mx; s+='<line x1="'+L+'" y1="'+ty.toFixed(1)+'" x2="'+Rr+'" y2="'+ty.toFixed(1)+'" stroke="#ef9f27" stroke-dasharray="4 3"/><text x="'+Rr+'" y="'+(ty-3).toFixed(1)+'" font-size="8" fill="#ef9f27" text-anchor="end">порог 4.5</text>'; }
+    } else { var B=158; s+=bandSpectrum(list,X,B,150,1,srcKey,maxKey);
+      if(qty==='vel'&&list[0].c.s==='a'){ var mx=Math.max.apply(null,list.map(function(p){return p[maxKey];})); var ty=B-150*Math.min(4.5,mx)/mx; s+='<line x1="'+L+'" y1="'+ty.toFixed(1)+'" x2="'+Rr+'" y2="'+ty.toFixed(1)+'" stroke="#ef9f27" stroke-dasharray="4 3"/><text x="'+Rr+'" y="'+(ty-3).toFixed(1)+'" font-size="8" fill="#ef9f27" text-anchor="end">порог 4.5</text>'; }
     }
     for(var j=0;j<=5;j++){ var f=fmax*j/5; s+='<text x="'+X(f).toFixed(1)+'" y="'+(H-2)+'" font-size="8" fill="#86857e" text-anchor="middle">'+Math.round(f)+'</text>'; }
     return svg(s,H);
+  }
+  function drawSpec(srcKey,maxKey){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
+    var groups=specGroups(sh);
+    if(groups.length<2) return specSvg(sh,srcKey,maxKey,groups[0].qty);
+    return groups.map(function(g){
+      return '<div style="font-size:11px;color:var(--muted);margin:8px 0 -2px 2px">'+(QTY[g.qty]||g.qty)+' · до '+bandTxt(panelFmax(g.list))+'</div>'+specSvg(g.list,srcKey,maxKey,g.qty);
+    }).join('');
   }
   function drawWave(){ var sh=shown(); if(!sh.length) return empty('Выберите каналы');
     var vib=sh.filter(function(p){return p.c.s==='a';}), gyr=sh.filter(function(p){return p.c.s==='g';});
@@ -267,7 +281,7 @@
   function fromComps(c){ var fmax=parseFloat(c.fmax)||parseFloat(cfg.fmax)||1000, cm=c.comps||[], ecm=c.ecomps||cm, rms=c.rms||0;
     var bins=binsOf(cm,fmax,0.05*rms), ebins=binsOf(ecm,fmax,0.04*rms);
     var M=130,wave=[]; for(var j=0;j<M;j++){ var t=j/M*(3/fr),y=0; cm.forEach(function(k){ y+=k.a*Math.sin(2*Math.PI*k.f*t+(k.f/fr)); }); wave.push(y); }
-    return {c:{s:c.s,ax:c.ax},fmax:fmax,unit:c.unit||uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:c.peak||rms*2,pp:c.pp||rms*4,amp1:(c.amp1!=null?c.amp1:rms),phase:c.phase||0,bins:bins,ebins:ebins,wave:wave,
+    return {c:{s:c.s,ax:c.ax},fmax:fmax,qty:c.qty||cfg.qty,unit:c.unit||uOf(cfg.qty,c.s),comps:cm,rms:rms,peak:c.peak||rms*2,pp:c.pp||rms*4,amp1:(c.amp1!=null?c.amp1:rms),phase:c.phase||0,bins:bins,ebins:ebins,wave:wave,
       bmax:Math.max.apply(null,bins.map(function(x){return x.a;}).concat([1e-6])),emax:Math.max.apply(null,ebins.map(function(x){return x.a;}).concat([1e-6])),wmax:Math.max.apply(null,wave.map(Math.abs).concat([1e-6]))};
   }
   (function initView(){ if((location.search||'').indexOf('mode=view')<0) return; VIEWMODE=true;
