@@ -114,32 +114,36 @@
     return [{n:'0.5×',f:0.5*FR,a:(0.04+Math.random()*0.16)*k},{n:'1×',f:FR,a:(0.4+Math.random()*0.6)*k},{n:'2×',f:2*FR,a:(0.15+Math.random()*0.45)*k},{n:'3×',f:3*FR,a:(0.05+Math.random()*0.25)*k}]; }
   function vals(q,s){ var cm=cmps(q,s,'spec'), ecm=cmps(q,s,'env'), rms=Math.sqrt(cm.reduce(function(a,k){return a+0.5*k.a*k.a;},0)+0.02), peak=rms*1.414*(1.4+Math.random()*0.5);
     return {rms:rms,unit:UNIT[q][s],comps:cm,ecomps:ecm,peak:peak,pp:peak*1.9}; }
-  function genPoint(spot){ var amap=axisMap(spot.dir), bykey={};
-    (spot.meas||[]).forEach(function(m){ var q=(['vel','disp','acc'].indexOf(m.mid)>=0)?m.mid:'vel';
-      (m.chans||[]).forEach(function(ch){ var kk=ch.s+'_'+ch.ax, c=bykey[kk]; if(!c) c=bykey[kk]={s:ch.s,ax:ch.ax,dir:amap[ch.ax],vals:{},amp1:0,phase:Math.random()*360};
-        if(!c.vals[q]) c.vals[q]=vals(q,ch.s); }); });
-    var chans=Object.keys(bykey).map(function(k){ var c=bykey[k], any=c.vals.vel||c.vals[Object.keys(c.vals)[0]]; c.amp1=any?any.comps[1].a:0; return c; });
-    if(!chans.length){ var cc={s:'a',ax:'Z',dir:amap.Z,vals:{vel:vals('vel','a')},amp1:0,phase:0}; cc.amp1=cc.vals.vel.comps[1].a; chans=[cc]; }
+  var CHMAP={aX:{s:'a',ax:'X'},aY:{s:'a',ax:'Y'},aZ:{s:'a',ax:'Z'},gX:{s:'g',ax:'X'},gY:{s:'g',ax:'Y'},gZ:{s:'g',ax:'Z'},hf:{s:'a',ax:'Z'}};
+  var QMID={vel:'vel',acc:'acc',disp:'disp',avel:'vel',aacc:'acc'};
+  function genPoint(n){ var pt=n.pt||{}, chans=[];
+    (pt.channels||[]).forEach(function(c){ if(!c.on) return; var meta=CHMAP[c.ch]; if(!meta) return; var vv={};
+      (c.meas||[]).forEach(function(m){ var q=QMID[m.qty]||'vel'; if(!vv[q]) vv[q]=vals(q,meta.s); });
+      if(!Object.keys(vv).length) vv.vel=vals('vel',meta.s);
+      var any=vv.vel||vv[Object.keys(vv)[0]];
+      chans.push({s:meta.s,ax:meta.ax,dir:meta.ax,vals:vv,amp1:any?any.comps[1].a:0,phase:Math.random()*360}); });
+    if(!chans.length) chans=[{s:'a',ax:'Z',dir:'Z',vals:{vel:vals('vel','a')},amp1:0,phase:0}];
     return {channels:chans}; }
   function viewerChannels(channels,q){ return channels.map(function(c){ var vq=c.vals[q]?q:Object.keys(c.vals)[0], v=c.vals[vq]; if(!v) return null;
     return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean); }
 
-  // ---- точки программы: узел = опора × направление ----
+  // ---- точки программы (новая модель): узел = точка (опора × направление) ----
   var sup2ik={}, nodes=[];
   units.forEach(function(u,i){ (u.supports||[]).forEach(function(sp,k){ sup2ik[NovaScheme.supNum(units,i,k)]=[i,k]; }); });
-  (prog.points||[]).forEach(function(pt,pi){ var m=(pt.label||'').match(/№(\d+)/); if(!m) return; var num=+m[1]; if(!sup2ik[num]) return;
-    (pt.spots||[]).forEach(function(sp){ nodes.push({pi:pi,dir:sp.dir,sup:num,spot:sp,label:pt.label}); });
-  });
+  (prog.points||[]).forEach(function(pt,pi){ if(!sup2ik[pt.sup]) return;
+    nodes.push({pi:pi, dir:pt.name, sup:pt.sup, pt:pt, label:'Опора №'+pt.sup}); });
   var SUPS=[]; nodes.forEach(function(n){ if(SUPS.indexOf(n.sup)<0) SUPS.push(n.sup); }); SUPS.sort(function(a,b){return a-b;});
   var DIRORD=orient==='v'?['R1','R2','О']:['В','П','О'];
-  var DIRS=DIRORD.filter(function(d){ return nodes.some(function(n){return n.dir===d;}); });
+  var DIRS=[]; nodes.forEach(function(n){ if(DIRS.indexOf(n.dir)<0) DIRS.push(n.dir); });
+  DIRS.sort(function(a,b){ var ia=DIRORD.indexOf(a), ib=DIRORD.indexOf(b); if(ia<0)ia=99; if(ib<0)ib=99; return ia-ib; });
   var cellIdx={}; nodes.forEach(function(n,idx){ cellIdx[n.sup+'_'+n.dir]=idx; });
   function nkey(n){ return n.pi+'_'+n.dir; }
   function chanCount(sp){ var c=0; (sp.meas||[]).forEach(function(m){ c+=(m.chans||[]).length; }); return c; }
-  function progLine(sp){ var names=[], nm=(sp.meas||[]).length;
-    (sp.meas||[]).forEach(function(m){ var n=MIDN[m.mid]||'Метод'; if(names.indexOf(n)<0) names.push(n); });
-    if(!names.length) names.push('Скорость');
-    return names.join(' + ')+' · '+chanCount(sp)+' кан · ≈'+(4*Math.max(1,nm))+' с'; }
+  var QLBL={acc:'Ускорение',vel:'Скорость',disp:'Перемещение',avel:'Угл. скорость',aacc:'Угл. ускорение'};
+  function progLine(n){ var pt=n.pt||{}, names=[], nch=0;
+    (pt.channels||[]).forEach(function(c){ if(!c.on) return; nch++;
+      (c.meas||[]).forEach(function(m){ var nm=m.type==='signal'?'Осц.':(QLBL[m.qty]||m.qty); if(names.indexOf(nm)<0) names.push(nm); }); });
+    return (names.join(' + ')||'—')+' · '+nch+' кан · ≈'+(4*Math.max(1,names.length))+' с'; }
 
   // ---- отрисовка ----
   function worstOf(sup){ var w=null;
@@ -188,7 +192,7 @@
     if(active<0||!nodes[active]){ p.classList.add('hidden'); return; }
     var n=nodes[active], st=sess[nkey(n)];
     var h='<div class="pname">Опора №'+n.sup+' · точка '+n.dir+'</div>'
-      +'<div class="pprog"><i class="ti ti-checklist" style="font-size:13px"></i> По программе: '+progLine(n.spot)+' · <span class="chg" onclick="chgCfg()">изменить</span></div>';
+      +'<div class="pprog"><i class="ti ti-checklist" style="font-size:13px"></i> По программе: '+progLine(n)+' · <span class="chg" onclick="chgCfg()">изменить</span></div>';
     if(measuring===active) h+='<div class="presult"><i class="ti ti-loader-2 spin" style="color:var(--info);font-size:16px"></i> идёт замер…</div>';
     else if(st&&st.q==='overload') h+='<div class="presult"><span class="zdot" style="background:var(--warning)"></span><b>⚠ Перегруз датчика</b>&nbsp;— проверьте крепление и повторите (в тренды не идёт)</div>';
     else if(st) h+='<div class="presult"><span class="zdot" style="background:'+ZC[st.zone]+'"></span><b>'+st.rms.toFixed(2)+' мм/с</b>&nbsp;· '+ZN[st.zone]+' · СКЗ</div>';
@@ -208,7 +212,7 @@
   function doMeasure(){ if(active<0||measuring>=0) return;
     measuring=active; renderAll();
     setTimeout(function(){
-      var n=nodes[measuring], d=genPoint(n.spot);
+      var n=nodes[measuring], d=genPoint(n);
       var vch=d.channels.filter(function(c){return c.s==='a'&&c.vals.vel;})[0]||d.channels.filter(function(c){return c.vals.vel;})[0]||d.channels[0];
       var rms=(vch&&vch.vals.vel)?vch.vals.vel.rms:(2+Math.random()*5), zone=rms<2.8?'g':rms<7.1?'y':'r';
       var q=(Math.random()<0.16)?'overload':null;  // мок качества захвата (перегруз)

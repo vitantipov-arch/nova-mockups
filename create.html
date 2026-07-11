@@ -131,7 +131,7 @@ class CreateAggregate {
     comp:  [ { k: 'flow', l: 'Производит.', u: 'м³/мин' }, { k: 'head', l: 'Давление', u: 'бар' }, { k: 'blades', l: 'Число лопастей', step: 1, min: 1 } ],
     gen:   [ { k: 'power', l: 'Мощность', u: 'кВт' }, { k: 'poles', l: 'Число полюсов', step: 2, min: 2 } ]
   };
-  BRGP = { motor: [], pump: ['6208', '6207', '7308'], fan: ['22310', '22312', '6309'], comp: ['NU309', '7308', '30308'], gen: ['6310', '6309'] };
+  BRGP = { motor: [], pump: [], fan: [], comp: [], gen: [] };  // типовые подшипники убраны для всех типов
   RPM_PRESETS = [3000, 1500, 1000, 750, 600];
   LINKS = {
     rigid:   { name: 'Муфта жёсткая', desc: 'соосно, 1:1', off: false, params: [] },
