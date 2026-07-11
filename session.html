@@ -116,13 +116,13 @@
     return {rms:rms,unit:UNIT[q][s],comps:cm,ecomps:ecm,peak:peak,pp:peak*1.9}; }
   var CHMAP={aX:{s:'a',ax:'X'},aY:{s:'a',ax:'Y'},aZ:{s:'a',ax:'Z'},gX:{s:'g',ax:'X'},gY:{s:'g',ax:'Y'},gZ:{s:'g',ax:'Z'},hf:{s:'a',ax:'Z'}};
   var QMID={vel:'vel',acc:'acc',disp:'disp',avel:'vel',aacc:'acc'};
-  function genPoint(n){ var pt=n.pt||{}, chans=[];
+  function genPoint(n){ var pt=n.pt||{}, amap=axisMap(n.dir||'В'), chans=[];
     (pt.channels||[]).forEach(function(c){ if(!c.on) return; var meta=CHMAP[c.ch]; if(!meta) return; var vv={};
       (c.meas||[]).forEach(function(m){ var q=QMID[m.qty]||'vel'; if(!vv[q]) vv[q]=vals(q,meta.s); });
       if(!Object.keys(vv).length) vv.vel=vals('vel',meta.s);
       var any=vv.vel||vv[Object.keys(vv)[0]];
-      chans.push({s:meta.s,ax:meta.ax,dir:meta.ax,vals:vv,amp1:any?any.comps[1].a:0,phase:Math.random()*360}); });
-    if(!chans.length) chans=[{s:'a',ax:'Z',dir:'Z',vals:{vel:vals('vel','a')},amp1:0,phase:0}];
+      chans.push({s:meta.s,ax:meta.ax,dir:amap[meta.ax]||meta.ax,vals:vv,amp1:any?any.comps[1].a:0,phase:Math.random()*360}); });
+    if(!chans.length) chans=[{s:'a',ax:'Z',dir:amap.Z,vals:{vel:vals('vel','a')},amp1:0,phase:0}];
     return {channels:chans}; }
   function viewerChannels(channels,q){ return channels.map(function(c){ var vq=c.vals[q]?q:Object.keys(c.vals)[0], v=c.vals[vq]; if(!v) return null;
     return {s:c.s,ax:c.ax,unit:v.unit,comps:v.comps,ecomps:v.ecomps,rms:v.rms,peak:v.peak,pp:v.pp,amp1:c.amp1,phase:c.phase}; }).filter(Boolean); }
