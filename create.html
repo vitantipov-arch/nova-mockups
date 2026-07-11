@@ -239,6 +239,7 @@ class CreateAggregate {
         delUnit: () => this.delUnit(), setPos: () => this.setPos(j, v), delMach: () => this.delMach(j),
         machPalette: () => this.machPalette(j), pickMach: () => this.pickMach(v),
         setSupCnt: () => this.setSupCnt(+v), openCatalog: () => this.openCatalog(j), pickBrg: () => this.pickBrg(id), setBrgCnt: () => this.setBrgCnt(+v),
+        setPlaneCnt: () => this.setPlaneCnt(+v), delPlane: () => this.delPlane(+t.getAttribute('data-pi')),
         pickLink: () => this.addUnitWith(v), setLink: () => this.setLink(v), setDir: () => this.setDir(t.getAttribute('data-key'), v),
         brgKind: () => this.brgKind(v), pickBrgPreset: () => this.pickBrgPreset(id),
         setRpmPreset: () => this.setRpmPreset(v),
@@ -259,6 +260,7 @@ class CreateAggregate {
       else if (kind === 'linkParam') { this.trans[this.curLink][t.getAttribute('data-key')] = t.value; this.compute(); this.renderScheme(); this.renderPanel(); this.updFreq(); this.persist(); }
       else if (kind === 'brgSearch') { this.brgQuery = t.value; this.fillRolling(); }
       else if (kind === 'motorParam') { this.units[this.sel].machines[+t.getAttribute('data-j')][t.getAttribute('data-key')] = t.value; this.persist(); }
+      else if (kind === 'pname') { const u = this.units[this.sel]; const pi = +t.getAttribute('data-pi'); if (u.planes && u.planes[pi]) { u.planes[pi].name = t.value; this.persist(); } }
       else if (kind === 'cloneSearch') { this.cloneQuery = t.value; this.fillClones(); }
     });
   }
@@ -359,6 +361,11 @@ class CreateAggregate {
       sch.forEach((pp, pi) => { const wide = (sch.length % 2 === 1 && pi === sch.length - 1) ? ' style="grid-column:1 / -1"' : ''; mp += '<div class="nsc-pf"' + wide + '>' + this.paramField(m[pp.k], pp, 'motorParam', 'stepMach', 'data-j="' + mj + '"') + '</div>'; });
       mp += '</div>';
     });
+    let planesTbl = '';
+    (u.planes || []).forEach((pl, pi) => { planesTbl += '<div class="nsc-mrow"><input type="text" value="' + (pl.name || '').replace(/"/g, '&quot;') + '" data-inp="pname" data-pi="' + pi + '" placeholder="имя плоскости" style="flex:1;min-width:80px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13.5px;padding:0 10px;font-family:inherit"/><span class="nsc-trash" data-act="delPlane" data-pi="' + pi + '">🗑</span></div>'; });
+    const planesSection = '<div class="nsc-sublbl">Плоскости коррекции · для балансировки</div>'
+      + '<div class="nsc-mrow"><span class="nsc-mname">Число плоскостей: ' + ((u.planes || []).length) + '</span><div class="nsc-seg2"><button data-act="setPlaneCnt" data-v="-1">−</button><button data-act="setPlaneCnt" data-v="1">+</button></div></div>'
+      + planesTbl;
     p.innerHTML = '<div class="nsc-prow"><div class="nsc-pname">' + u.name + '</div><span class="nsc-trash" data-act="delUnit">🗑</span></div>'
       + '<div class="nsc-pgrid"><div class="nsc-pf"><label>Обозначение вала</label><input type="text" value="' + u.name + '" data-inp="uname"/></div>' + rpmF + '</div>'
       + rpmChips
@@ -367,7 +374,8 @@ class CreateAggregate {
       + supTbl
       + '<div class="nsc-sublbl">Машины на валу</div>' + ms
       + '<button class="nsc-addbtn" data-act="machPalette" data-j="-1">＋ Добавить машину на этот вал</button>'
-      + mp;
+      + mp
+      + planesSection;
     p.classList.remove('hidden');
   }
 
@@ -419,6 +427,8 @@ class CreateAggregate {
   delUnit() { if (this.sel === null) return; this.units.splice(this.sel, 1); if (this.trans.length) this.trans.splice(Math.max(0, this.sel - 1), 1); this.sel = null; this.render(); }
   addUnit(side) { this.addSide = side; if (!this.units.length) { this.units.push({ name: 'Вал 1', rpm: '2940', machines: [{ type: 'motor', pos: 'center' }], supports: [{ brgs: [''] }, { brgs: [''] }] }); this.sel = 0; this.render(); return; } this.openTransSheet(); }
   setSupCnt(d) { const u = this.units[this.sel]; const n = Math.max(1, Math.min(4, u.supports.length + d)); while (u.supports.length > n) u.supports.pop(); while (u.supports.length < n) u.supports.push({ brgs: [''] }); this.render(); }
+  setPlaneCnt(d) { const u = this.units[this.sel]; u.planes = u.planes || []; const n = Math.max(0, Math.min(4, u.planes.length + d)); while (u.planes.length > n) u.planes.pop(); while (u.planes.length < n) u.planes.push({ id: 'pl' + Date.now().toString(36) + u.planes.length, name: 'Плоскость ' + (u.planes.length + 1) }); this.renderPanel(); this.persist(); }
+  delPlane(pi) { const u = this.units[this.sel]; if (!u.planes) return; u.planes.splice(pi, 1); this.renderPanel(); this.persist(); }
 
   startScratch() { this.addUnit('r'); }
 
