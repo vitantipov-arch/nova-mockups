@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nova — балансировка</title>
+<style>
+  :root{ --bg:#141413; --primary:#1f1f1d; --secondary:#2a2a27; --surface2:#26261f; --text:#ececea; --muted:#b4b2a9; --hint:#86857e;
+         --border:rgba(255,255,255,0.12); --border2:rgba(255,255,255,0.22); --info:#85b7eb; --info-bg:rgba(55,138,221,0.16); --info-bd:rgba(55,138,221,0.55);
+         --ok:#97c459; --warn:#ef9f27; --danger:#e24b4a; --accent:#ff8f3d; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--text);display:flex;justify-content:center;min-height:100vh;}
+  .screen{width:100%;max-width:520px;display:flex;flex-direction:column;min-height:100vh;}
+  a{color:inherit;text-decoration:none;}
+  .hd{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:.5px solid var(--border);}
+  .hd .bk{font-size:22px;color:var(--muted);cursor:pointer;}
+  .ttl{font-size:16px;font-weight:600;}
+  .sttl{font-size:12px;color:var(--hint);margin-top:1px;}
+  .steps{display:flex;gap:4px;padding:10px 16px 0;}
+  .steps span{flex:1;height:4px;border-radius:2px;background:var(--secondary);}
+  .steps span.on{background:var(--accent);}
+  .steps span.done{background:var(--ok);}
+  .body{padding:14px 16px 90px;flex:1;}
+  .sec{font-size:12px;color:var(--hint);margin:16px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .sec:first-child{margin-top:2px;}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:14px;}
+  .row:first-of-type{border-top:none;}
+  .row .k{color:var(--muted);}
+  .seg{display:flex;gap:3px;background:var(--secondary);border-radius:9px;padding:3px;}
+  .seg button{border:none;background:transparent;color:var(--hint);font-size:13px;font-family:inherit;border-radius:6px;padding:7px 12px;cursor:pointer;}
+  .seg button.on{background:var(--primary);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+  .stp{display:flex;align-items:center;gap:0;}
+  .stp button{width:34px;height:34px;border:1px solid var(--border2);background:var(--secondary);color:var(--text);font-size:18px;cursor:pointer;}
+  .stp button:first-child{border-radius:9px 0 0 9px;}
+  .stp button:last-child{border-radius:0 9px 9px 0;}
+  .stp .v{min-width:40px;text-align:center;font-size:15px;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);height:34px;line-height:34px;background:var(--primary);}
+  .tog{width:44px;height:26px;border-radius:99px;background:var(--border2);position:relative;cursor:pointer;flex:0 0 auto;transition:.15s;}
+  .tog.on{background:var(--info);}
+  .tog .k{position:absolute;top:2.5px;left:2.5px;width:21px;height:21px;border-radius:99px;background:#fff;transition:.15s;}
+  .tog.on .k{left:20.5px;}
+  input.f{height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:0 10px;font-family:inherit;width:100%;}
+  input.f:focus{outline:none;border-color:var(--info-bd);}
+  .card{background:var(--primary);border:.5px solid var(--border);border-radius:12px;padding:13px;margin-bottom:11px;}
+  .plane-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+  .plane-row input{flex:1;}
+  .plane-row .rw{width:120px;flex:0 0 auto;}
+  table.vib{width:100%;border-collapse:collapse;margin-top:8px;}
+  table.vib th{font-size:11px;color:var(--hint);font-weight:500;padding:4px;text-align:center;}
+  table.vib td{padding:3px;}
+  table.vib td.sup{font-size:12px;color:var(--muted);white-space:nowrap;padding-right:8px;}
+  .cell{display:flex;flex-direction:column;gap:3px;}
+  .cell input{height:30px;font-size:12.5px;padding:0 6px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;width:66px;}
+  .cell input.meas{border-color:rgba(151,196,89,.5);}
+  .cell .lab{font-size:9px;color:var(--hint);text-align:center;}
+  .mbtn{border:1px solid var(--info-bd);background:var(--info-bg);color:var(--info);border-radius:8px;height:34px;padding:0 12px;font-size:12.5px;font-family:inherit;cursor:pointer;}
+  .actions{display:flex;gap:8px;margin-top:14px;}
+  .actions button{flex:1;height:40px;border-radius:10px;border:1px solid var(--border2);background:var(--secondary);color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;}
+  .foot{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;background:linear-gradient(transparent,var(--bg) 30%);padding:12px 16px;}
+  .foot .inner{width:100%;max-width:520px;}
+  .next{width:100%;height:46px;border-radius:12px;border:none;background:var(--accent);color:#1a1206;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;}
+  .next:disabled{opacity:.4;cursor:default;}
+  .hint{font-size:11.5px;color:var(--hint);line-height:1.4;margin-top:6px;}
+  .wcard{background:var(--primary);border:.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+  .wcard .big{font-size:26px;font-weight:700;}
+  .wcard .u{font-size:13px;color:var(--muted);}
+  .wcard .ang{font-size:15px;color:var(--accent);margin-top:2px;}
+  .wcard .pn{font-size:12px;color:var(--hint);}
+  .resid{font-size:12.5px;color:var(--muted);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--secondary);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="hd">
+    <div class="bk" id="bk">‹</div>
+    <div style="flex:1"><div class="ttl">Свободная балансировка</div><div class="sttl" id="sub">метод коэффициентов влияния · без привязки к агрегату</div></div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="body" id="body"></div>
+</div>
+<div class="foot"><div class="inner"><button class="next" id="next">Далее</button></div></div>
+
+<script src="nova-balance.js"></script>
+<script>
+(function(){
+  var polar=NovaBalance._c.polar, toPolar=NovaBalance._c.toPolar;
+  function cadd(a,b){return {re:a.re+b.re,im:a.im+b.im};}
+  function cmul(a,b){return {re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re};}
+  function rnd(a,b){return a+Math.random()*(b-a);}
+
+  var DIRSETS={ h:[['V','В'],['H','П'],['A','О']], v:[['V','R1'],['H','R2'],['A','О']] };
+
+  var S = {
+    step:'config', trialIdx:0,
+    supports:2, orient:'h',
+    dirs:[{key:'V',on:true},{key:'H',on:true},{key:'A',on:false}],
+    planes:[{id:1,name:'Плоскость 1',radius:''},{id:2,name:'Плоскость 2',radius:''}],
+    nplanes:2,
+    base:{vib:{}}, trials:[], calc:null, custom:null
+  };
+  var truthA=null, truthV0=null;
+
+  // ---- производные ----
+  function dirName(key){ var set=DIRSETS[S.orient]; for(var i=0;i<set.length;i++) if(set[i][0]===key) return set[i][1]; return key; }
+  function enabledDirs(){ return S.dirs.filter(function(d){return d.on;}); }
+  function pointList(){ var pts=[]; for(var s=1;s<=S.supports;s++){ enabledDirs().forEach(function(d){ pts.push({sup:s,dir:d.key}); }); } return pts; }
+  function ensureVib(run){ pointList().forEach(function(p){ run.vib[p.sup]=run.vib[p.sup]||{}; if(!run.vib[p.sup][p.dir]) run.vib[p.sup][p.dir]={amp:'',phase:'',src:'entered'}; }); }
+  function planesActive(){ return S.planes.slice(0,S.nplanes); }
+  function vibFlat(run){ return pointList().map(function(p){ var c=run.vib[p.sup][p.dir]; return {amp:parseFloat(c.amp)||0, phase:parseFloat(c.phase)||0}; }); }
+  function cellFilled(run){ return pointList().every(function(p){ var c=run.vib[p.sup]&&run.vib[p.sup][p.dir]; return c && c.amp!=='' && c.phase!==''; }); }
+
+  // ---- синтетическая «истинная» модель (для правдоподобного «Измерить») ----
+  function genTruth(){ var pts=pointList(), M=S.nplanes;
+    truthA=pts.map(function(){ var row=[]; for(var j=0;j<M;j++) row.push(polar(rnd(0.25,0.7), rnd(0,360))); return row; });
+    // исходный дисбаланс реален — вызван скрытой массой в плоскостях: V0 = −A·wTrue → корректируется полностью
+    var wTrue=[]; for(var j=0;j<M;j++) wTrue.push(polar(rnd(4,12), rnd(0,360)));
+    truthV0=pts.map(function(_,i){ var f={re:0,im:0}; for(var j=0;j<M;j++) f=cadd(f, cmul(truthA[i][j], wTrue[j])); return {re:-f.re,im:-f.im}; });
+  }
+  function noise(c){ var p=toPolar(c); return polar(p.amp*rnd(0.97,1.03), p.phase+rnd(-2.5,2.5)); }
+  function measureBase(){ ensureVib(S.base); pointList().forEach(function(p,i){ var v=toPolar(noise(truthV0[i])); S.base.vib[p.sup][p.dir]={amp:v.amp.toFixed(2),phase:v.phase.toFixed(0),src:'measured'}; }); render(); }
+  function measureTrial(j){ var t=S.trials[j]; ensureVib(t); var w=polar(parseFloat(t.mass)||0, parseFloat(t.angle)||0);
+    pointList().forEach(function(p,i){ var v=toPolar(noise(cadd(truthV0[i], cmul(truthA[i][j], w)))); t.vib[p.sup][p.dir]={amp:v.amp.toFixed(2),phase:v.phase.toFixed(0),src:'measured'}; }); render(); }
+
+  // ---- шаги ----
+  var STEPS=['config','base','trial','result'];
+  function stepIdx(){ return STEPS.indexOf(S.step); }
+
+  function goBase(){ genTruth(); ensureVib(S.base); S.step='base'; render(); }
+  function startTrials(){ S.trials=planesActive().map(function(pl){ var t={planeId:pl.id, mass:'', angle:'', vib:{}}; ensureVib(t); return t; }); S.trialIdx=0; S.step='trial'; render(); }
+  function nextTrial(){ if(S.trialIdx<S.nplanes-1){ S.trialIdx++; render(); } else doCalc(); }
+  function doCalc(){ var pts=pointList().length;
+    var trials=S.trials.map(function(t){ return {mass:parseFloat(t.mass)||0, angle:parseFloat(t.angle)||0, vib:vibFlat(t)}; });
+    S.calc=NovaBalance.compute(pts, vibFlat(S.base), trials);
+    S.custom=S.calc.weights.map(function(w){ return {mass:w.mass.toFixed(2), angle:w.angle.toFixed(0)}; });
+    S.step='result'; render();
+  }
+  function recalcCustom(){ var pts=pointList().length;
+    var trials=S.trials.map(function(t){ return {mass:parseFloat(t.mass)||0, angle:parseFloat(t.angle)||0, vib:vibFlat(t)}; });
+    var cw=S.custom.map(function(c){ return {mass:parseFloat(c.mass)||0, angle:parseFloat(c.angle)||0}; });
+    S._customRes=NovaBalance.predictResidual(pts, vibFlat(S.base), trials, cw); renderResultOnly();
+  }
+
+  // ---- рендер ----
+  function renderSteps(){ var el=document.getElementById('steps'); var idx=stepIdx();
+    el.innerHTML=STEPS.map(function(s,i){ return '<span class="'+(i<idx?'done':(i===idx?'on':''))+'"></span>'; }).join(''); }
+
+  function vibTable(run, measFn){
+    var dirs=enabledDirs();
+    var h='<table class="vib"><tr><th></th>'+dirs.map(function(d){return '<th>'+dirName(d.key)+'</th>';}).join('')+'</tr>';
+    for(var s=1;s<=S.supports;s++){ (function(s){
+      h+='<tr><td class="sup">Опора '+s+'</td>'+dirs.map(function(d){ var c=run.vib[s][d.key];
+        return '<td><div class="cell"><input class="'+(c.src==='measured'?'meas':'')+'" data-vib="amp" data-s="'+s+'" data-d="'+d.key+'" value="'+c.amp+'" placeholder="ампл" inputmode="decimal"/>'
+             + '<input class="'+(c.src==='measured'?'meas':'')+'" data-vib="phase" data-s="'+s+'" data-d="'+d.key+'" value="'+c.phase+'" placeholder="фаза°" inputmode="decimal"/></div></td>';
+      }).join('')+'</tr>';
+    })(s); }
+    h+='</table><div style="margin-top:8px"><button class="mbtn" data-act="'+measFn+'">⟲ Измерить (мок)</button> <span class="hint" style="margin-left:6px">амплитуда мм/с · фаза ° (против вращения)</span></div>';
+    return h;
+  }
+
+  function renderConfig(){
+    var body='';
+    body+='<div class="sec">Опоры и направления</div>';
+    body+='<div class="row"><span class="k">Число опор</span>'+stepper('supports',S.supports,1,6)+'</div>';
+    body+='<div class="row"><span class="k">Ориентация</span><div class="seg"><button class="'+(S.orient==='h'?'on':'')+'" data-act="orient" data-v="h">Горизонт.</button><button class="'+(S.orient==='v'?'on':'')+'" data-act="orient" data-v="v">Вертик.</button></div></div>';
+    S.dirs.forEach(function(d){ body+='<div class="row"><span class="k">Направление '+dirName(d.key)+'</span><div class="tog '+(d.on?'on':'')+'" data-act="dir" data-v="'+d.key+'"><div class="k"></div></div></div>'; });
+    body+='<div class="sec">Плоскости коррекции</div>';
+    body+='<div class="row"><span class="k">Число плоскостей</span>'+stepper('nplanes',S.nplanes,1,4)+'</div>';
+    planesActive().forEach(function(pl,i){ body+='<div class="card"><div style="font-size:12px;color:var(--hint)">Плоскость '+(i+1)+'</div>'
+      +'<div class="plane-row"><input class="f" data-pl="name" data-i="'+i+'" value="'+pl.name+'" placeholder="имя"/>'
+      +'<input class="f rw" data-pl="radius" data-i="'+i+'" value="'+pl.radius+'" placeholder="радиус, мм" inputmode="decimal"/></div></div>'; });
+    body+='<div class="hint">Груз задаётся массой и углом (против вращения) на выбранном радиусе; балансировка ведётся на одном радиусе.</div>';
+    document.getElementById('body').innerHTML=body;
+    document.getElementById('sub').textContent='шаг 1 · конфигурация';
+    setNext('Начать → базовый пуск', true);
+  }
+
+  function renderBase(){
+    ensureVib(S.base);
+    var body='<div class="sec">Пуск №0 · без грузов (базовый)</div>';
+    body+='<div class="hint" style="margin-bottom:6px">Исходная вибрация. Введите вручную или «Измерить». Все пробные пуски считаются относительно этого пуска.</div>';
+    body+=vibTable(S.base,'measBase');
+    document.getElementById('body').innerHTML=body;
+    document.getElementById('sub').textContent='шаг 2 · базовый пуск';
+    setNext('Далее → пробные пуски', cellFilled(S.base));
+  }
+
+  function renderTrial(){
+    var j=S.trialIdx, pl=planesActive()[j], t=S.trials[j]; ensureVib(t);
+    var body='<div class="sec">Пробный пуск · '+pl.name+' ('+(j+1)+' из '+S.nplanes+')</div>';
+    body+='<div class="card"><div class="row" style="border:none;padding-top:0"><span class="k">Пробный груз, г</span><input class="f" style="width:120px" data-tw="mass" value="'+t.mass+'" placeholder="масса" inputmode="decimal"/></div>'
+        +'<div class="row"><span class="k">Угол установки, ° (против вращения)</span><input class="f" style="width:120px" data-tw="angle" value="'+t.angle+'" placeholder="угол" inputmode="decimal"/></div></div>';
+    body+='<div class="hint">Установите пробный груз в '+pl.name+', запустите и снимите вибрацию. Опорный: Пуск №0.</div>';
+    body+=vibTable(t,'measTrial');
+    document.getElementById('body').innerHTML=body;
+    document.getElementById('sub').textContent='шаг 3 · пробные пуски';
+    var ok=(parseFloat(t.mass)>0)&&cellFilled(t);
+    setNext(j<S.nplanes-1?'Далее → следующая плоскость':'Рассчитать грузы', ok);
+  }
+
+  function resultHtml(){
+    var c=S.calc, res=S._customRes||{residual:c.residual, rms:c.rms};
+    var html='<div class="sec">Корректирующие грузы</div>';
+    S.calc.weights.forEach(function(w,i){ var pl=planesActive()[i];
+      html+='<div class="wcard"><div style="flex:1"><div class="pn">'+pl.name+'</div><div><span class="big">'+w.mass.toFixed(2)+'</span> <span class="u">г</span></div><div class="ang">∠ '+w.angle.toFixed(0)+'° (против вращения)</div></div>'+polarSvg(w)+'</div>';
+    });
+    html+='<div class="sec">Прогноз остаточной вибрации</div>';
+    var pts=pointList();
+    html+='<div class="card">';
+    pts.forEach(function(p,i){ var r=res.residual[i]; var z=r.amp<2.8?'ok':(r.amp<7.1?'warn':'danger');
+      html+='<div class="row"><span class="k">Опора '+p.sup+' · '+dirName(p.dir)+'</span><span class="resid"><span class="badge" style="background:var(--'+z+');color:#1a1206">'+r.amp.toFixed(2)+'</span> мм/с ∠ '+r.phase.toFixed(0)+'°</span></div>';
+    });
+    html+='<div class="row"><span class="k">RMS остатка</span><span class="resid" style="color:var(--text)">'+res.rms.toFixed(3)+' мм/с</span></div></div>';
+    html+='<div class="sec">Нерасчётные грузы (что-если)</div><div class="card">';
+    S.custom.forEach(function(cw,i){ html+='<div class="plane-row"><span class="k" style="width:96px;flex:0 0 auto;font-size:12px;color:var(--muted)">'+planesActive()[i].name+'</span>'
+      +'<input class="f" data-cw="mass" data-i="'+i+'" value="'+cw.mass+'" placeholder="масса г" inputmode="decimal"/>'
+      +'<input class="f" data-cw="angle" data-i="'+i+'" value="'+cw.angle+'" placeholder="угол °" inputmode="decimal"/></div>'; });
+    html+='<div class="hint">Введите свои грузы — остаток пересчитается по коэффициентам влияния.</div></div>';
+    html+='<div class="actions"><button data-act="restart">↺ Новая балансировка</button></div>';
+    return html;
+  }
+  function renderResult(){ document.getElementById('body').innerHTML=resultHtml(); document.getElementById('sub').textContent='шаг 4 · результат'; setNext('', false); document.getElementById('next').style.display='none'; }
+  function renderResultOnly(){ document.getElementById('body').innerHTML=resultHtml(); }
+
+  function polarSvg(w){ var R=34,cx=40,cy=40; var mx=Math.max(w.mass,1e-6);
+    var ph=w.angle*Math.PI/180, x=cx+R*Math.cos(ph), y=cy-R*Math.sin(ph);
+    return '<svg width="80" height="80" viewBox="0 0 80 80"><circle cx="'+cx+'" cy="'+cy+'" r="'+R+'" fill="none" stroke="rgba(255,255,255,.14)"/>'
+      +'<line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="rgba(255,255,255,.08)"/><line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="rgba(255,255,255,.08)"/>'
+      +'<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--accent)" stroke-width="2"/><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5" fill="var(--accent)"/></svg>';
+  }
+
+  function stepper(key,val,min,max){ return '<div class="stp"><button data-act="dec" data-k="'+key+'" data-min="'+min+'">−</button><div class="v">'+val+'</div><button data-act="inc" data-k="'+key+'" data-max="'+max+'">＋</button></div>'; }
+  function setNext(label,enabled){ var b=document.getElementById('next'); b.style.display=''; b.textContent=label; b.disabled=!enabled; }
+
+  function render(){ renderSteps();
+    if(S.step==='config') renderConfig();
+    else if(S.step==='base') renderBase();
+    else if(S.step==='trial') renderTrial();
+    else renderResult();
+  }
+
+  // ---- события ----
+  document.getElementById('body').addEventListener('click', function(e){ var t=e.target.closest('[data-act]'); if(!t) return; var a=t.getAttribute('data-act');
+    if(a==='inc'){ var k=t.getAttribute('data-k'); S[k]=Math.min(+t.getAttribute('data-max'),S[k]+1); if(k==='nplanes') syncPlanes(); render(); }
+    else if(a==='dec'){ var k2=t.getAttribute('data-k'); S[k2]=Math.max(+t.getAttribute('data-min'),S[k2]-1); if(k2==='nplanes') syncPlanes(); render(); }
+    else if(a==='orient'){ S.orient=t.getAttribute('data-v'); render(); }
+    else if(a==='dir'){ var dk=t.getAttribute('data-v'); var d=S.dirs.find(function(x){return x.key===dk;}); d.on=!d.on; if(!enabledDirs().length) d.on=true; render(); }
+    else if(a==='measBase') measureBase();
+    else if(a==='measTrial') measureTrial(S.trialIdx);
+    else if(a==='restart'){ S.step='config'; S.calc=null; S._customRes=null; render(); }
+  });
+  document.getElementById('body').addEventListener('input', function(e){ var t=e.target;
+    if(t.hasAttribute('data-vib')){ var run=(S.step==='base')?S.base:S.trials[S.trialIdx]; var s=+t.getAttribute('data-s'),d=t.getAttribute('data-d'),f=t.getAttribute('data-vib');
+      run.vib[s][d][f]=t.value; run.vib[s][d].src='entered'; document.getElementById('next').disabled=!( (S.step==='base')?cellFilled(S.base):((parseFloat(S.trials[S.trialIdx].mass)>0)&&cellFilled(S.trials[S.trialIdx])) ); }
+    else if(t.hasAttribute('data-tw')){ S.trials[S.trialIdx][t.getAttribute('data-tw')]=t.value; document.getElementById('next').disabled=!((parseFloat(S.trials[S.trialIdx].mass)>0)&&cellFilled(S.trials[S.trialIdx])); }
+    else if(t.hasAttribute('data-pl')){ S.planes[+t.getAttribute('data-i')][t.getAttribute('data-pl')]=t.value; }
+    else if(t.hasAttribute('data-cw')){ S.custom[+t.getAttribute('data-i')][t.getAttribute('data-cw')]=t.value; recalcCustom(); }
+  });
+  document.getElementById('next').addEventListener('click', function(){
+    if(S.step==='config') goBase();
+    else if(S.step==='base') startTrials();
+    else if(S.step==='trial') nextTrial();
+  });
+  document.getElementById('bk').addEventListener('click', function(){
+    if(S.step==='base'){ S.step='config'; render(); }
+    else if(S.step==='trial'){ if(S.trialIdx>0){ S.trialIdx--; render(); } else { S.step='base'; render(); } }
+    else if(S.step==='result'){ S.step='trial'; S.trialIdx=S.nplanes-1; render(); }
+    else location.href='index.html';
+  });
+  function syncPlanes(){ while(S.planes.length<S.nplanes) S.planes.push({id:S.planes.length+1,name:'Плоскость '+(S.planes.length+1),radius:''}); }
+
+  syncPlanes(); render();
+})();
+</script>
+</body>
+</html>
