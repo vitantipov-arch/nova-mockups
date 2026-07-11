@@ -83,7 +83,7 @@
   </div>
 </div>
 
-<script src="scheme.js"></script>
+<script src="nova-scheme.js"></script>
 <script>
   function tryLeave(){ if(!Object.keys(sess).length){ location.href='measure.html'; return; } document.getElementById('leave').style.display='flex'; }
   function leaveNoSave(){ location.href='measure.html'; }
@@ -129,7 +129,7 @@
 
   // ---- точки программы (новая модель): узел = точка (опора × направление) ----
   var sup2ik={}, nodes=[];
-  units.forEach(function(u,i){ (u.supports||[]).forEach(function(sp,k){ sup2ik[NovaScheme.supNum(units,i,k)]=[i,k]; }); });
+  units.forEach(function(u,i){ (u.supports||[]).forEach(function(sp,k){ sup2ik[NovaScheme2.supNum(units,i,k)]=[i,k]; }); });
   (prog.points||[]).forEach(function(pt,pi){ if(!sup2ik[pt.sup]) return;
     nodes.push({pi:pi, dir:pt.name, sup:pt.sup, pt:pt, label:'Опора №'+pt.sup}); });
   var SUPS=[]; nodes.forEach(function(n){ if(SUPS.indexOf(n.sup)<0) SUPS.push(n.sup); }); SUPS.sort(function(a,b){return a-b;});
@@ -150,14 +150,16 @@
     nodes.forEach(function(n){ if(n.sup!==sup) return; var st=sess[nkey(n)]; if(!st||st.q==='overload') return;
       if(st.zone==='r') w='r'; else if(st.zone==='y'&&w!=='r') w='y'; else if(!w) w='g'; });
     return w; }
+  var SPAL={ shaft:'#9a988f', tick:'#565b64', warn:'#e0b24a', supFill:'#20232a', supRing:'rgba(255,255,255,.26)', supText:'#a9aeb6', label:'#a9aeb6', metal1:'#55534c', metal2:'#6e6c64', pulleyFill:'#20232a', pulleyStroke:'#8f8d84', belt:'#86857e', sel:'#85b7eb', rpmFg:'#85b7eb', rpmBg:'rgba(55,138,221,.18)', rpmBd:'rgba(55,138,221,.5)' };
   function renderScheme(){
     var total=0; units.forEach(function(u){ total+=(u.supports||[]).length; });
     var states=[]; for(var s=1;s<=total;s++) states.push(worstOf(s));
     var activeSup=(active>=0&&nodes[active])?nodes[active].sup:-1;
-    NovaScheme.render(document.getElementById('canvas'), {orient:orient,units:units,trans:trans},
-      {fit:true, supStates:states, activeSup:activeSup, onSup:'supTap'});
+    NovaScheme2.render(document.getElementById('canvas'), {orient:orient,units:units,trans:trans},
+      {pal:SPAL, supStates:states, activeSup:activeSup, hit:true, brgWarn:false, maxH:200});
   }
-  function supTap(i,k){ var num=NovaScheme.supNum(units,i,k);
+  document.getElementById('canvas').addEventListener('click', function(e){ var t=e.target.closest('[data-act="openSup"]'); if(!t) return; supTap(+t.getAttribute('data-i'), +t.getAttribute('data-k')); });
+  function supTap(i,k){ var num=NovaScheme2.supNum(units,i,k);
     var idx=-1; DIRS.some(function(d){ var ci=cellIdx[num+'_'+d]; if(ci!=null&&!sess[nkey(nodes[ci])]){ idx=ci; return true; } return false; });
     if(idx<0) DIRS.some(function(d){ var ci=cellIdx[num+'_'+d]; if(ci!=null){ idx=ci; return true; } return false; });
     if(idx>=0){ active=idx; renderAll(); } }

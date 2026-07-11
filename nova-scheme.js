@@ -15,6 +15,7 @@ window.NovaScheme2 = (function () {
   };
   var LINKS = { rigid: { off: false }, elastic: { off: false }, belt: { off: true }, gear: { off: true } };
   var GAP = 42, RH = 150, KW = 66, O = 'h', PAL = {};
+  var STATE_COL = { g: '#33a05f', y: '#d19a21', r: '#c6483a' };  // светофор состояния опоры (opts.supStates)
 
   function PT(a, c) { return O === 'h' ? [a, c] : [c, a]; }
   function ln(a0, c0, a1, c1, st, w, extra) { var p = PT(a0, c0), q = PT(a1, c1);
@@ -103,12 +104,14 @@ window.NovaScheme2 = (function () {
       var ab = (ns === 1) ? (s0 + s1) / 2 : s0 + (s1 - s0) * k / (ns - 1);
       var num = supNum(units, i, k);
       var warn = opts.brgWarn && !((u.supports[k].brgs || []).some(function (b) { return b; }));
-      var tickCol = warn ? PAL.warn : PAL.tick;
+      var st = opts.supStates ? opts.supStates[num - 1] : null;
+      var stCol = (st && STATE_COL[st]) ? STATE_COL[st] : null;
+      var tickCol = warn ? PAL.warn : (stCol || PAL.tick);
       vis += ln(ab, c - 24, ab, c - 11, tickCol, 3) + ln(ab, c + 11, ab, c + 24, tickCol, 3);
-      var ring = warn ? PAL.warn : PAL.supRing;
+      var ring = stCol || (warn ? PAL.warn : PAL.supRing);
       if (opts.activeSup === num) vis += cir(ab, cy, 15, 'fill="none" stroke="' + PAL.sel + '" stroke-width="1.6"');
-      vis += cir(ab, cy, 11, 'fill="' + PAL.supFill + '" stroke="' + ring + '" stroke-width="1.2"');
-      vis += tx(ab, cy + 0.5, String(num), warn ? PAL.warn : PAL.supText, 10.5, 600);
+      vis += cir(ab, cy, 11, 'fill="' + (stCol || PAL.supFill) + '" stroke="' + ring + '" stroke-width="1.2"');
+      vis += tx(ab, cy + 0.5, String(num), stCol ? '#ffffff' : (warn ? PAL.warn : PAL.supText), 10.5, 600);
       if (opts.hit) hit += rc(ab - 17, ab + 17, cy - 14, cy + 14, 'fill="transparent" style="cursor:pointer" data-act="openSup" data-i="' + i + '" data-k="' + k + '"');
     }
     var top = c - maxH - 24, bot = cy + 16;
