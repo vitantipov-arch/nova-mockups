@@ -114,6 +114,15 @@ window.NovaScheme2 = (function () {
       vis += tx(ab, cy + 0.5, String(num), stCol ? '#ffffff' : (warn ? PAL.warn : PAL.supText), 10.5, 600);
       if (opts.hit) hit += rc(ab - 17, ab + 17, cy - 14, cy + 14, 'fill="transparent" style="cursor:pointer" data-act="openSup" data-i="' + i + '" data-k="' + k + '"');
     }
+    // плоскости коррекции: пунктир поперёк вала + метка (для балансировки)
+    var planes = u.planes || [], pcol = PAL.plane || '#ff8f3d';
+    planes.forEach(function (pl, pi) {
+      var pos = (pl.position != null && !isNaN(pl.position)) ? Math.max(0, Math.min(1, +pl.position)) : (planes.length === 1 ? 0.5 : (0.28 + 0.44 * pi / Math.max(1, planes.length - 1)));
+      var pa = s0 + (s1 - s0) * pos;
+      vis += ln(pa, c - maxH - 3, pa, c + maxH + 3, pcol, 1.6, ' stroke-dasharray="4 3"');
+      var mk = PT(pa, c - maxH - 9); vis += '<circle cx="' + mk[0] + '" cy="' + mk[1] + '" r="3.6" fill="' + pcol + '"/>';
+      vis += tx(pa, c - maxH - 19, 'Пл' + (pi + 1), pcol, 8.5, 700);
+    });
     var top = c - maxH - 24, bot = cy + 16;
     var selBg = (opts.sel === i) ? rc(a0 - 6, p.aMax + 6, top - 4, bot + 4, 'rx="14" fill="' + PAL.sel + '" fill-opacity="0.10"') : '';
     if (opts.hit) hit += rc(a0 - 4, p.aMax + 4, top, bot, 'rx="12" fill="transparent" style="cursor:pointer" data-act="selUnit" data-i="' + i + '"');

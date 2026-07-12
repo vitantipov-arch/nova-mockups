@@ -98,9 +98,11 @@
     dirs:[{key:'V',on:true},{key:'H',on:true},{key:'A',on:false}],
     planes:[{id:1,name:'Плоскость 1'},{id:2,name:'Плоскость 2'}],
     nplanes:2,
-    base:{vib:{}}, trials:[], calc:null, custom:null
+    base:{vib:{}}, trials:[], calc:null, custom:null, checkRun:null
   };
   var truthA=null, truthV0=null;
+  var POINTCOL=['#85b7eb','#38e1d6','#97c459','#ff5db1','#ffb24d','#c79bff','#ff8f3d','#7ee0c0','#e5675a','#b9a4ff'];
+  function ptColor(i){ return POINTCOL[i%POINTCOL.length]; }
 
   // ---- производные ----
   function dirName(key){ var set=DIRSETS[S.orient]; for(var i=0;i<set.length;i++) if(set[i][0]===key) return set[i][1]; return key; }
@@ -110,6 +112,34 @@
   function planesActive(){ return S.planes.slice(0,S.nplanes); }
   function vibFlat(run){ return pointList().map(function(p){ var c=run.vib[p.sup][p.dir]; return {amp:parseFloat(c.amp)||0, phase:parseFloat(c.phase)||0}; }); }
   function cellFilled(run){ return pointList().every(function(p){ var c=run.vib[p.sup]&&run.vib[p.sup][p.dir]; return c && c.amp!=='' && c.phase!==''; }); }
+
+  // ---- полярные графики векторов ----
+  function runVectors(run,op){ return pointList().map(function(p,i){ var c=run.vib[p.sup][p.dir]; return {amp:parseFloat(c.amp)||0, phase:parseFloat(c.phase)||0, color:ptColor(i), op:op||1}; }); }
+  function residVectors(resid,op){ return resid.map(function(r,i){ return {amp:r.amp, phase:r.phase, color:ptColor(i), op:op||1}; }); }
+  function polarChart(vectors){ var sz=210, cx=sz/2, cy=sz/2, R=sz/2-20;
+    var mx=Math.max.apply(null, vectors.map(function(v){return v.amp;}).concat([1e-6]));
+    var s='<svg width="100%" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'" style="display:block;max-width:'+sz+'px;margin:0 auto">';
+    [1,0.66,0.33].forEach(function(f){ s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R*f).toFixed(1)+'" fill="none" stroke="rgba(255,255,255,'+(f===1?0.18:0.08)+')"/>'; });
+    s+='<line x1="'+(cx-R)+'" y1="'+cy+'" x2="'+(cx+R)+'" y2="'+cy+'" stroke="rgba(255,255,255,.1)"/><line x1="'+cx+'" y1="'+(cy-R)+'" x2="'+cx+'" y2="'+(cy+R)+'" stroke="rgba(255,255,255,.1)"/>';
+    s+='<text x="'+(cx+R)+'" y="'+(cy-3)+'" font-size="8" fill="#86857e" text-anchor="end">0°</text><text x="'+(cx+3)+'" y="'+(cy-R+9)+'" font-size="8" fill="#86857e">90°</text>';
+    s+='<text x="'+cx+'" y="11" font-size="8.5" fill="#86857e" text-anchor="middle">макс '+mx.toFixed(1)+' мм/с</text>';
+    vectors.forEach(function(v){ if(v.amp<=0) return; var ph=v.phase*Math.PI/180, r=R*Math.min(v.amp,mx)/mx, x=cx+r*Math.cos(ph), y=cy-r*Math.sin(ph);
+      s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+v.color+'" stroke-width="1.7" opacity="'+(v.op||1)+'"/><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="'+v.color+'" opacity="'+(v.op||1)+'"/>'; });
+    return s+'</svg>';
+  }
+  function polarLegend(){ return '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px">'+pointList().map(function(p,i){ return '<span class="chip" style="padding:3px 8px"><span style="width:8px;height:8px;border-radius:2px;background:'+ptColor(i)+';display:inline-block"></span> Оп'+p.sup+'·'+dirName(p.dir)+'</span>'; }).join('')+'</div>'; }
+  function polarCard(vectors,title){ return '<div class="card"><div style="font-size:12px;color:var(--hint);margin-bottom:6px">'+title+'</div>'+polarChart(vectors)+polarLegend()+'</div>'; }
+
+  // ---- навигация по пускам (lineage) ----
+  function runsBar(){ if(S.step==='config') return '';
+    var chips=[{key:'base',label:'Пуск №0'}];
+    planesActive().forEach(function(pl,j){ if(S.trials[j]) chips.push({key:'trial'+j,label:'Проб.·'+pl.name}); });
+    if(S.calc) chips.push({key:'result',label:'Результат'});
+    if(S.checkRun) chips.push({key:'check',label:'Контрольный'});
+    var active=S.step==='base'?'base':(S.step==='trial'?'trial'+S.trialIdx:S.step);
+    return '<div style="display:flex;gap:6px;overflow-x:auto;padding:0 0 12px">'+chips.map(function(c){ var on=c.key===active;
+      return '<button class="chip" data-act="goRun" data-run="'+c.key+'" style="white-space:nowrap;cursor:pointer;border:1px solid '+(on?'var(--accent)':'var(--border)')+';color:'+(on?'var(--accent)':'var(--muted)')+'">'+c.label+'</button>'; }).join('')+'</div>';
+  }
 
   // ---- синтетическая «истинная» модель (для правдоподобного «Измерить») ----
   function genTruth(){ var pts=pointList(), M=S.nplanes;
@@ -177,9 +207,10 @@
 
   function renderBase(){
     ensureVib(S.base);
-    var body='<div class="sec">Пуск №0 · без грузов (базовый)</div>';
+    var body=runsBar()+'<div class="sec">Пуск №0 · без грузов (базовый)</div>';
     body+='<div class="hint" style="margin-bottom:6px">Исходная вибрация. Введите вручную или «Измерить». Все пробные пуски считаются относительно этого пуска.</div>';
     body+=vibTable(S.base,'measBase');
+    if(cellFilled(S.base)) body+=polarCard(runVectors(S.base),'Вектор вибрации · базовый пуск');
     document.getElementById('body').innerHTML=body;
     document.getElementById('sub').textContent='шаг 2 · базовый пуск';
     setNext('Далее → пробные пуски', cellFilled(S.base));
@@ -187,11 +218,13 @@
 
   function renderTrial(){
     var j=S.trialIdx, pl=planesActive()[j], t=S.trials[j]; ensureVib(t);
-    var body='<div class="sec">Пробный пуск · '+pl.name+' ('+(j+1)+' из '+S.nplanes+')</div>';
-    body+='<div class="card"><div class="row" style="border:none;padding-top:0"><span class="k">Пробный груз, г</span><input class="f" style="width:120px" data-tw="mass" value="'+t.mass+'" placeholder="масса" inputmode="decimal"/></div>'
+    var body=runsBar()+'<div class="sec">Пробный пуск · '+pl.name+' ('+(j+1)+' из '+S.nplanes+')</div>';
+    body+='<span class="chip" style="border:1px solid var(--border)">опорный: Пуск №0</span>';
+    body+='<div class="card" style="margin-top:10px"><div class="row" style="border:none;padding-top:0"><span class="k">Пробный груз, г</span><input class="f" style="width:120px" data-tw="mass" value="'+t.mass+'" placeholder="масса" inputmode="decimal"/></div>'
         +'<div class="row"><span class="k">Угол установки, ° (против вращения)</span><input class="f" style="width:120px" data-tw="angle" value="'+t.angle+'" placeholder="угол" inputmode="decimal"/></div></div>';
-    body+='<div class="hint">Установите пробный груз в '+pl.name+', запустите и снимите вибрацию. Опорный: Пуск №0.</div>';
+    body+='<div class="hint">Установите пробный груз в '+pl.name+', запустите и снимите вибрацию.</div>';
     body+=vibTable(t,'measTrial');
+    if(cellFilled(t)) body+=polarCard(runVectors(S.base,0.3).concat(runVectors(t,1)),'Векторы · базовый (тускло) → пробный (ярко)');
     document.getElementById('body').innerHTML=body;
     document.getElementById('sub').textContent='шаг 3 · пробные пуски';
     var ok=(parseFloat(t.mass)>0)&&cellFilled(t);
@@ -200,7 +233,9 @@
 
   function resultHtml(){
     var c=S.calc, res=S._customRes||{residual:c.residual, rms:c.rms};
-    var html='<div class="sec">Корректирующие грузы</div>';
+    var html=runsBar();
+    html+=polarCard(runVectors(S.base,0.28).concat(residVectors(res.residual,1)),'Вибрация: базовый (тускло) → остаток (ярко)');
+    html+='<div class="sec">Корректирующие грузы</div>';
     S.calc.weights.forEach(function(w,i){ var pl=planesActive()[i];
       html+='<div class="wcard"><div style="flex:1"><div class="pn">'+pl.name+'</div><div><span class="big">'+w.mass.toFixed(2)+'</span> <span class="u">г</span></div><div class="ang">∠ '+w.angle.toFixed(0)+'° (против вращения)</div></div>'+polarSvg(w)+'</div>';
     });
@@ -216,11 +251,39 @@
       +'<input class="f" data-cw="mass" data-i="'+i+'" value="'+cw.mass+'" placeholder="масса г" inputmode="decimal"/>'
       +'<input class="f" data-cw="angle" data-i="'+i+'" value="'+cw.angle+'" placeholder="угол °" inputmode="decimal"/></div>'; });
     html+='<div class="hint">Введите свои грузы — остаток пересчитается по коэффициентам влияния.</div></div>';
-    html+='<div class="actions"><button data-act="restart">↺ Новая балансировка</button></div>';
+    html+='<div class="actions"><button data-act="startCheck" style="border-color:var(--ok);color:var(--ok)">✔ Контрольный пуск</button><button data-act="restart">↺ Новая</button></div>';
     return html;
   }
   function renderResult(){ document.getElementById('body').innerHTML=resultHtml(); document.getElementById('sub').textContent='шаг 4 · результат'; setNext('', false); document.getElementById('next').style.display='none'; }
   function renderResultOnly(){ document.getElementById('body').innerHTML=resultHtml(); }
+
+  // ---- контрольный пуск (проверка фактического остатка) ----
+  function startCheck(){ S.checkRun={ installed:S.custom.map(function(c){return {mass:c.mass,angle:c.angle};}), vib:{} }; ensureVib(S.checkRun); S.step='check'; render(); }
+  function predictWith(cw){ var trials=S.trials.map(function(t){return {mass:parseFloat(t.mass)||0,angle:parseFloat(t.angle)||0,vib:vibFlat(t)};});
+    return NovaBalance.predictResidual(pointList().length, vibFlat(S.base), trials, cw.map(function(c){return {mass:parseFloat(c.mass)||0,angle:parseFloat(c.angle)||0};})); }
+  function measureCheck(){ var cr=S.checkRun; ensureVib(cr); var pred=predictWith(cr.installed);
+    pointList().forEach(function(p,i){ var v=toPolar(noise(polar(pred.residual[i].amp,pred.residual[i].phase))); cr.vib[p.sup][p.dir]={amp:v.amp.toFixed(2),phase:v.phase.toFixed(0),src:'measured'}; }); render(); }
+  function rmsOf(flat){ return Math.sqrt(flat.reduce(function(a,v){return a+v.amp*v.amp;},0)/(flat.length||1)); }
+  function checkCompare(){ var cr=S.checkRun, pred=predictWith(cr.installed);
+    var measFlat=vibFlat(cr), measRms=rmsOf(measFlat), baseRms=rmsOf(vibFlat(S.base)); var ok=measRms<baseRms*0.35;
+    var h=polarCard(runVectors(S.base,0.28).concat(runVectors(cr,1)),'Вибрация: базовый (тускло) → факт после коррекции');
+    h+='<div class="card"><div class="row"><span class="k">RMS базовый</span><span class="resid" style="color:var(--text)">'+baseRms.toFixed(2)+' мм/с</span></div>'
+      +'<div class="row"><span class="k">RMS прогноз</span><span class="resid" style="color:var(--text)">'+pred.rms.toFixed(2)+' мм/с</span></div>'
+      +'<div class="row"><span class="k">RMS факт (контроль)</span><span class="resid" style="color:'+(ok?'var(--ok)':'var(--warn)')+'">'+measRms.toFixed(2)+' мм/с</span></div>'
+      +'<div class="row"><span class="k">Итог</span><span class="badge" style="background:var(--'+(ok?'ok':'warn')+');color:#1a1206">'+(ok?'Баланс достигнут':'Нужен доп. пуск')+'</span></div></div>';
+    h+='<div class="actions"><button data-act="backResult">← К результату</button><button data-act="restart">↺ Новая</button></div>';
+    return h;
+  }
+  function renderCheck(){ var cr=S.checkRun; ensureVib(cr);
+    var body=runsBar()+'<div class="sec">Контрольный пуск · с установленными грузами</div>';
+    body+='<div class="card"><div style="font-size:12px;color:var(--hint);margin-bottom:4px">Установленные грузы</div>'+cr.installed.map(function(w,i){return '<div class="row"><span class="k">'+planesActive()[i].name+'</span><span class="resid" style="color:var(--text)">'+(parseFloat(w.mass)||0).toFixed(2)+' г ∠ '+(parseFloat(w.angle)||0).toFixed(0)+'°</span></div>';}).join('')+'</div>';
+    body+='<div class="hint" style="margin-bottom:6px">Установите грузы, запустите и снимите фактическую вибрацию — сравним с прогнозом.</div>';
+    body+=vibTable(cr,'measCheck');
+    if(cellFilled(cr)) body+=checkCompare();
+    document.getElementById('body').innerHTML=body;
+    document.getElementById('sub').textContent='контрольный пуск';
+    document.getElementById('next').style.display='none';
+  }
 
   function polarSvg(w){ var R=34,cx=40,cy=40; var mx=Math.max(w.mass,1e-6);
     var ph=w.angle*Math.PI/180, x=cx+R*Math.cos(ph), y=cy-R*Math.sin(ph);
@@ -236,7 +299,14 @@
     if(S.step==='config') renderConfig();
     else if(S.step==='base') renderBase();
     else if(S.step==='trial') renderTrial();
+    else if(S.step==='check') renderCheck();
     else renderResult();
+  }
+  function goRun(rk){ if(rk==='base') S.step='base';
+    else if(rk==='check'){ if(!S.checkRun) return; S.step='check'; }
+    else if(rk==='result'){ if(S.trials.length&&S.trials.every(function(t){return parseFloat(t.mass)>0&&cellFilled(t);})) doCalc(); else { S.step='result'; } return; }
+    else if(rk.indexOf('trial')===0){ S.step='trial'; S.trialIdx=+rk.slice(5); }
+    render();
   }
 
   // ---- события ----
@@ -247,11 +317,17 @@
     else if(a==='dir'){ var dk=t.getAttribute('data-v'); var d=S.dirs.find(function(x){return x.key===dk;}); d.on=!d.on; if(!enabledDirs().length) d.on=true; render(); }
     else if(a==='measBase') measureBase();
     else if(a==='measTrial') measureTrial(S.trialIdx);
-    else if(a==='restart'){ S.step='config'; S.calc=null; S._customRes=null; render(); }
+    else if(a==='measCheck') measureCheck();
+    else if(a==='startCheck') startCheck();
+    else if(a==='backResult'){ S.step='result'; render(); }
+    else if(a==='goRun') goRun(t.getAttribute('data-run'));
+    else if(a==='restart'){ S.step='config'; S.calc=null; S._customRes=null; S.checkRun=null; render(); }
   });
   document.getElementById('body').addEventListener('input', function(e){ var t=e.target;
-    if(t.hasAttribute('data-vib')){ var run=(S.step==='base')?S.base:S.trials[S.trialIdx]; var s=+t.getAttribute('data-s'),d=t.getAttribute('data-d'),f=t.getAttribute('data-vib');
-      run.vib[s][d][f]=t.value; run.vib[s][d].src='entered'; document.getElementById('next').disabled=!( (S.step==='base')?cellFilled(S.base):((parseFloat(S.trials[S.trialIdx].mass)>0)&&cellFilled(S.trials[S.trialIdx])) ); }
+    if(t.hasAttribute('data-vib')){ var run=S.step==='base'?S.base:(S.step==='check'?S.checkRun:S.trials[S.trialIdx]); var s=+t.getAttribute('data-s'),d=t.getAttribute('data-d'),f=t.getAttribute('data-vib');
+      run.vib[s][d][f]=t.value; run.vib[s][d].src='entered';
+      if(S.step==='check'){ if(cellFilled(S.checkRun)) render(); }
+      else document.getElementById('next').disabled=!( (S.step==='base')?cellFilled(S.base):((parseFloat(S.trials[S.trialIdx].mass)>0)&&cellFilled(S.trials[S.trialIdx])) ); }
     else if(t.hasAttribute('data-tw')){ S.trials[S.trialIdx][t.getAttribute('data-tw')]=t.value; document.getElementById('next').disabled=!((parseFloat(S.trials[S.trialIdx].mass)>0)&&cellFilled(S.trials[S.trialIdx])); }
     else if(t.hasAttribute('data-pl')){ S.planes[+t.getAttribute('data-i')][t.getAttribute('data-pl')]=t.value; }
     else if(t.hasAttribute('data-cw')){ S.custom[+t.getAttribute('data-i')][t.getAttribute('data-cw')]=t.value; recalcCustom(); }
@@ -265,6 +341,7 @@
     if(S.step==='base'){ S.step='config'; render(); }
     else if(S.step==='trial'){ if(S.trialIdx>0){ S.trialIdx--; render(); } else { S.step='base'; render(); } }
     else if(S.step==='result'){ S.step='trial'; S.trialIdx=S.nplanes-1; render(); }
+    else if(S.step==='check'){ S.step='result'; render(); }
     else location.href='index.html';
   });
   function syncPlanes(){ while(S.planes.length<S.nplanes) S.planes.push({id:S.planes.length+1,name:'Плоскость '+(S.planes.length+1)}); }

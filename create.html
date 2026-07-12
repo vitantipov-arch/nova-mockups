@@ -6,7 +6,7 @@
 <title>Nova — создание агрегата</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<script src="nova-scheme.js"></script>
+<script src="nova-scheme.js?v=2"></script>
 <style>
 body{margin:0;background:#E8E6E1;font-family:'IBM Plex Sans',system-ui,sans-serif;display:flex;justify-content:center}
 #nsc-root{--bg:#F4F3F0;--surface:#FFFFFF;--surface2:#E7E5E0;--text:#1B1D21;--muted:#55585E;--hint:#9A9DA3;--border:#E4E2DD;--border2:#CDCAC3;--info:#2A6FDB;--info-bg:#EAF1FB;--info-bd:#BCD4F2;--danger:#C6483A;--warn:#C8891A;--canvas:#FBFAF8;width:100%;max-width:440px;height:100vh;height:100dvh;position:relative;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif}
@@ -261,6 +261,7 @@ class CreateAggregate {
       else if (kind === 'brgSearch') { this.brgQuery = t.value; this.fillRolling(); }
       else if (kind === 'motorParam') { this.units[this.sel].machines[+t.getAttribute('data-j')][t.getAttribute('data-key')] = t.value; this.persist(); }
       else if (kind === 'pname') { const u = this.units[this.sel]; const pi = +t.getAttribute('data-pi'); if (u.planes && u.planes[pi]) { u.planes[pi].name = t.value; this.persist(); } }
+      else if (kind === 'pposition') { const u = this.units[this.sel]; const pi = +t.getAttribute('data-pi'); if (u.planes && u.planes[pi]) { u.planes[pi].position = Math.max(0, Math.min(1, (parseFloat(t.value) || 0) / 100)); this.renderScheme(); this.persist(); } }
       else if (kind === 'cloneSearch') { this.cloneQuery = t.value; this.fillClones(); }
     });
   }
@@ -362,7 +363,9 @@ class CreateAggregate {
       mp += '</div>';
     });
     let planesTbl = '';
-    (u.planes || []).forEach((pl, pi) => { planesTbl += '<div class="nsc-mrow"><input type="text" value="' + (pl.name || '').replace(/"/g, '&quot;') + '" data-inp="pname" data-pi="' + pi + '" placeholder="имя плоскости" style="flex:1;min-width:80px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13.5px;padding:0 10px;font-family:inherit"/><span class="nsc-trash" data-act="delPlane" data-pi="' + pi + '">🗑</span></div>'; });
+    (u.planes || []).forEach((pl, pi) => { planesTbl += '<div class="nsc-mrow"><input type="text" value="' + (pl.name || '').replace(/"/g, '&quot;') + '" data-inp="pname" data-pi="' + pi + '" placeholder="имя плоскости" style="flex:1;min-width:70px;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13.5px;padding:0 10px;font-family:inherit"/>'
+      + '<div class="inbox" style="width:78px;flex:0 0 auto;position:relative"><input type="number" min="0" max="100" value="' + (pl.position != null ? Math.round(pl.position * 100) : 50) + '" data-inp="pposition" data-pi="' + pi + '" title="осевое положение вдоль вала, %" style="width:100%;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:0 22px 0 8px;font-family:inherit;text-align:center"/><span style="position:absolute;right:8px;top:9px;font-size:11px;color:var(--hint)">%</span></div>'
+      + '<span class="nsc-trash" data-act="delPlane" data-pi="' + pi + '">🗑</span></div>'; });
     const planesSection = '<div class="nsc-sublbl">Плоскости коррекции · для балансировки</div>'
       + '<div class="nsc-mrow"><span class="nsc-mname">Число плоскостей: ' + ((u.planes || []).length) + '</span><div class="nsc-seg2"><button data-act="setPlaneCnt" data-v="-1">−</button><button data-act="setPlaneCnt" data-v="1">+</button></div></div>'
       + planesTbl;
@@ -427,8 +430,8 @@ class CreateAggregate {
   delUnit() { if (this.sel === null) return; this.units.splice(this.sel, 1); if (this.trans.length) this.trans.splice(Math.max(0, this.sel - 1), 1); this.sel = null; this.render(); }
   addUnit(side) { this.addSide = side; if (!this.units.length) { this.units.push({ name: 'Вал 1', rpm: '2940', machines: [{ type: 'motor', pos: 'center' }], supports: [{ brgs: [''] }, { brgs: [''] }] }); this.sel = 0; this.render(); return; } this.openTransSheet(); }
   setSupCnt(d) { const u = this.units[this.sel]; const n = Math.max(1, Math.min(4, u.supports.length + d)); while (u.supports.length > n) u.supports.pop(); while (u.supports.length < n) u.supports.push({ brgs: [''] }); this.render(); }
-  setPlaneCnt(d) { const u = this.units[this.sel]; u.planes = u.planes || []; const n = Math.max(0, Math.min(4, u.planes.length + d)); while (u.planes.length > n) u.planes.pop(); while (u.planes.length < n) u.planes.push({ id: 'pl' + Date.now().toString(36) + u.planes.length, name: 'Плоскость ' + (u.planes.length + 1) }); this.renderPanel(); this.persist(); }
-  delPlane(pi) { const u = this.units[this.sel]; if (!u.planes) return; u.planes.splice(pi, 1); this.renderPanel(); this.persist(); }
+  setPlaneCnt(d) { const u = this.units[this.sel]; u.planes = u.planes || []; const n = Math.max(0, Math.min(4, u.planes.length + d)); while (u.planes.length > n) u.planes.pop(); while (u.planes.length < n) u.planes.push({ id: 'pl' + Date.now().toString(36) + u.planes.length, name: 'Плоскость ' + (u.planes.length + 1), position: Math.min(0.9, 0.3 + 0.2 * u.planes.length) }); this.renderPanel(); this.renderScheme(); this.persist(); }
+  delPlane(pi) { const u = this.units[this.sel]; if (!u.planes) return; u.planes.splice(pi, 1); this.renderPanel(); this.renderScheme(); this.persist(); }
 
   startScratch() { this.addUnit('r'); }
 
