@@ -138,5 +138,26 @@
     return { residual: F.map(toPolar), rms: rms };
   }
 
-  root.NovaBalance = { compute: compute, predictResidual: predictResidual, computeFromSens: computeFromSens, predictFromSens: predictFromSens, solve: solve, _c: { polar: polar, toPolar: toPolar, csolve: csolve } };
+  /* Общий расчёт: у каждой плоскости (колонки) свой опорный пуск.
+     correctVib: [P]{amp,phase} — вибрация корректируемого пуска (что гасим).
+     columns: [M]{ mass, angle, trialVib:[P]{amp,phase}, refVib:[P]{amp,phase} }
+       влияние плоскости j = (V_trial − V_ref) / (mass·e^{iθ}) — груз, добавленный в пробном относительно ЕГО опорного. */
+  function columnsA(correctVib, columns) { var P = correctVib.length, M = columns.length, A = [], i, j;
+    for (i = 0; i < P; i++) { A[i] = []; for (j = 0; j < M; j++) { var c = columns[j];
+      var dv = csub(polar(c.trialVib[i].amp, c.trialVib[i].phase), polar(c.refVib[i].amp, c.refVib[i].phase));
+      A[i][j] = cdiv(dv, polar(c.mass, c.angle)); } } return A; }
+  function computeColumns(correctVib, columns) {
+    var V0 = correctVib.map(function (b) { return polar(b.amp, b.phase); }), A = columnsA(correctVib, columns), r = solve(V0, A);
+    var sens = []; for (var j = 0; j < columns.length; j++) { sens[j] = []; for (var i = 0; i < correctVib.length; i++) sens[j][i] = toPolar(A[i][j]); }
+    return { weights: r.weights.map(function (w) { var p = toPolar(w); return { mass: p.amp, angle: p.phase }; }), sens: sens, residual: r.residual.map(toPolar), rms: r.rms };
+  }
+  function predictColumns(correctVib, columns, cw) {
+    var V0 = correctVib.map(function (b) { return polar(b.amp, b.phase); }), A = columnsA(correctVib, columns), P = correctVib.length, M = columns.length, i, j;
+    var w = cw.map(function (c) { return polar(c.mass, c.angle); }), F = [];
+    for (i = 0; i < P; i++) { var f = { re: V0[i].re, im: V0[i].im }; for (j = 0; j < M; j++) f = cadd(f, cmul(A[i][j], w[j])); F[i] = f; }
+    var rms = Math.sqrt(F.reduce(function (a, c) { return a + cabs(c) * cabs(c); }, 0) / (F.length || 1));
+    return { residual: F.map(toPolar), rms: rms };
+  }
+
+  root.NovaBalance = { compute: compute, predictResidual: predictResidual, computeFromSens: computeFromSens, predictFromSens: predictFromSens, computeColumns: computeColumns, predictColumns: predictColumns, solve: solve, _c: { polar: polar, toPolar: toPolar, csolve: csolve } };
 })(typeof window !== 'undefined' ? window : globalThis);
