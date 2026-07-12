@@ -169,7 +169,7 @@
       svg+='<text x="'+cx+'" y="'+(cy+R*tilt*2+14)+'" font-size="9" fill="#86857e" text-anchor="middle">Опора '+s+'</text>';
     })(s); }
     svg+='</svg>';
-    return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;color:var(--hint)">3D · векторы влияния (база → пробный)</div><label style="font-size:11px;color:var(--hint)">поворот <input type="range" min="10" max="90" value="'+Math.round(tilt*100)+'" data-act="tilt" style="vertical-align:middle;width:90px"></label></div>'+svg+dirLegend()+'</div>';
+    return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;color:var(--hint)">3D · векторы (тускло → ярко, пунктир — разница)</div><label style="font-size:11px;color:var(--hint)">поворот <input type="range" min="10" max="90" value="'+Math.round(tilt*100)+'" data-act="tilt" style="vertical-align:middle;width:90px"></label></div>'+svg+dirLegend()+'</div>';
   }
 
   // ============ таблицы (как BPpro) ============
@@ -287,11 +287,16 @@
     if(S.mode==='asset') saveSession(); renderResultOnly(); }
 
   // ---- РЕЗУЛЬТАТ ----
+  function residRun(resid){ var r={vib:{}}; points().forEach(function(p,i){ r.vib[p.sup]=r.vib[p.sup]||{}; var v=resid[i]||{amp:0,phase:0}; r.vib[p.sup][p.dir]={amp:v.amp.toFixed(2),phase:v.phase.toFixed(0),src:''}; }); return r; }
   function resultHtml(){ var resid=(S._customRes?S._customRes.residual:S.calc.residual);
     var worst=Math.max.apply(null, resid.map(function(r){return r.amp;}).concat([0]));
     var ok=worst<=S.target;
+    var correct=runById(S.calc.correctId)||baseRun();
+    var rr=residRun(resid);
     var b=weightsTable();
     b+=residualTable(resid);
+    b+=iso3d(rr, correct);
+    b+='<div class="sec">Полярные · '+(correct.type==='base'?'базовый':'исходный')+' → остаток</div>'+polarGrid(rr, correct);
     b+='<div class="card" style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:12px;color:var(--hint)">Макс. остаток / допуск</div><div style="font-size:15px">'+worst.toFixed(2)+' / '+S.target+' мм/с</div></div><span class="verdict" style="background:var(--'+(ok?'ok':'warn')+');color:#1a1206">'+(ok?'Баланс достигнут':'Выше допуска')+'</span></div>';
     if(!ok) b+='<div class="hint" style="margin-top:-4px">Остаток выше допуска — добавьте плоскость и пробный пуск, затем пересчитайте с её учётом.</div>';
     b+='<div class="actions"><button data-act="toRuns">← Пуски / добавить плоскость</button><button data-act="recalcMenu">Пересчитать (выбор)</button>'+(S.mode==='asset'?'<button data-act="toHome">В историю</button>':'<button data-act="restart">↺ Новая</button>')+'</div>';
@@ -364,7 +369,7 @@
     else if(a==='newReuse'){ newSession(true); S.savedSens=latestSens(); S.step='config'; render(); }
   });
   document.getElementById('body').addEventListener('input', function(e){ var t=e.target;
-    if(t.getAttribute('data-act')==='tilt'){ S.tilt=(+t.value)/100; var host=t.closest('.card'); if(host){ var r=runById(S.activeRun), ref=(r&&r.type==='trial'&&r.refId)?runById(r.refId):null; host.outerHTML=iso3d(r,ref); } return; }
+    if(t.getAttribute('data-act')==='tilt'){ S.tilt=(+t.value)/100; render(); return; }
     var pl=t.getAttribute('data-pl'); if(pl!==null){ S.planes[+pl].name=t.value; return; }
     var a2=t.getAttribute('data-act2');
     if(a2==='target'){ S.target=parseFloat(t.value)||0; return; }
