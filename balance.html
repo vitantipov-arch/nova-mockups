@@ -191,6 +191,7 @@
 
   function renderConfig(){
     var body='';
+    if(S.mode==='asset') body+='<div class="card" style="border-color:var(--accent);background:rgba(255,143,61,.08)"><div style="font-size:12.5px;color:var(--accent)">По агрегату: '+(S.assetName||'')+'</div><div class="hint" style="margin-top:3px">Опоры, направления и плоскости взяты из структуры агрегата — при необходимости скорректируйте.</div></div>';
     body+='<div class="sec">Опоры и направления</div>';
     body+='<div class="row"><span class="k">Число опор</span>'+stepper('supports',S.supports,1,6)+'</div>';
     body+='<div class="row"><span class="k">Ориентация</span><div class="seg"><button class="'+(S.orient==='h'?'on':'')+'" data-act="orient" data-v="h">Горизонт.</button><button class="'+(S.orient==='v'?'on':'')+'" data-act="orient" data-v="v">Вертик.</button></div></div>';
@@ -342,9 +343,21 @@
     else if(S.step==='trial'){ if(S.trialIdx>0){ S.trialIdx--; render(); } else { S.step='base'; render(); } }
     else if(S.step==='result'){ S.step='trial'; S.trialIdx=S.nplanes-1; render(); }
     else if(S.step==='check'){ S.step='result'; render(); }
-    else location.href='index.html';
+    else location.href='balance-menu.html';
   });
   function syncPlanes(){ while(S.planes.length<S.nplanes) S.planes.push({id:S.planes.length+1,name:'Плоскость '+(S.planes.length+1)}); }
+
+  // ---- режим «по агрегату»: предзаполнение конфигурации из структуры агрегата ----
+  (function initAsset(){ var m=(location.search||'').match(/id=(\d+)/); if(!m) return; var idx=+m[1];
+    var list; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ list=[]; }
+    var it=list[idx]; if(!it) return; var agg; try{ agg=typeof it.agg==='string'?JSON.parse(it.agg):it.agg; }catch(e){ return; }
+    S.mode='asset'; S.assetName=(it.name||'Агрегат');
+    S.orient=(agg&&agg.orient==='v')?'v':'h';
+    var sup=0; (agg.units||[]).forEach(function(u){ sup+=(u.supports||[]).length; }); if(sup>0) S.supports=Math.max(1,Math.min(6,sup));
+    var planes=[]; (agg.units||[]).forEach(function(u){ (u.planes||[]).forEach(function(pl){ planes.push({id:pl.id,name:pl.name}); }); });
+    if(planes.length){ S.planes=planes; S.nplanes=Math.min(4,planes.length); }
+    var ttl=document.querySelector('.ttl'); if(ttl) ttl.textContent='Балансировка · '+S.assetName;
+  })();
 
   syncPlanes(); render();
 })();
