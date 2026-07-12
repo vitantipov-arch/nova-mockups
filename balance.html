@@ -78,6 +78,7 @@
 (function(){
   var polar=NovaBalance._c.polar, toPolar=NovaBalance._c.toPolar;
   function cadd(a,b){return {re:a.re+b.re,im:a.im+b.im};}
+  function csub(a,b){return {re:a.re-b.re,im:a.im-b.im};}
   function cmul(a,b){return {re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re};}
   function rnd(a,b){return a+Math.random()*(b-a);}
   function seededRand(seed){ var s=(seed>>>0)||1; return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
@@ -93,7 +94,8 @@
     target:4.5,
     runs:[], activeRun:null, calc:null, custom:null,
     tilt:0.45,                            // 3D наклон
-    sessionId:null, sessionNumber:null, sessionDate:null, sessionStatus:'активна', calculations:[], savedSens:null, reuse:false
+    sessionId:null, sessionNumber:null, sessionDate:null, sessionStatus:'активна', operator:'', comment:'', calculations:[], savedSens:null, reuse:false,
+    _calcLoadMode:'none'                   // Load_Influence_Vectors: none|add|sub
   };
   var truthV0=null, truthWt=null;
 
@@ -109,7 +111,10 @@
   function baseRun(){ return S.runs.filter(function(r){return r.type==='base';})[0]; }
   function trialRuns(){ return S.runs.filter(function(r){return r.type==='trial';}); }
   function runById(id){ for(var i=0;i<S.runs.length;i++) if(S.runs[i].id===id) return S.runs[i]; return null; }
-  function runLabel(r){ return r.type==='base'?'Пуск №0 (базовый)':('Пуск №'+r.num+' · '+(planeName(r.plane))); }
+  function runLabel(r){ if(r.type==='base') return 'Пуск №0 (базовый)'; if(r.type==='idle') return 'Пуск №'+r.num+' · холостой'; if(r.type==='work') return 'Пуск №'+r.num+' · рабочий'; return 'Пуск №'+r.num+' · '+planeName(r.plane); }
+  function idleRun(){ var a=S.runs.filter(function(r){return r.type==='idle'&&runFilled(r);}); return a.length?a[a.length-1]:null; }
+  function workRun(){ var a=S.runs.filter(function(r){return r.type==='work'&&runFilled(r);}); return a.length?a[a.length-1]:null; }
+  function hasLoadPair(){ return !!(idleRun()&&workRun()); }
   function planeName(id){ for(var i=0;i<S.planes.length;i++) if(S.planes[i].id===id) return S.planes[i].name; return id; }
 
   // ---- синтетическая «истинная» модель (демо-данные) ----
@@ -124,8 +129,10 @@
   }
   function cargoStateOf(run){ if(run.type==='base') return {}; var st={}, ref=runById(run.refId); if(ref) st=JSON.parse(JSON.stringify(cargoStateOf(ref))); if(run.cargo&&run.plane){ var w=polar(parseFloat(run.cargo.mass)||0,parseFloat(run.cargo.angle)||0); st[run.plane]=st[run.plane]?cadd(st[run.plane],w):w; } return st; }
   function noise(c){ var p=toPolar(c); return polar(p.amp*rnd(0.98,1.02), p.phase+rnd(-1.8,1.8)); }
+  function loadDriftAt(i){ var r=seededRand((((S._seed>>>0)*13+91)>>>0)+i*613); return polar(0.3+r()*0.9, r()*360); } // скрытый дрейф нагрузки/прогрева (рабочий пуск)
   function measureCell(run,sup,dir){ if(!truthV0) genTruth(); var pts=points(); var i=-1; pts.forEach(function(p,k){ if(p.sup===sup&&p.dir===dir) i=k; }); if(i<0) return;
     var st=cargoStateOf(run), f={re:truthV0[i].re,im:truthV0[i].im}; S.planes.forEach(function(pl){ if(st[pl.id]) f=cadd(f, cmul(truthAij(i,planeIdx(pl.id)), st[pl.id])); });
+    if(run.type==='work') f=cadd(f, loadDriftAt(i));
     var v=toPolar(noise(f)); run.vib[sup][dir]={amp:v.amp.toFixed(2),phase:v.phase.toFixed(0),src:'measured'}; }
   function measureSup(run,sup){ enabledDirs().forEach(function(d){ measureCell(run,sup,d.key); }); }
   function measureAll(run){ points().forEach(function(p){ measureCell(run,p.sup,p.dir); }); }
@@ -185,7 +192,7 @@
     return h+'</table></div>';
   }
   function weightsTable(){ // одна таблица: расчётные грузы, редактируемые (нерасчётные тут же)
-    var h='<div class="sec">Корректирующие грузы</div><div class="card" style="overflow-x:auto"><table class="bt"><tr><th class="lc" style="text-align:left">Плоскость</th><th>Масса, г</th><th>Угол</th></tr>';
+    var h='<div class="sec">Корректирующие грузы</div><div class="card" style="overflow-x:auto"><table class="bt"><tr><th class="lc" style="text-align:left">Плоскость</th><th>Масса</th><th>Угол</th></tr>';
     S.calc.planeIds.forEach(function(pid,i){ var cw=S.custom[i];
       h+='<tr><td class="lc">'+planeName(pid)+'</td><td class="wcell"><input data-cw="mass" data-i="'+i+'" value="'+cw.mass+'" inputmode="decimal"/></td><td class="wcell"><input data-cw="angle" data-i="'+i+'" value="'+cw.angle+'" inputmode="decimal"/><span style="color:var(--hint)">°</span></td></tr>';
     });
@@ -219,12 +226,18 @@
 
   // ---- RUNS (список пусков сессии) ----
   function renderRuns(){ var b='';
-    if(S.mode==='asset') b+='<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px"><div><div style="font-size:14px;font-weight:600">Сессия №'+S.sessionNumber+' <span style="font-size:11px;color:var(--hint)">'+S.sessionStatus+'</span></div><div class="hint">'+S.sessionDate+' · расчётов '+((S.calculations||[]).length)+(S.reuse?' · по коэффициентам':'')+'</div></div><button class="chip" data-act="toggleStatus" style="cursor:pointer">'+(S.sessionStatus==='завершена'?'Возобновить':'Завершить')+'</button></div>';
+    if(S.mode==='asset'){
+      b+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:14px;font-weight:600">Сессия №'+S.sessionNumber+' <span style="font-size:11px;color:var(--hint)">'+S.sessionStatus+'</span></div><button class="chip" data-act="toggleStatus" style="cursor:pointer">'+(S.sessionStatus==='завершена'?'Возобновить':'Завершить')+'</button></div>'
+        +'<div class="hint" style="margin:3px 0 8px">'+S.sessionDate+' · расчётов '+((S.calculations||[]).length)+(S.reuse?' · по коэффициентам':'')+'</div>'
+        +'<div class="plrow" style="margin-top:0"><input class="f" data-act2="operator" value="'+(S.operator||'').replace(/"/g,'&quot;')+'" placeholder="оператор"/></div>'
+        +'<div class="plrow"><input class="f" data-act2="comment" value="'+(S.comment||'').replace(/"/g,'&quot;')+'" placeholder="комментарий к сессии"/></div></div>';
+    }
     b+='<div class="sec">Пуски</div>';
     S.runs.forEach(function(r){ var done=runFilled(r);
-      b+='<div class="card" data-act="openRun" data-id="'+r.id+'" style="cursor:pointer;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:14px;font-weight:500">'+runLabel(r)+'</div><div class="hint" style="margin-top:2px">'+(r.type==='base'?'без грузов':('груз '+(r.cargo.mass||'—')+' г ∠ '+(r.cargo.angle||'—')+'° · опорный: '+(r.refId?runShort(runById(r.refId)):'—')))+' · '+(done?'снят':'не снят')+'</div></div><span style="color:'+(done?'var(--ok)':'var(--hint)')+'">'+(done?'✓':'›')+'</span></div>';
+      var sub = r.type==='base'?'без грузов' : (r.type==='trial'?('груз '+(r.cargo.mass||'—')+' ∠ '+(r.cargo.angle||'—')+'° · опорный: '+(r.refId?runShort(runById(r.refId)):'—')) : 'состояние машины');
+      b+='<div class="card" data-act="openRun" data-id="'+r.id+'" style="cursor:pointer;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:14px;font-weight:500">'+runLabel(r)+'</div><div class="hint" style="margin-top:2px">'+sub+' · '+(done?'снят':'не снят')+'</div></div><span style="color:'+(done?'var(--ok)':'var(--hint)')+'">'+(done?'✓':'›')+'</span></div>';
     });
-    if(!S.reuse) b+='<button class="chip" data-act="addTrial" style="cursor:pointer">＋ Пробный пуск</button>';
+    if(!S.reuse){ b+='<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="chip" data-act="addTrial" style="cursor:pointer">＋ Пробный</button><button class="chip" data-act="addState" data-v="idle" style="cursor:pointer">＋ Холостой</button><button class="chip" data-act="addState" data-v="work" style="cursor:pointer">＋ Рабочий</button></div>'; }
     else b+='<div class="hint">Режим по коэффициентам: нужен только базовый пуск.</div>';
     var canCalc = S.reuse ? (baseRun()&&runFilled(baseRun())&&!!S.savedSens) : (baseRun()&&runFilled(baseRun())&&trialRuns().some(function(r){return runFilled(r);}));
     document.getElementById('body').innerHTML=b; document.getElementById('sub').textContent='сессия · пуски';
@@ -238,7 +251,7 @@
     if(r.type==='trial'){
       b+='<div class="card"><div class="plrow" style="margin:0"><span class="k" style="flex:0 0 96px;color:var(--muted);font-size:13px">Плоскость</span><select class="f" data-act2="rplane" style="flex:1">'+S.planes.map(function(pl){return '<option value="'+pl.id+'"'+(pl.id===r.plane?' selected':'')+'>'+pl.name+'</option>';}).join('')+'</select></div>'
         +'<div class="plrow"><span class="k" style="flex:0 0 96px;color:var(--muted);font-size:13px">Опорный пуск</span><select class="f" data-act2="rref" style="flex:1">'+S.runs.filter(function(x){return x.id!==r.id;}).map(function(x){return '<option value="'+x.id+'"'+(x.id===r.refId?' selected':'')+'>'+runLabel(x)+'</option>';}).join('')+'</select></div>'
-        +'<div class="plrow"><span class="k" style="flex:0 0 96px;color:var(--muted);font-size:13px">Груз, г ∠ °</span><input class="f" data-act2="rmass" value="'+(r.cargo.mass||'')+'" placeholder="масса" inputmode="decimal"/><input class="f" data-act2="rangle" value="'+(r.cargo.angle||'')+'" placeholder="угол" inputmode="decimal"/></div>'
+        +'<div class="plrow"><span class="k" style="flex:0 0 96px;color:var(--muted);font-size:13px">Груз (масса ∠ °)</span><input class="f" data-act2="rmass" value="'+(r.cargo.mass||'')+'" placeholder="масса" inputmode="decimal"/><input class="f" data-act2="rangle" value="'+(r.cargo.angle||'')+'" placeholder="угол" inputmode="decimal"/></div>'
         +'<div class="hint">Опорный «нулевой» = груз сняли; предыдущий пробный = груз оставили и добавили этот.</div></div>';
     }
     // матрица замеров
@@ -270,6 +283,8 @@
     S.planes.forEach(function(pl){ var t=trialFor(pl.id); var has=t&&runFilled(t); var on=S._calcPlanes.indexOf(pl.id)>=0&&has;
       b+='<div class="row"><span class="k">'+pl.name+(has?'':' <span style="color:var(--warn);font-size:11px">нет пробного</span>')+'</span><div class="tog '+(on?'on':'')+'" data-act="cplane" data-id="'+pl.id+'" style="'+(has?'':'opacity:.4;pointer-events:none')+'"><div class="k"></div></div></div>'; });
     b+='</div><div class="hint">Каждая плоскость берётся из своего пробного пуска (относительно его опорного).</div>';
+    if(hasLoadPair()){ if(!S._calcLoadMode) S._calcLoadMode='none';
+      b+='<div class="sec">Вектор нагрузки/прогрева (холостой→рабочий)</div><div class="card"><div class="seg"><button class="'+(S._calcLoadMode==='none'?'on':'')+'" data-act="lmode" data-v="none">Не исп.</button><button class="'+(S._calcLoadMode==='add'?'on':'')+'" data-act="lmode" data-v="add">Сложение</button><button class="'+(S._calcLoadMode==='sub'?'on':'')+'" data-act="lmode" data-v="sub">Вычитание</button></div><div class="hint">ΔV = рабочий − холостой. Учесть дрейф нагрузки при коррекции корректируемого пуска.</div></div>'; }
     var ok=S._calcCorrect&&S._calcPlanes.filter(function(id){var t=trialFor(id);return t&&runFilled(t);}).length>0;
     document.getElementById('body').innerHTML=b; document.getElementById('sub').textContent='выбор для расчёта';
     setNext('Рассчитать грузы', ok);
@@ -278,23 +293,27 @@
   function trialFor(planeId){ var ts=trialRuns().filter(function(r){return r.plane===planeId&&runFilled(r);}); return ts.length?ts[ts.length-1]:null; }
   function trialRefVib(t){ var ref=runById(t.refId)||baseRun(); return vibFlat(ref); }
 
-  function computeCalc(correctId, planeIds){ var correct=runById(correctId)||baseRun();
+  // корректируемая вибрация с учётом вектора нагрузки/прогрева (Load_Influence_Vector = V_рабочий − V_холостой)
+  function adjustedCorrect(correct, mode){ var cv=vibFlat(correct); if(!mode||mode==='none'||!hasLoadPair()) return cv;
+    var iv=vibFlat(idleRun()), wv=vibFlat(workRun());
+    return cv.map(function(c,i){ var C=polar(c.amp,c.phase), dv=csub(polar(wv[i].amp,wv[i].phase), polar(iv[i].amp,iv[i].phase)); return toPolar(mode==='sub'?csub(C,dv):cadd(C,dv)); }); }
+  function computeCalc(correctId, planeIds, loadMode){ var correct=runById(correctId)||baseRun();
     var ids=(planeIds||[]).filter(function(id){var t=trialFor(id);return t&&runFilled(t);});
     var columns=ids.map(function(id){ var t=trialFor(id); return { mass:parseFloat(t.cargo.mass)||0, angle:parseFloat(t.cargo.angle)||0, trialVib:vibFlat(t), refVib:trialRefVib(t) }; });
-    var res=NovaBalance.computeColumns(vibFlat(correct), columns);
-    return { correctId:correct.id, planeIds:ids, weights:res.weights, sens:res.sens, residual:res.residual, rms:res.rms, columns:columns, reuse:false }; }
-  function reuseCalc(){ var base=baseRun(), res=NovaBalance.computeFromSens(points().length, vibFlat(base), S.savedSens);
-    return { correctId:base.id, planeIds:S.planes.map(function(p){return p.id;}), weights:res.weights, sens:res.sens, residual:res.residual, rms:res.rms, reuse:true }; }
+    var cvib=adjustedCorrect(correct, loadMode||'none'), res=NovaBalance.computeColumns(cvib, columns);
+    return { correctId:correct.id, planeIds:ids, weights:res.weights, sens:res.sens, residual:res.residual, rms:res.rms, columns:columns, correctVib:cvib, loadMode:loadMode||'none', reuse:false }; }
+  function reuseCalc(){ var base=baseRun(), cvib=adjustedCorrect(base, S._calcLoadMode), res=NovaBalance.computeFromSens(points().length, cvib, S.savedSens);
+    return { correctId:base.id, planeIds:S.planes.map(function(p){return p.id;}), weights:res.weights, sens:res.sens, residual:res.residual, rms:res.rms, correctVib:cvib, loadMode:S._calcLoadMode, reuse:true }; }
   function doCalc(){
-    S.calc = (S.reuse&&S.savedSens) ? reuseCalc() : computeCalc(S._calcCorrect, S._calcPlanes);
+    S.calc = (S.reuse&&S.savedSens) ? reuseCalc() : computeCalc(S._calcCorrect, S._calcPlanes, S._calcLoadMode);
     S.custom=S.calc.weights.map(function(w){ return {mass:w.mass.toFixed(2), angle:w.angle.toFixed(0)}; });
     S._customRes=null;
     if(S.mode==='asset') addCalculation();
     S.step='result'; render();
   }
   function recalc(){ var cw=S.custom.map(function(c){return {mass:parseFloat(c.mass)||0,angle:parseFloat(c.angle)||0};});
-    S._customRes = S.calc.reuse ? NovaBalance.predictFromSens(points().length, vibFlat(baseRun()), S.calc.sens, cw)
-                                : NovaBalance.predictColumns(vibFlat(runById(S.calc.correctId)), S.calc.columns, cw);
+    S._customRes = S.calc.reuse ? NovaBalance.predictFromSens(points().length, S.calc.correctVib, S.calc.sens, cw)
+                                : NovaBalance.predictColumns(S.calc.correctVib, S.calc.columns, cw);
     if(S.mode==='asset') updateLastCalc(); renderResultOnly(); }
 
   // ---- РЕЗУЛЬТАТ ----
@@ -326,27 +345,28 @@
   // запись всей сессии-кампании (config + пуски + расчёты)
   function saveSession(){ if(S.mode!=='asset'||!S.sessionId) return; var l=assetList(), it=l[S.assetId]; if(!it) return; it.balancing=it.balancing||[];
     var rec={ id:S.sessionId, number:S.sessionNumber, date:S.sessionDate, status:S.sessionStatus, seed:S._seed,
-      supports:S.supports, measMode:S.measMode, target:S.target,
+      operator:S.operator||'', comment:S.comment||'', supports:S.supports, measMode:S.measMode, target:S.target,
       dirs:JSON.parse(JSON.stringify(S.dirs)), planes:JSON.parse(JSON.stringify(S.planes)),
       runs:JSON.parse(JSON.stringify(S.runs)), calculations:JSON.parse(JSON.stringify(S.calculations||[])) };
     var idx=-1; for(var i=0;i<it.balancing.length;i++) if(it.balancing[i].id===S.sessionId) idx=i;
     if(idx>=0) it.balancing[idx]=rec; else it.balancing.push(rec);
     try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} }
   function addCalculation(){ S.calculations=S.calculations||[]; S.calculations.push({ id:'c'+Date.now(), date:nowStr(),
-    correctId:S.calc.correctId, planeIds:S.calc.planeIds.slice(), reuse:!!S.calc.reuse, sens:S.calc.sens,
+    correctId:S.calc.correctId, planeIds:S.calc.planeIds.slice(), reuse:!!S.calc.reuse, loadMode:S.calc.loadMode||'none', sens:S.calc.sens,
     weights:S.calc.weights, residRms:S.calc.rms, baseRms:baseRun()?rmsOf(vibFlat(baseRun())):null }); saveSession(); }
   function updateLastCalc(){ if(!S.calculations||!S.calculations.length) return; var c=S.calculations[S.calculations.length-1];
     c.weights=S.custom.map(function(x){return {mass:parseFloat(x.mass)||0,angle:parseFloat(x.angle)||0};}); if(S._customRes) c.residRms=S._customRes.rms; saveSession(); }
   function newSession(reuse){ var ss=getSessions(), num=1; ss.forEach(function(s){ if(s.number>=num) num=s.number+1; });
-    S.sessionId='bs'+Date.now(); S.sessionNumber=num; S.sessionDate=nowStr(); S.sessionStatus='активна'; S.reuse=!!reuse; S.calculations=[];
+    S.sessionId='bs'+Date.now(); S.sessionNumber=num; S.sessionDate=nowStr(); S.sessionStatus='активна'; S.reuse=!!reuse; S.calculations=[]; S.comment=''; S._calcLoadMode='none';
     S.runs=[]; S.calc=null; S.custom=null; S._customRes=null; S._calcCorrect=null; S._calcPlanes=null; S._seed=Math.floor(rnd(1,1e6)); truthV0=null; addBase(); }
+  function delSession(idx){ var ss=getSessions(); var s=ss[idx]; if(!s) return; if(!confirm('Удалить сессию №'+(s.number||'?')+'?')) return; var l=assetList(), it=l[S.assetId]; if(!it||!it.balancing) return; it.balancing.splice(idx,1); try{ localStorage.setItem('nova_list', JSON.stringify(l)); }catch(e){} render(); }
   function openSession(idx){ var s=getSessions()[idx]; if(!s) return;
     S.sessionId=s.id; S.sessionNumber=s.number; S.sessionDate=s.date; S.sessionStatus=s.status||'активна';
-    S.supports=s.supports; S.measMode=s.measMode||'3ch'; if(s.target!=null) S.target=s.target;
+    S.supports=s.supports; S.measMode=s.measMode||'3ch'; if(s.target!=null) S.target=s.target; S.operator=s.operator||''; S.comment=s.comment||'';
     if(s.dirs) S.dirs=JSON.parse(JSON.stringify(s.dirs)); if(s.planes) S.planes=JSON.parse(JSON.stringify(s.planes));
     S.runs=JSON.parse(JSON.stringify(s.runs||[])); S.calculations=JSON.parse(JSON.stringify(s.calculations||[])); S._seed=s.seed||Math.floor(rnd(1,1e6)); truthV0=null;
-    var c=lastCalc(s); S.reuse=c?!!c.reuse:false;
-    if(c){ S.calc=c.reuse ? reuseCalc() : computeCalc(c.correctId, c.planeIds); S._calcCorrect=c.correctId; S._calcPlanes=(c.planeIds||[]).slice();
+    var c=lastCalc(s); S.reuse=c?!!c.reuse:false; S._calcLoadMode=c?(c.loadMode||'none'):'none';
+    if(c){ S.calc=c.reuse ? reuseCalc() : computeCalc(c.correctId, c.planeIds, c.loadMode); S._calcCorrect=c.correctId; S._calcPlanes=(c.planeIds||[]).slice();
       S.custom=(c.weights||S.calc.weights).map(function(w){return {mass:(w.mass||0).toFixed(2),angle:Math.round(w.angle||0)+''};}); S._customRes=null; S.step='result'; }
     else S.step='runs';
     render();
@@ -359,15 +379,17 @@
     b+='<div class="sec">Сессии ('+ss.length+')</div>';
     if(!ss.length) b+='<div class="hint">Сессий пока нет.</div>';
     else b+=ss.map(function(s,i){return {s:s,i:i};}).reverse().map(function(o){ var s=o.s, c=lastCalc(s), to=c?c.residRms:null, base=c?c.baseRms:null, ok=(to!=null&&to<=S.target);
-      var w=(c&&c.weights)?c.weights.map(function(x,j){ var pid=c.planeIds&&c.planeIds[j], pn=(s.planes||[]).filter(function(p){return p.id===pid;})[0]; return (pn?pn.name+' ':'')+x.mass.toFixed(1)+'г∠'+Math.round(x.angle)+'°'; }).join(' · '):'нет расчёта';
-      return '<div class="card" data-act="openSession" data-i="'+o.i+'" style="cursor:pointer"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:13.5px;font-weight:500">Сессия №'+(s.number||'?')+' <span style="font-size:11px;color:var(--hint)">'+(s.status||'')+'</span></div>'+(to!=null?'<span class="verdict" style="background:var(--'+(ok?'ok':'warn')+');color:#1a1206">'+(base!=null?base.toFixed(1):'—')+' → '+to.toFixed(1)+'</span>':'<span class="chip" style="padding:2px 8px">черновик</span>')+'</div><div class="hint" style="margin-top:3px">'+s.date+' · пусков '+((s.runs||[]).length)+' · расчётов '+((s.calculations||[]).length)+'</div><div class="hint">'+w+'</div></div>'; }).join('');
+      var w=(c&&c.weights)?c.weights.map(function(x,j){ var pid=c.planeIds&&c.planeIds[j], pn=(s.planes||[]).filter(function(p){return p.id===pid;})[0]; return (pn?pn.name+' ':'')+x.mass.toFixed(1)+'∠'+Math.round(x.angle)+'°'; }).join(' · '):'нет расчёта';
+      return '<div class="card" data-act="openSession" data-i="'+o.i+'" style="cursor:pointer"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-size:13.5px;font-weight:500">Сессия №'+(s.number||'?')+' <span style="font-size:11px;color:var(--hint)">'+(s.status||'')+'</span></div><div style="display:flex;align-items:center;gap:8px">'+(to!=null?'<span class="verdict" style="background:var(--'+(ok?'ok':'warn')+');color:#1a1206">'+(base!=null?base.toFixed(1):'—')+' → '+to.toFixed(1)+'</span>':'<span class="chip" style="padding:2px 8px">черновик</span>')+'<span data-act="delSession" data-i="'+o.i+'" style="color:var(--danger);cursor:pointer;padding:2px 6px">✕</span></div></div><div class="hint" style="margin-top:3px">'+s.date+(s.operator?(' · '+s.operator):'')+' · пусков '+((s.runs||[]).length)+' · расчётов '+((s.calculations||[]).length)+'</div>'+(s.comment?'<div class="hint" style="font-style:italic">'+s.comment+'</div>':'')+'<div class="hint">'+w+'</div></div>'; }).join('');
     document.getElementById('body').innerHTML=b; document.getElementById('sub').textContent='сессии балансировки'; setNext('',false);
   }
 
   // ---- пуски: создание ----
+  function nextNum(){ var n=0; S.runs.forEach(function(r){ if(r.num>n) n=r.num; }); return n+1; }
   function addBase(){ var r={id:'r'+Date.now()+Math.floor(rnd(0,999)), num:0, type:'base', refId:null, plane:null, cargo:null, vib:{}}; ensureVib(r); S.runs.push(r); }
-  function addTrial(){ var n=trialRuns().length+1, defPlane=S.planes[Math.min(n-1,S.planes.length-1)].id;
-    var r={id:'r'+Date.now()+Math.floor(rnd(0,999)), num:n, type:'trial', refId:baseRun().id, plane:defPlane, cargo:{mass:'',angle:''}, vib:{}}; ensureVib(r); S.runs.push(r); return r; }
+  function addTrial(){ var defPlane=S.planes[Math.min(trialRuns().length,S.planes.length-1)].id;
+    var r={id:'r'+Date.now()+Math.floor(rnd(0,999)), num:nextNum(), type:'trial', refId:baseRun().id, plane:defPlane, cargo:{mass:'',angle:''}, vib:{}}; ensureVib(r); S.runs.push(r); return r; }
+  function addState(type){ var r={id:'r'+Date.now()+Math.floor(rnd(0,999)), num:nextNum(), type:type, refId:null, plane:null, cargo:null, vib:{}}; ensureVib(r); S.runs.push(r); return r; }
 
   // ============ рендер + события ============
   function render(){ stepsInfo();
@@ -388,6 +410,9 @@
     else if(a==='delplane'){ if(S.planes.length>1) S.planes.splice(+t.getAttribute('data-i'),1); render(); }
     else if(a==='openRun'){ S.activeRun=t.getAttribute('data-id'); S.step='run'; render(); }
     else if(a==='addTrial'){ var r=addTrial(); S.activeRun=r.id; S.step='run'; render(); }
+    else if(a==='addState'){ var r=addState(t.getAttribute('data-v')); S.activeRun=r.id; S.step='run'; render(); }
+    else if(a==='lmode'){ S._calcLoadMode=t.getAttribute('data-v'); render(); }
+    else if(a==='delSession'){ delSession(+t.getAttribute('data-i')); }
     else if(a==='measSup'){ measureSup(runById(S.activeRun),+t.getAttribute('data-s')); render(); }
     else if(a==='measCell'){ measureCell(runById(S.activeRun),+t.getAttribute('data-s'),t.getAttribute('data-d')); render(); }
     else if(a==='measAll'){ measureAll(runById(S.activeRun)); render(); }
@@ -407,6 +432,8 @@
     var pl=t.getAttribute('data-pl'); if(pl!==null){ S.planes[+pl].name=t.value; return; }
     var a2=t.getAttribute('data-act2');
     if(a2==='target'){ S.target=parseFloat(t.value)||0; return; }
+    if(a2==='operator'){ S.operator=t.value; try{localStorage.setItem('nova_operator',t.value);}catch(e){} if(S.mode==='asset') saveSession(); return; }
+    if(a2==='comment'){ S.comment=t.value; if(S.mode==='asset') saveSession(); return; }
     if(a2==='rmass'){ runById(S.activeRun).cargo.mass=t.value; return; }
     if(a2==='rangle'){ runById(S.activeRun).cargo.angle=t.value; return; }
     if(a2==='ccorrect'){ S._calcCorrect=t.value; return; }
@@ -442,6 +469,7 @@
     var list; try{ list=JSON.parse(localStorage.getItem('nova_list'))||[]; }catch(e){ list=[]; }
     var it=list[idx]; if(!it) return; var agg; try{ agg=typeof it.agg==='string'?JSON.parse(it.agg):it.agg; }catch(e){ return; }
     S.mode='asset'; S.assetId=idx; S.assetName=(it.name||'Агрегат'); S.step='home';
+    try{ S.operator=localStorage.getItem('nova_operator')||''; }catch(e){}
     var sup=0; (agg.units||[]).forEach(function(u){ sup+=(u.supports||[]).length; }); if(sup>0) S.supports=sup;
     var planes=[]; (agg.units||[]).forEach(function(u){ (u.planes||[]).forEach(function(pl){ planes.push({id:pl.id,name:pl.name}); }); });
     if(planes.length) S.planes=planes;
