@@ -30,10 +30,14 @@
   .aname{font-size:15px;font-weight:500;}
   .asub{font-size:12.5px;color:var(--hint);margin-top:2px;}
   .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 16px;border:0.5px dashed var(--border2);border-radius:12px;color:var(--hint);font-size:13px;text-align:center;}
-  .navbar{display:flex;justify-content:space-around;padding:10px 6px 16px;border-top:0.5px solid var(--border);}
-  .nav{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--hint);font-size:11px;cursor:pointer;}
-  .nav.on{color:var(--info);}
-  .nav .ti{font-size:23px;}
+  /* единая нижняя панель (одинакова на index/measure/balance-menu) */
+  .navbar{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border,rgba(255,255,255,.12));background:var(--tabbar,var(--bg,#141413));padding:9px 0 8px;text-align:center;}
+  .nav{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:#86857e;}
+  .nav svg{width:20px;height:20px;}
+  .nav .lbl{font-size:10.5px;}
+  .nav.on{color:#85b7eb;font-weight:600;}
+  .mitem{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:10px;cursor:pointer;font-size:15px;color:var(--text);}
+  .mitem:active{background:var(--secondary);}
   .backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;}
   .backdrop.on{opacity:1;pointer-events:auto;}
   .sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--primary);border-top-left-radius:18px;border-top-right-radius:18px;border-top:0.5px solid var(--border);padding:14px 16px 24px;transform:translateY(110%);transition:transform .25s;z-index:11;max-height:85vh;overflow-y:auto;}
@@ -69,11 +73,11 @@
   </div>
 
   <div class="navbar">
-    <div class="nav" onclick="location.href='index.html'"><i class="ti ti-box"></i><span>Агрегаты</span></div>
-    <div class="nav" onclick="location.href='measure.html'"><i class="ti ti-activity"></i><span>Измерение</span></div>
-    <div class="nav on"><i class="ti ti-scale"></i><span>Баланс.</span></div>
-    <div class="nav"><i class="ti ti-chart-bar"></i><span>Диагност.</span></div>
-    <div class="nav"><i class="ti ti-settings"></i><span>Настройки</span></div>
+    <div class="nav" onclick="location.href='index.html'"><svg viewBox="0 0 20 20"><g fill="currentColor"><rect x="2" y="2" width="7" height="7" rx="2"/><rect x="11" y="2" width="7" height="7" rx="2"/><rect x="2" y="11" width="7" height="7" rx="2"/><rect x="11" y="11" width="7" height="7" rx="2"/></g></svg><span class="lbl">Агрегаты</span></div>
+    <div class="nav" onclick="location.href='measure.html'"><svg viewBox="0 0 20 20"><g fill="currentColor"><rect x="2" y="9" width="3.2" height="9" rx="1.5"/><rect x="7" y="3" width="3.2" height="15" rx="1.5"/><rect x="12" y="6" width="3.2" height="12" rx="1.5"/></g></svg><span class="lbl">Измерение</span></div>
+    <div class="nav on"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14.7" cy="6.6" r="2.1" fill="currentColor"/></svg><span class="lbl">Баланс.</span></div>
+    <div class="nav" onclick="alert('Диагностика — модуль в разработке')"><svg viewBox="0 0 20 20"><polyline points="2,13 7,8 11,11 18,4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="lbl">Диагност.</span></div>
+    <div class="nav" onclick="openMore()"><svg viewBox="0 0 20 20"><g fill="currentColor"><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="16" cy="10" r="1.8"/></g></svg><span class="lbl">Ещё</span></div>
   </div>
 </div>
 
@@ -85,6 +89,22 @@
   function getSensors(){ try{ return JSON.parse(localStorage.getItem('nova_sensors'))||null; }catch(e){ return null; } }
   function openSheet(html){ var s=document.getElementById('sheet'); s.innerHTML=html; s.classList.add('on'); document.getElementById('backdrop').classList.add('on'); }
   function closeSheet(){ document.getElementById('sheet').classList.remove('on'); document.getElementById('backdrop').classList.remove('on'); }
+  // меню «Ещё» — единое на index/measure/balance-menu
+  function openMore(){ openSheet('<h3>База данных</h3><div class="mitem" onclick="loadTestDb()">Загрузить тестовую БД</div><div class="mitem" onclick="exportDb()">Экспорт БД (db.json)</div>'); }
+  function pj(v,d){ try{ return typeof v==='string'?JSON.parse(v):(v||d); }catch(e){ return d; } }
+  function getTpls(k){ try{ return JSON.parse(localStorage.getItem(k))||[]; }catch(e){ return []; } }
+  function loadTestDb(){ var cur=getList(); if(cur.length && !confirm('Заменить текущий список ('+cur.length+') тестовой БД?')) return;
+    fetch('db.json',{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
+      var aggs=Array.isArray(data)?data:((data&&data.aggregates)||[]);
+      var list=aggs.map(function(e){ return { name:e.name||'Агрегат', agg:typeof e.agg==='string'?e.agg:JSON.stringify(e.agg||{}), defects:typeof e.defects==='string'?e.defects:JSON.stringify(e.defects||[]), program:typeof e.program==='string'?e.program:JSON.stringify(e.program||{points:[]}) }; });
+      localStorage.setItem('nova_list', JSON.stringify(list));
+      if(!Array.isArray(data)&&data){ if(data.opTemplates) localStorage.setItem('nova_op_templates',JSON.stringify(data.opTemplates)); if(data.methodSets) localStorage.setItem('nova_method_sets',JSON.stringify(data.methodSets)); if(data.sessions) localStorage.setItem('nova_sessions',JSON.stringify(data.sessions)); }
+      closeSheet();
+    }).catch(function(err){ alert('Не удалось загрузить db.json (нужен http-сервер): '+err); }); }
+  function exportDb(){ var list=getList(); var aggs=list.map(function(it){ return { name:it.name||'Агрегат', agg:pj(it.agg,{}), defects:pj(it.defects,[]), program:pj(it.program,{points:[]}) }; });
+    var ops=getTpls('nova_op_templates'), sets=getTpls('nova_method_sets'), sess=getTpls('nova_sessions');
+    var out=(ops.length||sets.length||sess.length)?{aggregates:aggs,opTemplates:ops,methodSets:sets,sessions:sess}:aggs;
+    var blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='db.json'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },100); }
 
   function renderSensor(){ var s=getSensors(), el=document.getElementById('sensorCard');
     if(s&&s.vibro){ el.innerHTML='<span class="sdot" style="background:var(--success)"></span><div style="flex:1"><div style="font-size:14px">'+(s.name||'VibroGyro')+' подключён</div><div style="font-size:12px;color:var(--hint)">батарея '+(s.batt||80)+'% · '+(s.tacho?'тахо ✓ (фаза)':'тахо — (нужен для фазы)')+'</div></div><i class="ti ti-chevron-right" style="color:var(--hint)"></i>'; }
