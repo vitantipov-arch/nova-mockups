@@ -123,5 +123,20 @@
     return { residual: F.map(toPolar), rms: rms };
   }
 
-  root.NovaBalance = { compute: compute, predictResidual: predictResidual, solve: solve, _c: { polar: polar, toPolar: toPolar, csolve: csolve } };
+  // матрица влияния из сохранённых коэффициентов чувствительности (sens[plane][point] полярные)
+  function sensToA(points, sens) { var A = [], i, j; for (i = 0; i < points; i++) { A[i] = []; for (j = 0; j < sens.length; j++) A[i][j] = polar(sens[j][i].amp, sens[j][i].phase); } return A; }
+  /* Расчёт по СОХРАНЁННЫМ коэффициентам (без пробных пусков): только базовый пуск + матрица влияния. */
+  function computeFromSens(points, base, sens) {
+    var V0 = base.map(function (b) { return polar(b.amp, b.phase); }), A = sensToA(points, sens), r = solve(V0, A);
+    return { weights: r.weights.map(function (w) { var p = toPolar(w); return { mass: p.amp, angle: p.phase }; }), sens: sens, residual: r.residual.map(toPolar), rms: r.rms, alpha: r.alpha };
+  }
+  function predictFromSens(points, base, sens, cw) {
+    var V0 = base.map(function (b) { return polar(b.amp, b.phase); }), A = sensToA(points, sens), i, j;
+    var w = cw.map(function (c) { return polar(c.mass, c.angle); }), F = [];
+    for (i = 0; i < points; i++) { var f = { re: V0[i].re, im: V0[i].im }; for (j = 0; j < sens.length; j++) f = cadd(f, cmul(A[i][j], w[j])); F[i] = f; }
+    var rms = Math.sqrt(F.reduce(function (a, c) { return a + cabs(c) * cabs(c); }, 0) / (F.length || 1));
+    return { residual: F.map(toPolar), rms: rms };
+  }
+
+  root.NovaBalance = { compute: compute, predictResidual: predictResidual, computeFromSens: computeFromSens, predictFromSens: predictFromSens, solve: solve, _c: { polar: polar, toPolar: toPolar, csolve: csolve } };
 })(typeof window !== 'undefined' ? window : globalThis);
