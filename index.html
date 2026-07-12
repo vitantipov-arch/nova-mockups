@@ -97,7 +97,7 @@
          border-radius:12px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;font-size:13.5px;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:5;}
   .toast .undo{font-weight:700;color:var(--st-red);cursor:pointer;padding:2px 4px;}
   /* Таб-бар */
-  .tabs{flex:none;display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border);background:var(--tabbar);padding:9px 0 6px;text-align:center;}
+  .tabs{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border);background:var(--tabbar);padding:9px 0 6px;text-align:center;}
   .tab{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
   .tab .lbl{font-size:10.5px;}
   .tab.active .lbl{font-weight:600;color:var(--text);}
@@ -156,6 +156,14 @@
     <div class="tab idle" onclick="location.href='measure.html'">
       <svg width="20" height="20" viewBox="0 0 20 20"><g fill="var(--text-3)"><rect x="2" y="9" width="3.2" height="9" rx="1.5"/><rect x="7" y="3" width="3.2" height="15" rx="1.5"/><rect x="12" y="6" width="3.2" height="12" rx="1.5"/></g></svg>
       <span class="lbl">Измерение</span>
+    </div>
+    <div class="tab idle" onclick="location.href='balance-menu.html'">
+      <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.2" fill="none" stroke="var(--text-3)" stroke-width="1.6"/><circle cx="14.7" cy="6.6" r="2.1" fill="var(--text-3)"/></svg>
+      <span class="lbl">Баланс.</span>
+    </div>
+    <div class="tab idle">
+      <svg width="20" height="20" viewBox="0 0 20 20"><polyline points="2,13 7,8 11,11 18,4" fill="none" stroke="var(--text-3)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <span class="lbl">Диагност.</span>
     </div>
     <div class="tab idle" onclick="openMore()">
       <svg width="20" height="20" viewBox="0 0 20 20"><g fill="var(--text-3)"><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="16" cy="10" r="1.8"/></g></svg>
